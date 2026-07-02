@@ -1,0 +1,2783 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P.KTTC — Hệ thống quản lý Phòng Kỹ Thuật Thi Công</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="logo.js"></script>
+<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="modules/lpb.css?v=2">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="icon-ios.png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Premium UI Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <header class="app-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" onclick="toggleNav()" aria-label="Menu">☰</button>
+      <img src="Logo HPC.png" class="header-logo" alt="P.KTTC" style="height:32px">
+    </div>
+    <div class="header-center" style="flex:1; display:flex; justify-content:center; align-items:center;">
+      <select id="cur-project" title="Công trình" style="width: auto; max-width: 100%; font-weight: 600; padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; transition: width 0.15s ease;"></select>
+      <select id="cur-user" title="Người nhập" style="display:none"></select>
+    </div>
+    <div class="header-right" style="display:flex;align-items:center;gap:12px">
+      <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="background:transparent; border:none; font-size:20px; cursor:pointer; padding:4px; border-radius:50%; transition:all 0.3s;" title="Bật/Tắt chế độ Ban đêm">🌙</button>
+      <div class="header-date" style="background:#F4F7FB; border:1px solid #E2E8F0; border-radius:20px; padding:6px 14px; font-size:13px; font-weight:600; color:#475569; display:flex; align-items:center; gap:6px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#64748B"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <span id="header-date"></span>
+      </div>
+      <div class="header-user" id="user-chip" style="display:none; padding:4px 8px 4px 4px; border:1px solid transparent; border-radius:24px; transition:all 0.2s; background:#fff" onclick="openAccount()" title="Tài khoản / Đổi mật khẩu">
+        <div class="ava" id="user-ava" style="width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">?</div>
+        <div style="text-align:left"><div class="un" id="user-name" style="font-size:13px;font-weight:700;color:var(--text-strong);line-height:1.2;margin-bottom:1px">-</div><div class="ur" id="user-role" style="font-size:11px;color:var(--muted);line-height:1">-</div>      </div>
+    </div>
+    </div>
+  </header>
+
+<div class="layout">
+<aside class="sidebar" id="sidebar">
+  <style>
+    /* Scoped overrides to match the requested simple clean design in the screenshot */
+    #sidebar {
+      background-color: #1F2937 !important;
+      height: calc(100vh - 54px) !important;
+      overflow-y: auto !important;
+    }
+    #sidebar .side-brand {
+      padding: 24px 20px 18px !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      margin-bottom: 10px !important;
+    }
+    #sidebar .side-nav {
+      padding: 16px 12px !important;
+      gap: 6px !important;
+    }
+    #sidebar .nav-group {
+      font-size: 11px !important;
+      letter-spacing: 1.5px !important;
+      color: #6B7280 !important;
+      padding: 16px 12px 6px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+    }
+    #sidebar .nav-btn {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      width: 100% !important;
+      padding: 10px 14px !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 8px !important;
+      color: #9CA3AF !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      position: relative !important;
+      box-shadow: none !important;
+      border-left: none !important;
+      transition: all 0.2s ease !important;
+    }
+    #sidebar .nav-btn svg {
+      width: 18px !important;
+      height: 18px !important;
+      stroke-width: 2px !important;
+      color: #9CA3AF !important;
+      transition: color 0.2s ease !important;
+    }
+    #sidebar .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: #F3F4F6 !important;
+    }
+    #sidebar .nav-btn:hover svg {
+      color: #F3F4F6 !important;
+    }
+    #sidebar .nav-btn.active {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      box-shadow: none !important;
+    }
+    #sidebar .nav-btn.active svg {
+      color: var(--accent) !important;
+    }
+    #sidebar .nav-btn::before,
+    #sidebar .nav-btn.active::before {
+      display: none !important;
+    }
+    #sidebar #side-brand-sub {
+      color: var(--accent) !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 1.5px !important;
+      line-height: 1.2 !important;
+      margin-bottom: 6px !important;
+      transition: color 0.2s ease !important;
+    }
+    #sidebar #side-brand-name {
+      font-size: 24px !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.5px !important;
+      color: #ffffff !important;
+      text-transform: uppercase !important;
+      line-height: 1.15 !important;
+      transition: font-size 0.2s ease !important;
+    }
+  </style>
+  <div class="side-brand">
+    <div id="side-brand-sub">PHÒNG KỸ THUẬT</div>
+    <div id="side-brand-name">THI CÔNG</div>
+  </div>
+  <nav class="side-nav">
+    <div class="nav-group">Điều hành</div>
+    <button class="nav-btn active" data-tab="dieuhanh">
+      <i data-lucide="layout-dashboard" class="side-icon"></i>
+      <span class="nav-text">Dashboard</span>
+    </button>
+    <button class="nav-btn" data-tab="thicong">
+      <i data-lucide="hard-hat" class="side-icon"></i>
+      <span class="nav-text">Bộ Phận Thi Công</span>
+    </button>
+
+    <div class="nav-group">Chuyên môn</div>
+    <button class="nav-btn" data-tab="qaqc">
+      <i data-lucide="check-square" class="side-icon"></i>
+      <span class="nav-text">Bộ Phận QA-QC</span>
+    </button>
+    <button class="nav-btn" data-tab="hse">
+      <i data-lucide="shield-alert" class="side-icon"></i>
+      <span class="nav-text">Bộ Phận HSE</span>
+    </button>
+    <button class="nav-btn" data-tab="shopdrawing">
+      <i data-lucide="pen-tool" class="side-icon"></i>
+      <span class="nav-text">Bộ Phận Shopdrawing</span>
+    </button>
+    <button class="nav-btn" data-tab="baotri">
+      <i data-lucide="wrench" class="side-icon"></i>
+      <span class="nav-text">Bộ Phận Bảo Trì</span>
+    </button>
+
+    <div class="nav-group">Phân tích</div>
+    <button class="nav-btn" data-tab="ai-center">
+      <i data-lucide="sparkles" class="side-icon"></i>
+      <span class="nav-text">AI Center</span>
+    </button>
+    <button class="nav-btn" data-tab="hethong">
+      <i data-lucide="settings" class="side-icon"></i>
+      <span class="nav-text">Hệ thống</span>
+    </button>
+  </nav>
+  <div class="side-foot" style="display:flex; flex-direction:column; gap:8px; padding:12px 20px;">
+    <button id="pwa-install-btn" class="nav-btn hide" style="background:#10b981 !important; color:#fff !important; font-weight:700 !important; cursor:pointer !important; display:flex !important; align-items:center !important; justify-content:center !important; width:100% !important; border:none; border-radius:8px; padding:10px 14px;">
+      <i data-lucide="download" class="side-icon"></i>
+      <span class="nav-text">Tải ứng dụng</span>
+    </button>
+    <span id="sync-pill" class="pill pill-sync" style="align-self:flex-start;background:rgba(255,255,255,0.1);color:#fff;border-radius:12px;padding:6px 12px;font-size:12px">Synced</span>
+  </div>
+</aside>
+
+<div class="sidebar-scrim" id="sidebar-scrim" onclick="toggleNav()"></div>
+<div class="main">
+<div class="breadcrumb" id="breadcrumb" style="display:none">Trang chủ</div>
+<div id="subnav-thicong" class="subnav-tabs hide">
+  <button class="sub-tab-btn" data-tab="tc-dashboard">Dashboard Thi công</button>
+  <button class="sub-tab-btn" data-tab="tc-duan">Danh sách Dự án</button>
+  <button class="sub-tab-btn" data-tab="tc-nhansu">Nhân sự</button>
+  <button class="sub-tab-btn" data-tab="tc-themduan">Thêm Dự án</button>
+  <button class="sub-tab-btn" data-tab="tc-muctieu">Mục tiêu</button>
+</div>
+
+<div id="subnav-project" class="subnav-tabs hide">
+  <button class="sub-tab-btn" onclick="exitProjectMode()" style="background:var(--danger);color:white;border-radius:4px;padding:4px 12px;margin-right:8px;font-weight:bold">⬅ Quay lại</button>
+  <button class="sub-tab-btn" data-tab="dashboard">Tổng quan dự án</button>
+  
+  <button class="sub-tab-btn" data-tab="baocaongay-new">Báo cáo ngày</button>
+  <button class="sub-tab-btn" data-tab="baocao">Tổng hợp báo cáo</button>
+  <button class="sub-tab-btn" data-tab="tiendo">Tiến độ</button>
+  <button class="sub-tab-btn" data-tab="thanhtoan">Thanh toán</button>
+  <button class="sub-tab-btn" data-tab="lpb"><i data-lucide="handshake" class="sub-icon" style="margin-right:4px"></i> Liên phòng ban</button>
+  <button class="sub-tab-btn" data-tab="thanhvien">Thành viên</button>
+  <button class="sub-tab-btn" data-tab="danhmuc">Nhà thầu</button>
+</div>
+<div id="subnav-shopdrawing" class="subnav-tabs hide">
+  <button class="sub-tab-btn" data-tab="sd-dashboard">Dashboard</button>
+  <button class="sub-tab-btn" data-tab="sd-nhansu">Nhân sự</button>
+  <button class="sub-tab-btn" data-tab="sd-baocao">Báo cáo</button>
+  <button class="sub-tab-btn" data-tab="sd-muctieu">Mục tiêu</button>
+</div>
+<div id="subnav-qaqc" class="subnav-tabs hide">
+  <button class="sub-tab-btn" data-tab="qaqc-dashboard">Dashboard</button>
+  <button class="sub-tab-btn" data-tab="qaqc-nhansu">Nhân sự</button>
+  <button class="sub-tab-btn" data-tab="qaqc-baocao">Báo cáo</button>
+  <button class="sub-tab-btn" data-tab="qaqc-muctieu">Mục tiêu</button>
+</div>
+<div id="subnav-hse" class="subnav-tabs hide">
+  <button class="sub-tab-btn" data-tab="hse-dashboard">Dashboard</button>
+  <button class="sub-tab-btn" data-tab="hse-nhansu">Nhân sự</button>
+  <button class="sub-tab-btn" data-tab="hse-baocao">Báo cáo</button>
+  <button class="sub-tab-btn" data-tab="hse-muctieu">Mục tiêu</button>
+</div>
+<div id="subnav-baotri" class="subnav-tabs hide">
+  <button class="sub-tab-btn" data-tab="mt-dashboard">Dashboard</button>
+  <button class="sub-tab-btn" data-tab="mt-nhansu">Nhân sự</button>
+  <button class="sub-tab-btn" data-tab="mt-baocao">Báo cáo</button>
+  <button class="sub-tab-btn" data-tab="mt-muctieu">Mục tiêu</button>
+</div>
+<div id="page-container">
+
+<!-- Màn đăng nhập -->
+<!-- Màn đăng nhập -->
+<div id="login-screen" class="login-overlay">
+  <div class="login-card">
+    <div class="login-logo-container">
+      <img src="Logo HPC.png" alt="HP CONS Logo" class="login-logo" onerror="this.style.display='none'">
+      <h1 class="login-brand-title">PHÒNG KỸ THUẬT THI CÔNG</h1>
+    </div>
+    <div class="login-divider"></div>
+    <div class="login-form">
+      <div class="form-group">
+        <label for="login-dept">Bộ phận</label>
+        <select id="login-dept" onchange="renderLoginRoles()"></select>
+      </div>
+      <div class="form-group">
+        <label for="login-role">Chức vụ</label>
+        <select id="login-role" onchange="renderLoginUsers()"></select>
+      </div>
+      <div class="form-group">
+        <label for="login-user-search">Tên nhân sự</label>
+        <div style="position:relative;">
+          <select id="login-user" class="hide"></select>
+          <input id="login-user-search" type="text" placeholder="Chọn hoặc gõ tên, @tên..." onfocus="showLoginUserDropdown()" oninput="filterLoginUsers()" autocomplete="off">
+          <div id="login-user-dropdown" class="hide" style="position: absolute; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r, 8px); max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: var(--shadow-md);"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <label for="login-pw">Mật khẩu</label>
+          <a href="#" onclick="forgotPassword(); event.preventDefault();" style="font-size: var(--fs-xs); color: var(--primary); text-decoration: none; font-weight: 600;">Quên mật khẩu?</a>
+        </div>
+        <div style="position:relative; display:flex; align-items:center;">
+          <input id="login-pw" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:40px;">
+          <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('login-pw')" style="position:absolute; right:10px; background:none; border:none; cursor:pointer; font-size:16px; padding:0; line-height:1; color:var(--muted); height: auto; width: auto; min-width: 0; box-shadow: none; z-index: 10;">👁️</button>
+        </div>
+      </div>
+      <div id="login-pw2-wrap" class="hide form-group">
+        <label for="login-pw2">Xác nhận mật khẩu mới</label>
+        <div style="position:relative; display:flex; align-items:center;">
+          <input id="login-pw2" type="password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:40px;">
+          <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('login-pw2')" style="position:absolute; right:10px; background:none; border:none; cursor:pointer; font-size:16px; padding:0; line-height:1; color:var(--muted); height: auto; width: auto; min-width: 0; box-shadow: none; z-index: 10;">👁️</button>
+        </div>
+      </div>
+      <button class="login-submit-btn" onclick="doLogin()">Đăng nhập hệ thống</button>
+      <p class="login-msg" id="login-msg"></p>
+      <p class="login-note">Nhân sự bộ phận: gõ <b>đúng họ tên</b>, lần đầu tự đặt mật khẩu.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal tài khoản -->
+<div id="account-modal" class="modal-bg hide" style="align-items:center">
+  <div class="modal" style="max-width:380px">
+    <h2 id="account-name" style="margin-top:0">Tài khoản</h2>
+    <h3>Đổi mật khẩu</h3>
+    <label>Mật khẩu hiện tại</label><input id="acc-old" type="password">
+    <label>Mật khẩu mới</label><input id="acc-new" type="password">
+    <div class="btnbar">
+      <button class="btn btn-ok" onclick="changePassword()">Đổi mật khẩu</button>
+      <button class="btn btn-dan" onclick="logout()">Đăng xuất</button>
+      <button class="btn btn-mut" onclick="closeAccount()">Đóng</button>
+    </div>
+    <p class="muted" id="acc-msg" style="min-height:18px"></p>
+  </div>
+</div>
+
+<!-- Lịch sử chỉnh sửa nhật ký -->
+<div id="hist-modal" class="modal-bg hide" style="align-items:center">
+  <div class="modal" style="max-width:520px">
+    <h2 id="hist-title" style="margin-top:0">Lịch sử chỉnh sửa</h2>
+    <div class="sublist" id="hist-list" style="max-height:50vh;overflow:auto"></div>
+    <div class="btnbar"><button class="btn btn-mut" onclick="closeHist()">Đóng</button></div>
+  </div>
+</div>
+
+<!-- Xem ảnh phóng to -->
+<div id="img-lightbox" class="modal-bg hide" style="align-items:center;z-index:300" onclick="closeLightbox()">
+  <img id="lb-img" alt="" style="max-width:92vw;max-height:90vh;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.5)">
+</div>
+
+<!-- Modal quản lý bộ phận -->
+<div id="dept-modal" class="modal-bg hide" style="align-items:center">
+  <div class="modal" style="max-width:540px">
+    <h2 id="dept-modal-title" style="margin-top:0">Bộ phận</h2>
+    <div class="sublist" id="dept-modal-list" style="max-height:48vh;overflow:auto"></div>
+    <div id="dept-modal-add" style="margin-top:10px"></div>
+    <div class="btnbar"><button class="btn btn-mut" onclick="closeDeptModal()">Đóng</button></div>
+  </div>
+</div>
+
+<div class="wrap">
+<div id="proj-banner" class="proj-banner hide"></div>
+
+<section id="tab-dashboard">
+    <style>
+      #tab-dashboard {
+        --info: #0ea5e9;
+        --warn: var(--warning);
+      }
+      #tab-dashboard .kpi-card {
+        cursor: pointer;
+      }
+    </style>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+      <h2 id="dash-title" style="margin:0;color:var(--primary-dark)">Tổng quan dự án</h2>
+    </div>
+    
+    <div id="dash-hero" class="hero" style="margin-bottom:16px;"></div>
+    
+    
+    <!-- KHỐI 1: SỨC KHỎE TỔNG QUAN -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+      <div class="kpi-card" style="border-top:4px solid var(--primary);" onclick="switchTab('tiendo')">
+        <div class="kpi-icon">📈</div>
+        <div class="kpi-value" style="color:var(--primary);" id="dash-kpi-progress">--</div>
+        <div class="kpi-label" style="color:var(--primary);">TIẾN ĐỘ CHUNG</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid var(--success);" id="dash-kpi-finance-card" onclick="switchTab('thanhtoan')">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-value" style="color:var(--success);" id="dash-kpi-balance">--</div>
+        <div class="kpi-label" style="color:var(--success);">CÂN ĐỐI DÒNG TIỀN</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid var(--info);" onclick="switchTab('baocaongay-new')">
+        <div class="kpi-icon">👷</div>
+        <div class="kpi-value" style="color:var(--info);" id="dash-kpi-manpower">--</div>
+        <div class="kpi-label" style="color:var(--info);">NHÂN LỰC HÔM NAY</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid var(--danger);" onclick="switchTab('tiendo')">
+        <div class="kpi-icon">🚨</div>
+        <div class="kpi-value" style="color:var(--danger);" id="dash-kpi-late">--</div>
+        <div class="kpi-label" style="color:var(--danger);">HẠNG MỤC TRỄ HẠN</div>
+      </div>
+    </div>
+    
+    <!-- KHỐI 2 & 3: CẢNH BÁO RỦI RO và TÀI CHÍNH -->
+    <div class="row" style="margin-bottom:24px;">
+      <!-- KHỐI 2: CẢNH BÁO -->
+      <div class="card" style="flex:1; margin-bottom:0; border-top: 4px solid var(--danger);">
+        <h2 style="margin-top:0; color:var(--danger); display:flex; align-items:center; gap:8px;">🚨 CẢNH BÁO & RỦI RO</h2>
+        
+        <div style="margin-bottom:16px;" id="dash-alerts-waiting-approve" class="hide">
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--warning);">📋 Báo cáo chờ duyệt</h3>
+            <div id="dash-waiting-approve-list" class="sublist"></div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--text-strong);">Công việc trễ tiến độ</h3>
+            <div id="dash-alerts-delays" class="sublist"></div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--text-strong);">Vướng mắc chưa xử lý</h3>
+            <div id="dash-alerts-issues" class="sublist"></div>
+        </div>
+        
+        <div style="margin-bottom:16px;">
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--text-strong);">Yêu cầu duyệt chi</h3>
+            <div id="dash-alerts-payments" class="sublist"></div>
+        </div>
+        
+        <div>
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--text-strong);">🤝 Đề xuất liên phòng ban</h3>
+            <div id="dash-alerts-lpb" class="sublist"></div>
+        </div>
+      </div>
+      
+      <!-- KHỐI 3: TÀI CHÍNH -->
+      <div class="card" style="flex:1; margin-bottom:0; border-top: 4px solid var(--success);">
+        <h2 style="margin-top:0; color:var(--success); display:flex; align-items:center; gap:8px;">💸 TÀI CHÍNH & DÒNG TIỀN</h2>
+        
+        <div style="margin-bottom:16px; position:relative; height: 200px;">
+             <canvas id="dash-chart-finance"></canvas>
+        </div>
+        
+        <div>
+            <h3 style="font-size:14px; margin-bottom:8px; color:var(--text-strong);">Top 3 Nhà thầu chi nhiều nhất</h3>
+            <div id="dash-finance-top" class="sublist"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- KHỐI 4: BIỂU ĐỒ THI CÔNG & NHÂN LỰC -->
+    <div class="card" style="border-top: 4px solid var(--info);">
+      <h2 style="margin-top:0; color:var(--info); display:flex; align-items:center; gap:8px;">📈 BIỂU ĐỒ NHÂN LỰC & THI CÔNG (7 Ngày)</h2>
+      <div style="position:relative; height: 250px;">
+         <canvas id="chart-manpower"></canvas>
+      </div>
+    </div>
+</section>
+  </div>
+</section>
+
+<section id="tab-dieuhanh" class="hide">
+  <style>
+    /* Scoped styles for Executive Dashboard tab */
+    #tab-dieuhanh {
+      padding: 8px 0;
+    }
+    
+    #tab-dieuhanh .exec-dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+    }
+    
+    #tab-dieuhanh .exec-dashboard-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin: 0;
+      letter-spacing: -0.5px;
+      font-family: var(--font-sans);
+    }
+    
+    body.dark-mode #tab-dieuhanh .exec-dashboard-title {
+      color: var(--text-strong);
+    }
+
+    #tab-dieuhanh #exec-kpi {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    #tab-dieuhanh #exec-kpi .kpi-card {
+      padding: 16px 10px;
+    }
+    #tab-dieuhanh #exec-kpi .kpi-card .kpi-value {
+      font-size: 32px;
+    }
+    #tab-dieuhanh #exec-kpi .kpi-card .kpi-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    #tab-dieuhanh .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s, border-color 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #tab-dieuhanh .kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(0,0,0,0.1);
+    }
+
+    #tab-dieuhanh .kpi-card .kpi-icon {
+      font-size: 22px;
+      margin-bottom: 10px;
+      background: var(--bg);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      transition: background 0.25s;
+    }
+    
+    #tab-dieuhanh .kpi-card:hover .kpi-icon {
+      background: var(--surface-2);
+    }
+
+    #tab-dieuhanh .kpi-card .kpi-value {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    #tab-dieuhanh .kpi-card .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    #tab-dieuhanh .table-sticky {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    #tab-dieuhanh .table-sticky th {
+      background: var(--surface-2);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 18px;
+      border-bottom: 2px solid var(--border);
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    #tab-dieuhanh .table-sticky td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--ink);
+      vertical-align: middle;
+      transition: background 0.15s;
+    }
+
+    #tab-dieuhanh .table-sticky tr {
+      transition: background 0.2s;
+    }
+
+    #tab-dieuhanh .table-sticky tbody tr:hover td {
+      background: var(--tint);
+    }
+
+    body.dark-mode #tab-dieuhanh .table-sticky tbody tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    #tab-dieuhanh td span[style*="var(--success)"] {
+      background: rgba(34, 197, 94, 0.1) !important;
+      color: #16a34a !important;
+      padding: 4px 10px !important;
+      border-radius: 20px !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      display: inline-block !important;
+      border: 1px solid rgba(34, 197, 94, 0.2) !important;
+    }
+
+    #tab-dieuhanh td span[style*="var(--danger)"] {
+      background: rgba(239, 68, 68, 0.1) !important;
+      color: #dc2626 !important;
+      padding: 4px 10px !important;
+      border-radius: 20px !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      display: inline-block !important;
+      border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    }
+
+    #tab-dieuhanh #exec-payment-summary {
+      margin-bottom: 20px;
+    }
+
+    #tab-dieuhanh #exec-payment-summary > div:last-child {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    #tab-dieuhanh #exec-payment-summary > div:last-child > div {
+      border-radius: 12px !important;
+      padding: 14px 16px !important;
+      border: 1px solid var(--border) !important;
+      background: var(--surface) !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+
+    #tab-dieuhanh #exec-payment-summary > div:last-child > div:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md) !important;
+    }
+
+    #tab-dieuhanh .dept-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      box-shadow: var(--shadow-sm);
+    }
+
+    #tab-dieuhanh .dept-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(0,0,0,0.1);
+    }
+
+    #tab-dieuhanh #exec-chuyenmon > div {
+      grid-template-columns: 1fr 1fr !important;
+      display: grid !important;
+      gap: 16px !important;
+    }
+
+    #tab-dieuhanh #exec-chuyenmon .dept-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 24px 16px;
+    }
+
+    #tab-dieuhanh #exec-hr-list .it {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    #tab-dieuhanh #exec-hr-list .it:hover {
+      transform: translateX(4px);
+      background: var(--surface-2);
+    }
+
+    #tab-dieuhanh #exec-hr-list .it b {
+      color: var(--text-strong);
+    }
+
+    #tab-dieuhanh #exec-hr-list .it span {
+      background: var(--tint);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    body.dark-mode #tab-dieuhanh .kpi-card,
+    body.dark-mode #tab-dieuhanh .dept-card,
+    body.dark-mode #tab-dieuhanh #exec-hr-list .it,
+    body.dark-mode #tab-dieuhanh #exec-payment-summary > div:last-child > div {
+      background: rgba(30, 41, 59, 0.7) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    body.dark-mode #tab-dieuhanh .kpi-card .kpi-icon {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    body.dark-mode #tab-dieuhanh .kpi-card:hover .kpi-icon {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Responsive styling for the table on mobile (List/Card view) */
+    @media (max-width: 768px) {
+      #tab-dieuhanh .table-sticky thead,
+      #tab-tc-dashboard #tc-progress-table .table-sticky thead {
+        display: none !important;
+      }
+      
+      #tab-dieuhanh .table-sticky, 
+      #tab-dieuhanh .table-sticky tbody, 
+      #tab-dieuhanh .table-sticky tr, 
+      #tab-dieuhanh .table-sticky td,
+      #tab-tc-dashboard #tc-progress-table .table-sticky, 
+      #tab-tc-dashboard #tc-progress-table .table-sticky tbody, 
+      #tab-tc-dashboard #tc-progress-table .table-sticky tr, 
+      #tab-tc-dashboard #tc-progress-table .table-sticky td {
+        display: block !important;
+        width: 100% !important;
+      }
+      
+      #tab-dieuhanh .table-sticky tr,
+      #tab-tc-dashboard #tc-progress-table .table-sticky tr {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      body.dark-mode #tab-dieuhanh .table-sticky tr,
+      body.dark-mode #tab-tc-dashboard #tc-progress-table .table-sticky tr {
+        background: rgba(30, 41, 59, 0.7) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+      }
+      
+      #tab-dieuhanh .table-sticky tr:hover,
+      #tab-tc-dashboard #tc-progress-table .table-sticky tr:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+      
+      #tab-dieuhanh .table-sticky td,
+      #tab-tc-dashboard #tc-progress-table .table-sticky td {
+        padding: 6px 0 !important;
+        border: none !important;
+        background: transparent !important;
+      }
+      
+      #tab-dieuhanh .table-sticky td:first-child,
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:first-child {
+        font-size: 15px;
+        border-bottom: 1px solid var(--border) !important;
+        padding-bottom: 10px !important;
+        margin-bottom: 10px;
+        padding-right: 60px !important;
+      }
+
+      body.dark-mode #tab-dieuhanh .table-sticky td:first-child,
+      body.dark-mode #tab-tc-dashboard #tc-progress-table .table-sticky td:first-child {
+        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+      }
+      
+      #tab-dieuhanh .table-sticky td:nth-child(2),
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(2) {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        width: auto !important;
+        text-align: right !important;
+      }
+      
+      #tab-dieuhanh .table-sticky td:nth-child(2) span,
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(2) span {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 13px !important;
+        font-weight: 800;
+        background: var(--surface-2);
+        border: 2px solid currentColor;
+        box-shadow: var(--shadow-sm);
+      }
+      
+      #tab-dieuhanh .table-sticky td:nth-child(3),
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(3) {
+        display: flex !important;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+      
+      #tab-dieuhanh .table-sticky td:nth-child(3)::before,
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(3)::before {
+        content: "Tiến độ KH:";
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      #tab-dieuhanh .table-sticky td:nth-child(4),
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(4) {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      
+      #tab-dieuhanh .table-sticky td:nth-child(4)::before,
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(4)::before {
+        content: "Báo cáo hôm nay:";
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      #tab-dieuhanh .table-sticky td:nth-child(5),
+      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(5) {
+        display: flex !important;
+        justify-content: flex-end;
+        font-weight: 700;
+        font-size: 12px;
+        margin-top: 4px;
+        border-top: 1px dashed var(--border) !important;
+        padding-top: 10px !important;
+      }
+
+      body.dark-mode #tab-dieuhanh .table-sticky td:nth-child(5),
+      body.dark-mode #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(5) {
+        border-top-color: rgba(255, 255, 255, 0.08) !important;
+      }
+    }
+    
+    /* Thiết kế Grid cho Bộ phận Thi công */
+    .tc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .tc-grid-2-1-1 {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .tc-grid-1-1-1 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .tc-grid-3-1 {
+      display: grid;
+      grid-template-columns: 3fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .tc-grid-2-1-1, .tc-grid-1-1-1, .tc-grid-3-1 {
+        grid-template-columns: 1fr !important;
+      }
+      #tab-tc-themduan button {
+        width: 100% !important;
+      }
+    }
+  </style>
+
+  <!-- HERO -->
+  <div class="exec-dashboard-header" id="exec-hero">
+    <div>
+      <h2 class="exec-dashboard-title">TRUNG TÂM ĐIỀU HÀNH</h2>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Phòng Kỹ thuật Thi công · <span id="exec-date"></span></div>
+    </div>
+  </div>
+
+  <!-- KPI tổng quan -->
+  <div id="exec-kpi" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px"></div>
+
+  <!-- Khối Việc cần xử lý hôm nay -->
+  <div id="exec-todo" class="card hide" style="border-left:6px solid var(--primary); background:rgba(0,96,168,0.04); padding:16px 20px; margin-bottom:24px;">
+    <h3 style="margin-top:0; color:var(--primary); display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:12px;">📌 VIỆC CẦN XỬ LÝ HÔM NAY</h3>
+    <div id="exec-todo-list" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+  </div>
+
+  <!-- Khối Cảnh báo khẩn cấp (Chỉ hiển thị khi có sự cố nghiêm trọng) -->
+  <div id="exec-urgent-alerts" class="card hide" style="border-left: 6px solid var(--danger); background: rgba(239, 68, 68, 0.05); padding: 16px 20px; margin-bottom: 24px;">
+    <h3 style="margin-top:0; color:var(--danger); display:flex; align-items:center; gap:8px; font-size: 15px; font-weight: 700; margin-bottom: 12px;">
+      🚨 CẢNH BÁO SỰ CỐ & RỦI RO NGHIÊM TRỌNG (TOÀN CÔNG TY)
+    </h3>
+    <div id="exec-urgent-alerts-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+
+  <!-- Khối Đề xuất liên phòng ban khẩn cấp/quá hạn -->
+  <div id="exec-lpb-urgent" class="card hide" style="border-left: 6px solid #6b21a8; background: rgba(107, 33, 168, 0.03); padding: 16px 20px; margin-bottom: 24px;">
+    <h3 style="margin-top:0; color:#6b21a8; display:flex; align-items:center; gap:8px; font-size: 15px; font-weight: 700; margin-bottom: 12px;">
+      🔥 ĐỀ XUẤT KHẨN / QUÁ HẠN CẦN HỖ TRỢ (LIÊN PHÒNG BAN)
+    </h3>
+    <div id="exec-lpb-urgent-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+
+  <!-- Khối Gia hạn tiến độ gần đây (toàn công ty) -->
+  <div id="exec-extensions" class="card hide" style="border-left:6px solid #b45309; background:rgba(180,83,9,0.04); padding:16px 20px; margin-bottom:24px;">
+    <h3 style="margin-top:0; color:#b45309; display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; margin-bottom:12px;">🕒 GIA HẠN TIẾN ĐỘ GẦN ĐÂY (TOÀN CÔNG TY)</h3>
+    <div id="exec-extensions-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+
+  <!-- Bảng tình trạng dự án (full width) -->
+  <div class="card" style="margin-bottom:24px;padding:0;overflow:hidden">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border)">
+      <h2 style="margin:0;color:var(--primary-dark)">📊 Tình trạng các dự án</h2>
+    </div>
+    <div id="exec-progress-table" style="max-height:420px;overflow:auto"></div>
+  </div>
+
+  <!-- Chi phí & thanh toán (full width) -->
+  <div class="card" style="margin-bottom:24px;border-top:4px solid var(--success)">
+    <h2 style="margin-top:0;color:var(--success)">💸 Chi phí & thanh toán</h2>
+    <div id="exec-payment-summary" style="margin-bottom:16px"></div>
+    <h3 style="margin:0 0 10px;font-size:14px;color:var(--text-strong)">Thu – Chi theo dự án</h3>
+    <div style="position:relative;height:320px"><canvas id="exec-finance-chart"></canvas></div>
+  </div>
+
+  <!-- Cơ cấu trạng thái + Khối chuyên môn -->
+  <div class="row" style="margin-bottom:24px">
+    <div class="card" style="flex:1;min-width:240px;margin-bottom:0">
+      <h2 style="margin-top:0;color:var(--primary-dark)">📈 Cơ cấu trạng thái dự án</h2>
+      <div style="position:relative;height:220px"><canvas id="exec-status-chart"></canvas></div>
+    </div>
+    <div class="card" style="flex:2;min-width:320px;margin-bottom:0">
+      <h2 style="margin-top:0;color:var(--primary-dark)">🏗️ Khối chuyên môn</h2>
+      <div id="exec-chuyenmon"></div>
+    </div>
+  </div>
+
+  <!-- Nhân sự theo bộ phận (cuối dashboard) -->
+  <div class="card" style="border-top:4px solid var(--accent)">
+    <h2 style="margin-top:0;color:var(--accent)">👥 Nhân sự theo bộ phận</h2>
+    <div id="exec-hr-list" class="sublist"></div>
+  </div>
+
+  <script>
+    // Deep-linking navigation helper
+    async function selectAndOpenProject(projectId, targetTab) {
+      const userProjects = Array.from(document.getElementById("cur-project").options).map(opt => opt.value);
+      if (userProjects.includes(projectId)) {
+        CUR.project = projectId;
+        if (typeof metaSet === 'function') {
+          await metaSet("cur_project", projectId);
+        }
+        const sel = document.getElementById("cur-project");
+        if (sel) {
+          sel.value = projectId;
+          sel.dispatchEvent(new Event('change'));
+        }
+        
+        // Navigation and rendering
+        if (typeof switchTab === 'function') {
+          switchTab(targetTab);
+        }
+        
+        if (typeof renderMySubs === 'function') renderMySubs();
+        if (typeof renderContractors === 'function') renderContractors();
+        if (typeof renderTiendo === 'function') renderTiendo();
+        if (typeof renderCdt === 'function') renderCdt();
+      } else {
+        alert("Dự án này bạn không được phân quyền truy cập!");
+      }
+    }
+
+    // Bind event delegation
+    (function() {
+      const ids = ["exec-progress-table", "tc-progress-table"];
+      ids.forEach(id => {
+        const tableContainer = document.getElementById(id);
+        if (tableContainer) {
+          tableContainer.addEventListener("click", async (e) => {
+            const tr = e.target.closest("tr");
+            const td = e.target.closest("td");
+            if (!tr || !td) return;
+            
+            const onclickAttr = tr.getAttribute("onclick") || "";
+            const match = onclickAttr.match(/openProject\('([^']+)'\)/);
+            if (!match) return;
+            const projectId = match[1];
+            
+            const cells = Array.from(tr.cells);
+            const colIndex = cells.indexOf(td);
+            
+            // Column index 2: Progress Schedule
+            if (colIndex === 2) {
+              e.stopPropagation();
+              e.preventDefault();
+              await selectAndOpenProject(projectId, "tiendo");
+            } 
+            // Column index 3: Today's Report Status
+            else if (colIndex === 3) {
+              e.stopPropagation();
+              e.preventDefault();
+              await selectAndOpenProject(projectId, "baocaongay-new");
+            }
+          });
+        }
+      });
+    })();
+  </script>
+</section>
+
+
+<section id="tab-tc-dashboard" class="hide">
+  <div class="row" style="margin-bottom:12px">
+    <div class="card" style="flex:2;margin-bottom:0">
+      <h2 style="margin-top:0">Tổng số Dự án & Trạng thái</h2>
+      <div id="tc-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:12px"></div>
+    </div>
+    <div class="card" style="flex:1;margin-bottom:0">
+      <h2 style="margin-top:0">Cảnh báo Thi công</h2>
+      <div id="tc-alerts" class="sublist"></div>
+    </div>
+  </div>
+  <div class="row" style="margin-bottom:12px">
+    <div class="card" style="flex:2;margin-bottom:0;overflow:auto">
+      <h2 style="margin-top:0">Tình trạng Tiến độ các Dự án</h2>
+      <div id="tc-progress-table"></div>
+    </div>
+    <div class="card" style="flex:1;margin-bottom:0">
+      <h2 style="margin-top:0">Báo cáo Nhật ký & Nhân sự</h2>
+      <div id="tc-log-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:12px"></div>
+      <div id="tc-log-missing" class="sublist"></div>
+    </div>
+  </div>
+</section>
+<section id="tab-tc-nhansu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Nhân sự Bộ Phận Thi Công</h2>
+    <div id="tc-users-list">Đang tải danh sách...</div>
+  </div>
+</section>
+<section id="tab-tc-duan" class="hide">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:12px;">
+      <h2 style="margin:0; color:var(--primary-dark)">Danh sách Dự án</h2>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="tc-proj-search" class="input" placeholder="Tìm tên, CHT, CĐT..." oninput="filterTcProjectList()" style="width:200px; height:36px;">
+        <select id="tc-proj-status-filter" class="input" onchange="filterTcProjectList()" style="width:150px; height:36px;">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="Chuẩn bị">Chuẩn bị</option>
+          <option value="Đang thi công">Đang thi công</option>
+          <option value="Tạm dừng">Tạm dừng</option>
+          <option value="Đã bàn giao">Đã bàn giao</option>
+        </select>
+      </div>
+    </div>
+    <div id="tc-project-list"></div>
+  </div>
+</section>
+<section id="tab-tc-themduan" class="hide">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">Quản lý Dự án (Thêm/Sửa)</h2>
+      <button class="btn btn-mut btn-sm hide" id="btn-cancel-edit" onclick="resetProjectForm()">Hủy sửa</button>
+    </div>
+    <input type="hidden" id="np-id">
+    
+    <div class="tc-grid-2-1-1">
+      <div><label>Tên công trình</label><input id="np-name" placeholder="VD: Nhà máy ABC - Giai đoạn 1" class="input" style="width:100%"></div>
+      <div><label>Ngày bắt đầu</label><input type="date" id="np-start" class="input" style="width:100%"></div>
+      <div><label>Ngày kết thúc</label><input type="date" id="np-end" class="input" style="width:100%"></div>
+    </div>
+    
+    <div class="tc-grid-2-1-1">
+      <div><label>Chủ đầu tư</label><input id="np-investor" placeholder="Tên chủ đầu tư" class="input" style="width:100%"></div>
+      <div><label>Số hợp đồng</label><input id="np-contract" placeholder="VD: 51-ShunHing" class="input" style="width:100%"></div>
+      <div>
+        <label>Trạng thái</label>
+        <select id="np-status" class="input" style="width:100%; height:38px;">
+          <option value="Chuẩn bị">Chuẩn bị</option>
+          <option value="Đang thi công" selected>Đang thi công</option>
+          <option value="Tạm dừng">Tạm dừng</option>
+          <option value="Đã bàn giao">Đã bàn giao</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="tc-grid-2-1-1">
+      <div><label>Địa chỉ</label><input id="np-addr" placeholder="VD: KCN VSIP, Bình Dương" class="input" style="width:100%"></div>
+      <div><label>Chỉ huy trưởng</label><input id="np-commander" placeholder="Tên CHT" class="input" style="width:100%"></div>
+      <div>
+        <label>Tọa độ (lat, lon) <span style="color:#A32D2D">*</span></label>
+        <div style="display:flex; gap:8px;">
+          <input id="np-lat" placeholder="10.8231" class="input" style="flex:1">
+          <input id="np-lon" placeholder="106.6297" class="input" style="flex:1">
+          <button class="btn btn-pri" style="height:38px; padding:0 12px; display:flex; align-items:center; gap:4px; font-weight:bold" onclick="getCurrentGPS(event)" type="button" title="Lấy GPS hiện tại">📍 GPS</button>
+        </div>
+      </div>
+    </div>
+    
+    <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+      <button class="btn btn-ok" id="btn-save-proj" onclick="addProject()" style="padding:10px 24px; font-weight:bold">+ Lưu dự án</button>
+    </div>
+    
+    <p class="muted" style="font-size:12px; margin-top:12px;"><b>Tọa độ là bắt buộc</b> - hệ thống tự lấy thời tiết/gió mưa theo vị trí này. Nhấp nút GPS để lấy nhanh vị trí hiện trường.</p>
+  </div>
+  
+  <script>
+    function getCurrentGPS(event) {
+      if (!navigator.geolocation) {
+        alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
+        return;
+      }
+      const btn = event.currentTarget;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = "⌛...";
+      btn.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById("np-lat").value = position.coords.latitude.toFixed(6);
+          document.getElementById("np-lon").value = position.coords.longitude.toFixed(6);
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        },
+        (error) => {
+          alert("Lỗi định vị GPS: " + error.message);
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  </script>
+</section>
+<section id="tab-tc-muctieu" class="hide">
+  <div class="tc-grid-3-1">
+    <div class="card" style="margin-bottom:0">
+      <h2 style="margin-top:0">Danh sách Mục tiêu & KPI Thi công</h2>
+      <div id="tc-goals-list">Đang tải danh sách mục tiêu...</div>
+    </div>
+    
+    <div class="card" style="margin-bottom:0">
+      <h3 style="margin-top:0" id="goal-form-title">Thêm Mục tiêu mới</h3>
+      <input type="hidden" id="goal-id">
+      <div style="margin-bottom:12px">
+        <label>Tên mục tiêu</label>
+        <input id="goal-name" placeholder="VD: Đổ bê tông dầm sàn L2" class="input" style="width:100%">
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Dự án liên kết</label>
+        <select id="goal-proj" class="input" style="width:100%; height:38px;"></select>
+      </div>
+      
+      <div style="display:flex; gap:12px; margin-bottom:12px">
+        <div style="flex:1">
+          <label>Chỉ tiêu</label>
+          <input id="goal-target" type="number" placeholder="VD: 150" class="input" style="width:100%">
+        </div>
+        <div style="flex:1">
+          <label>Đơn vị</label>
+          <input id="goal-unit" placeholder="VD: m3" class="input" style="width:100%">
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:12px; margin-bottom:12px">
+        <div style="flex:1">
+          <label>Đã đạt</label>
+          <input id="goal-current" type="number" placeholder="VD: 50" class="input" style="width:100%">
+        </div>
+        <div style="flex:1">
+          <label>Hạn hoàn thành</label>
+          <input type="date" id="goal-deadline" class="input" style="width:100%">
+        </div>
+      </div>
+      
+      <div style="display:flex; justify-content:space-between; margin-top:16px;">
+        <button class="btn btn-mut btn-sm hide" id="btn-cancel-goal" onclick="resetGoalForm()">Hủy</button>
+        <button class="btn btn-ok" onclick="saveTcGoal()" style="font-weight:bold">+ Lưu mục tiêu</button>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="tab-baocaongay-new" class="hide" style="padding:0; height:calc(100vh - 55px); overflow:hidden;">
+  <iframe src="TAB BAO CAO NGAY/bao-cao-thi-cong-ngay.html" style="width:100%; height:100%; border:none;"></iframe>
+</section>
+
+
+
+
+  <section id="tab-baocao" class="hide">
+      <div class="card" style="margin-bottom:24px; border:none; box-shadow:none; background:transparent; padding:0;">
+        <h2 style="font-size:24px; margin-bottom:8px;">📊 TỔNG HỢP BÁO CÁO TOÀN DỰ ÁN</h2>
+        <p class="muted" style="margin-bottom:16px;">Tự động tổng hợp dữ liệu từ các Báo cáo Ngày đã lưu (Số giờ mưa, nhân lực trung bình, danh sách công việc).</p>
+        <div class="control-panel">
+          <div style="flex:1;min-width:130px"><label style="font-weight:bold; color:var(--text-strong);">KỲ BÁO CÁO</label><select id="r-period" style="margin-top:4px; width:100%;"><option value="day">Ngày</option><option value="week" selected>Tuần</option><option value="month">Tháng</option></select></div>
+          <div style="flex:1;min-width:150px"><label style="font-weight:bold; color:var(--text-strong);">NGÀY (MỐC)</label><input type="date" id="r-date" style="margin-top:4px; width:100%;"></div>
+          <div style="display:flex;align-items:flex-end;gap:12px;flex:2;justify-content:flex-end;">
+            <button class="btn btn-pri" onclick="viewReport()" style="padding:10px 24px; font-size:15px; box-shadow:0 4px 10px rgba(59,130,246,0.3);">🔍 XEM THỐNG KÊ</button>
+            <button id="btn-export-excel" class="btn btn-ok" style="display:none; padding:10px 20px; font-size:15px; box-shadow:0 4px 10px rgba(34,197,94,0.3);" onclick="exportDashboardToExcel()">📥 XUẤT EXCEL</button>
+            <button id="btn-print-report" class="btn btn-dan" style="display:none; padding:10px 20px; font-size:15px; box-shadow:0 4px 10px rgba(239,68,68,0.3);" onclick="printDashboard()">🖨️ IN BÁO CÁO</button>
+          </div>
+        </div>
+      </div>
+    
+    <!-- DASHBOARD -->
+    <div id="report-dashboard" style="display:none; gap:20px; flex-direction:column;">
+      <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--red);">
+          <div class="kpi-icon">🌧️</div>
+          <div class="kpi-value" style="color:var(--red);" id="stat-rain">0h</div>
+          <div class="kpi-label" style="color:var(--red);">TỔNG GIỜ MƯA ẢNH HƯỞNG</div>
+        </div>
+        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--green);">
+          <div class="kpi-icon">👷</div>
+          <div class="kpi-value" style="color:var(--green);" id="stat-manpower">0</div>
+          <div class="kpi-label" style="color:var(--green);">NHÂN LỰC TRUNG BÌNH / NGÀY</div>
+        </div>
+        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--pri);">
+          <div class="kpi-icon">📅</div>
+          <div class="kpi-value" style="color:var(--pri);" id="stat-days">0</div>
+          <div class="kpi-label" style="color:var(--pri);">SỐ NGÀY ĐÃ BÁO CÁO</div>
+        </div>
+      </div>
+
+
+      <!-- BIỂU ĐỒ TRỰC QUAN -->
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div class="card" style="flex:2; min-width:300px;">
+          <h3 style="color:var(--text-strong); margin-bottom:12px; text-transform: uppercase;">📈 BIẾN ĐỘNG NHÂN LỰC TRONG KỲ</h3>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="chart-manpower-line"></canvas>
+          </div>
+        </div>
+        <div class="card" style="flex:1; min-width:300px;">
+          <h3 style="color:var(--text-strong); margin-bottom:12px; text-transform: uppercase;">🥧 TỶ TRỌNG NHÀ THẦU PHỤ</h3>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="chart-manpower-pie"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TỔNG HỢP NHANH KỲ BÁO CÁO -->
+      <div class="card">
+        <h3 style="color:var(--primary); margin-bottom:12px;">📊 TỔNG HỢP NHANH KỲ BÁO CÁO</h3>
+        <div id="stat-kpi" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+      </div>
+
+      <!-- NHẬT KÝ HÌNH ẢNH -->
+      <div class="card">
+        <h3 style="color:var(--pri); margin-bottom:12px;">📸 NHẬT KÝ HÌNH ẢNH THI CÔNG</h3>
+        <div id="stat-photos" style="display:flex; gap:16px; flex-wrap:wrap; padding-bottom:8px;"></div>
+      </div>
+
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div class="panel-bg" style="padding:16px 20px;"><h3 style="color:var(--text-strong); margin:0; text-transform: uppercase;">📋 BẢNG PHÂN BỔ NHÂN LỰC TRONG KỲ</h3></div>
+        <div class="table-sticky-wrapper">
+          <table class="table-sticky">
+            <thead id="stat-mp-head"></thead>
+            <tbody id="stat-mp-body"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+      <div id="report-empty" class="muted" style="text-align:center; padding:40px;">
+        <i>Chưa có dữ liệu thống kê. Vui lòng chọn kỳ và nhấn "Xem thống kê".</i>
+      </div>
+  </section>
+
+<!-- ===== HỆ THỐNG (Backup/Restore + Audit) ===== -->
+
+<!-- TAB LIÊN PHÒNG BAN -->
+<section id="tab-lpb" class="tab-panel hide"></section>
+
+<!-- TAB THÀNH VIÊN -->
+<section id="tab-thanhvien" class="hide">
+  <div class="card" style="padding: 24px;">
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <h2 style="margin:0; display:flex; align-items:center; gap:8px;">
+        🏗️ Sơ đồ Tổ chức Công trình
+      </h2>
+      <span id="team-hint" class="muted" style="font-size:13px;"></span>
+    </div>
+    <p class="muted" style="font-size:13px; margin-bottom:24px;">Sơ đồ phân cấp Ban Chỉ Huy dự án. Nhân sự được gán vào bất kỳ vị trí nào sẽ có quyền truy cập dự án này.</p>
+
+    <!-- ORG CHART CONTAINER -->
+    <div class="org-layout-main">
+      <!-- CỘT TRÁI: BAN CHỈ HUY (THI CÔNG) -->
+      <div class="org-chart-wrap" id="org-chart-wrap" style="flex:2; min-width:320px;">
+        <h3 class="org-section-title">🚧 Thi công trực tiếp</h3>
+        <!-- Tầng 1: CHT -->
+        <div class="org-level">
+          <div class="org-node org-node--cht" id="org-node-cht">
+            <div class="org-node-title">👑 Chỉ huy trưởng</div>
+            <div class="org-node-members" id="org-members-cht"></div>
+            <button class="org-add-btn" id="org-btn-cht" onclick="openOrgModal('cht')">+ Thêm</button>
+          </div>
+        </div>
+
+        <!-- Connector tầng 1 → 2 -->
+        <div class="org-connector-v"></div>
+
+        <!-- Tầng 2: Kỹ sư -->
+        <div class="org-level">
+          <div class="org-node org-node--kysu" id="org-node-kysu">
+            <div class="org-node-title">📐 Kỹ sư hiện trường</div>
+            <div class="org-node-members" id="org-members-kysu"></div>
+            <button class="org-add-btn" id="org-btn-kysu" onclick="openOrgModal('kysu')">+ Thêm</button>
+          </div>
+        </div>
+
+        <!-- Connector tầng 2 → 3 -->
+        <div class="org-connector-branch">
+          <div class="org-connector-h"></div>
+        </div>
+
+        <!-- Tầng 3: Thủ kho + Trắc đạc -->
+        <div class="org-level org-level--row">
+          <div class="org-node org-node--thukho" id="org-node-thukho">
+            <div class="org-node-title">📦 Thủ kho</div>
+            <div class="org-node-members" id="org-members-thukho"></div>
+            <button class="org-add-btn" id="org-btn-thukho" onclick="openOrgModal('thukho')">+ Thêm</button>
+          </div>
+          <div class="org-node org-node--tracdat" id="org-node-tracdat">
+            <div class="org-node-title">📏 Trắc đạc</div>
+            <div class="org-node-members" id="org-members-tracdat"></div>
+            <button class="org-add-btn" id="org-btn-tracdat" onclick="openOrgModal('tracdat')">+ Thêm</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CỘT PHẢI: BỘ PHẬN PHỐI HỢP -->
+      <div class="org-support-wrap" style="flex:1; min-width:320px; padding-left:24px; border-left:1px dashed var(--border);">
+        <h3 class="org-section-title">🤝 Các bộ phận phối hợp</h3>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+          <!-- QA-QC -->
+          <div class="org-node org-node--qaqc" id="org-node-qaqc" style="margin-top:0; width:100%;">
+            <div class="org-node-title">🔍 QA-QC Phụ trách</div>
+            <div class="org-node-members" id="org-members-qaqc"></div>
+            <button class="org-add-btn" id="org-btn-qaqc" onclick="openOrgModal('qaqc')">+ Thêm</button>
+          </div>
+          <!-- HSE -->
+          <div class="org-node org-node--hse" id="org-node-hse" style="margin-top:0; width:100%;">
+            <div class="org-node-title">⛑️ HSE Phụ trách</div>
+            <div class="org-node-members" id="org-members-hse"></div>
+            <button class="org-add-btn" id="org-btn-hse" onclick="openOrgModal('hse')">+ Thêm</button>
+          </div>
+          <!-- Shopdrawing -->
+          <div class="org-node org-node--shop" id="org-node-shop" style="margin-top:0; width:100%;">
+            <div class="org-node-title">📝 Shopdrawing</div>
+            <div class="org-node-members" id="org-members-shop"></div>
+            <button class="org-add-btn" id="org-btn-shop" onclick="openOrgModal('shop')">+ Thêm</button>
+          </div>
+          <!-- Khác -->
+          <div class="org-node org-node--other" id="org-node-other" style="margin-top:0; width:100%;">
+            <div class="org-node-title">👤 Liên quan khác</div>
+            <div class="org-node-members" id="org-members-other"></div>
+            <button class="org-add-btn" id="org-btn-other" onclick="openOrgModal('other')">+ Thêm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Thêm nhân sự vào vị trí sơ đồ -->
+<div id="org-member-modal" class="modal-bg hide" style="align-items:center;">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <h3 id="org-modal-title">Thêm nhân sự</h3>
+      <button class="btn btn-mut btn-sm" onclick="closeOrgModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-weight:600;">Chọn nhân sự từ hệ thống</label>
+        <div style="position:relative;">
+          <input type="text" id="org-am-user-search" class="input" style="width:100%;" placeholder="Gõ tên để tìm kiếm hoặc chọn..." autocomplete="off" onfocus="document.getElementById('org-user-dropdown').style.display='block'" oninput="filterOrgUserDropdown()" onblur="setTimeout(() => document.getElementById('org-user-dropdown').style.display='none', 200)">
+          <div id="org-user-dropdown" style="display:none; position:absolute; top:calc(100% + 4px); left:0; width:100%; background:var(--surface, #fff); border:1px solid var(--border, #ccc); border-radius:4px; max-height:200px; overflow-y:auto; z-index:100; box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+          <input type="hidden" id="org-am-user">
+        </div>
+      </div>
+      <p class="muted" style="font-size:13px;">
+        Nhân sự được thêm vào sơ đồ sẽ tự động có quyền truy cập dự án này.
+      </p>
+    </div>
+    <div class="modal-footer" style="padding:16px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:12px;">
+      <button class="btn btn-mut" onclick="closeOrgModal()">Hủy</button>
+      <button class="btn btn-ok" onclick="orgAddUser()">Xác nhận Thêm</button>
+    </div>
+  </div>
+</div>
+
+<section id="tab-danhmuc" class="hide">
+  <div class="card" style="padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+        👷 Nhà thầu & Tổ đội
+      </h2>
+      <button class="btn btn-primary" onclick="openContractorModal()" id="btn-add-contractor">+ Thêm mới</button>
+    </div>
+    
+    <p class="muted" style="margin-top:-10px; margin-bottom:20px; font-size:13px;">
+      Danh sách các đơn vị và tổ đội tham gia dự án. Tên đã lưu sẽ được AI sử dụng để tự động phân tích và gắn thẻ khi bạn nhập nhật ký bằng giọng nói.
+    </p>
+
+    <!-- Lọc -->
+    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+      <input type="text" id="contractor-search" class="input" placeholder="Tìm tên nhà thầu, tổ đội..." oninput="renderContractors()" style="width: 250px;">
+      <select id="contractor-type-filter" class="input" onchange="renderContractors()" style="width: 180px;">
+        <option value="">-- Tất cả phân loại --</option>
+        <option value="contractor">🏢 Nhà thầu phụ</option>
+        <option value="team">👷 Tổ đội</option>
+        <option value="internal">💼 Ban chỉ huy</option>
+      </select>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive" style="overflow-x:auto;">
+      <table class="table" style="width: 100%; min-width: 700px;">
+        <thead>
+          <tr>
+            <th style="width: 50px; text-align:center;">STT</th>
+            <th>Tên chuẩn</th>
+            <th>Phân loại</th>
+            <th>Alias / Tên gọi voice</th>
+            <th>Trạng thái</th>
+            <th style="text-align:center;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="contractor-list-body">
+          <!-- JS Rendered -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Thêm/Sửa Nhà thầu -->
+<div id="contractor-modal" class="modal-bg hide" style="align-items:center;">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <h3 id="contractor-modal-title">Thêm Nhà thầu / Tổ đội</h3>
+      <button class="btn btn-mut btn-sm" onclick="closeContractorModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px; max-height:70vh; overflow-y:auto;">
+      <input type="hidden" id="cm-id">
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-weight:600;">Phân loại (*)</label>
+        <select id="cm-type" class="input" style="width:100%;">
+          <option value="contractor">🏢 Nhà thầu phụ</option>
+          <option value="team">👷 Tổ đội</option>
+          <option value="internal">💼 Ban chỉ huy / Nội bộ</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-weight:600;">Tên chuẩn (*)</label>
+        <input type="text" id="cm-name" class="input" style="width:100%;" placeholder="Ví dụ: Tổ đội Nguyễn Văn Tâm">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-weight:600;">Tên gọi khi đọc voice / Alias</label>
+        <input type="text" id="cm-aliases" class="input" style="width:100%;" placeholder="Ví dụ: anh Tâm, đội Tâm, Tâm (cách nhau bởi dấu phẩy)">
+        <p class="muted" style="font-size:11px; margin-top:4px;">Nếu để trống, hệ thống sẽ tự động sinh alias từ tên chuẩn.</p>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-weight:600;">Từ khóa nhận diện voice (voiceKeywords)</label>
+        <input type="text" id="cm-voice-keywords" class="input" style="width:100%;" placeholder="Ví dụ: tâm 5 người, đội tâm, anh tâm (cách nhau bởi dấu phẩy)">
+      </div>
+
+      <div class="row" style="gap:12px;">
+        <div style="flex:1; margin-bottom:16px;">
+          <label style="display:block; margin-bottom:6px; font-weight:600;">Trạng thái</label>
+          <select id="cm-status" class="input" style="width:100%;">
+            <option value="active">🟢 Đang hoạt động</option>
+            <option value="inactive">🔴 Ngừng sử dụng</option>
+          </select>
+        </div>
+        <div style="flex:1; margin-bottom:16px;">
+          <label style="display:block; margin-bottom:6px; font-weight:600;">Người đại diện</label>
+          <input type="text" id="cm-rep" class="input" style="width:100%;" placeholder="Họ tên">
+        </div>
+      </div>
+
+      <div class="row" style="gap:12px;">
+        <div style="flex:1; margin-bottom:16px;">
+          <label style="display:block; margin-bottom:6px; font-weight:600;">SĐT Liên hệ</label>
+          <input type="text" id="cm-phone" class="input" style="width:100%;" placeholder="Số điện thoại">
+        </div>
+        <div style="flex:1; margin-bottom:16px;">
+          <label style="display:block; margin-bottom:6px; font-weight:600;">Ghi chú nội bộ</label>
+          <input type="text" id="cm-note" class="input" style="width:100%;" placeholder="Nhập ghi chú...">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:16px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:12px;">
+      <button class="btn btn-mut" onclick="closeContractorModal()">Hủy</button>
+      <button class="btn btn-ok" onclick="saveContractor()">Lưu Thông tin</button>
+    </div>
+  </div>
+</div>
+
+<section id="tab-hethong" class="hide">
+  <!-- Styles scoped to #tab-hethong to prevent leaking to other modules -->
+  <style>
+    #tab-hethong {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 4px 0 24px 0;
+    }
+    #tab-hethong .system-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md, 10px);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border-top: 4px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    #tab-hethong .system-card:hover {
+      box-shadow: var(--shadow-md, 0 4px 10px rgba(0,0,0,0.05));
+      transform: translateY(-2px);
+    }
+    #tab-hethong .system-card.card-primary {
+      border-top-color: var(--primary);
+    }
+    #tab-hethong .system-card.card-success {
+      border-top-color: var(--success);
+    }
+    #tab-hethong .system-card.card-warning {
+      border-top-color: var(--warning);
+    }
+    #tab-hethong .system-card.card-danger {
+      border-top-color: var(--danger);
+    }
+    #tab-hethong .system-card.card-accent {
+      border-top-color: var(--accent);
+    }
+    #tab-hethong .system-card h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: var(--primary-dark);
+      font-size: var(--fs-lg, 17px);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #tab-hethong .system-card p.muted {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: var(--fs-base, 13px);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    #tab-hethong .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 8px;
+    }
+    #tab-hethong .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    #tab-hethong .form-group label {
+      font-weight: 600;
+      font-size: var(--fs-sm, 12px);
+      color: var(--text-strong);
+    }
+    #tab-hethong .form-group input,
+    #tab-hethong .form-group select,
+    #tab-hethong .form-group textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--r, 8px);
+      font-size: var(--fs-base, 13px);
+      background: var(--surface);
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #tab-hethong .form-group input:focus,
+    #tab-hethong .form-group select:focus,
+    #tab-hethong .form-group textarea:focus {
+      border-color: var(--primary);
+    }
+    #tab-hethong .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    #tab-hethong .sublist {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #tab-hethong .sublist .it {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--surface-2, #fafcff);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm, 6px);
+      font-size: var(--fs-base, 13px);
+      transition: background-color 0.2s;
+    }
+    #tab-hethong .sublist .it:hover {
+      background: var(--tint-2, #f6f9fc);
+    }
+    #tab-hethong .sublist .it span:first-child {
+      color: var(--ink);
+    }
+    #tab-hethong .sublist .it span:last-child {
+      display: flex;
+      gap: 6px;
+    }
+    /* Dark mode overrides */
+    body.dark-mode #tab-hethong .system-card {
+      background: var(--surface);
+      border-color: var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
+    }
+    body.dark-mode #tab-hethong .sublist .it {
+      background: var(--bg);
+      border-color: var(--border);
+    }
+    body.dark-mode #tab-hethong .sublist .it:hover {
+      background: var(--surface-2);
+    }
+  </style>
+
+  <!-- CARD: Lưu phiên bản -->
+  <div class="system-card card-primary">
+    <h2>💾 Lưu phiên bản</h2>
+    <p class="muted">Commit các thay đổi hiện tại và gom toàn bộ lịch sử thành <b>1 bản sạch</b>. Tránh tình trạng nhiều phiên bản lộn xộn khi làm tiếp.</p>
+
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button id="btn-luu-phien-ban" class="btn btn-pri" style="font-size:14px;padding:10px 24px;font-weight:700" onclick="luuPhienBan()">
+        💾 Lưu phiên bản ngay
+      </button>
+      <span id="luu-phien-ban-status" class="muted" style="font-size:13px"></span>
+    </div>
+
+    <div id="luu-phien-ban-result" class="hide" style="margin-top:14px;padding:14px 16px;border-radius:var(--r-md);font-size:13px"></div>
+  </div>
+
+  <!-- CARD: Cấu hình Gemini -->
+  <div class="system-card card-accent">
+    <h2>🤖 Cấu hình Trợ lý AI (Gemini)</h2>
+    <p class="muted">Nhập mã API Key của Google Gemini để kích hoạt tính năng bóc tách giọng nói thông minh cho các thẻ báo cáo.</p>
+    <div class="form-grid" style="grid-template-columns: 1fr auto;">
+      <div class="form-group">
+        <label for="sys-gemini-key">Gemini API Key</label>
+        <input type="password" id="sys-gemini-key" placeholder="AIzaSy...">
+      </div>
+      <button class="btn btn-ok" onclick="saveGeminiKey()" style="padding:10px 24px;font-weight:600;height:40px">Lưu Key</button>
+    </div>
+    <p class="muted" id="gemini-msg" style="min-height:16px; margin-top:8px; color:var(--success); font-weight:600"></p>
+  </div>
+
+  <!-- CARD: Cấu hình Telegram -->
+  <div class="system-card card-accent">
+    <h2>✈️ Thông báo qua Telegram</h2>
+    <p class="muted">Đẩy thông báo từ app sang nhóm Telegram (báo cáo được duyệt, đề xuất khẩn...). Lấy <b>Bot Token</b> từ @BotFather, <b>Chat ID</b> của nhóm (số thường âm).</p>
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group">
+        <label for="tg-token">Bot Token</label>
+        <input type="password" id="tg-token" placeholder="123456789:AAH...">
+      </div>
+      <div class="form-group">
+        <label for="tg-chatid">Chat ID (nhóm nhận tin)</label>
+        <input id="tg-chatid" placeholder="-100xxxxxxxxxx">
+      </div>
+    </div>
+    <div class="btn-group" style="margin-top:10px">
+      <button class="btn btn-ok" onclick="saveTelegramConfig()" style="padding:10px 20px;font-weight:600">Lưu cấu hình</button>
+      <button class="btn btn-pri" onclick="tgTest()" style="padding:10px 20px;font-weight:600">Gửi thử</button>
+    </div>
+    <p class="muted" id="tg-msg" style="min-height:16px; margin-top:8px; font-weight:600"></p>
+  </div>
+
+  <!-- CARD: Đồng bộ dữ liệu đa máy -->
+  <div class="system-card card-primary">
+    <h2>🔄 Đồng bộ dữ liệu đa máy</h2>
+    <p class="muted">Cho mọi máy dùng chung MỘT bộ dữ liệu trên server (hết tình trạng mỗi máy một phiên bản). <b>Lần thiết lập đầu:</b> ở MÁY NGUỒN CHUẨN bấm "Đẩy toàn bộ lên"; ở các máy khác bấm "Kéo toàn bộ về". Sau đó dữ liệu tự đồng bộ.</p>
+    <div class="btn-group" style="margin-top:6px">
+      <button class="btn btn-ok" onclick="syncPushAll()" style="padding:10px 20px;font-weight:600">⬆ Đẩy toàn bộ lên (máy chuẩn)</button>
+      <button class="btn btn-pri" onclick="syncPullAll()" style="padding:10px 20px;font-weight:600">⬇ Kéo toàn bộ về (máy theo)</button>
+    </div>
+    <p class="muted" style="margin-top:8px; font-size:12px; color:var(--danger)">⚠️ Hãy Sao lưu (export) dữ liệu trước. Đẩy/Kéo sẽ ghi đè — làm đúng vai trò từng máy để tránh mất dữ liệu.</p>
+  </div>
+
+  <!-- CARD: Quản lý người dùng -->
+  <div class="system-card card-primary">
+    <h2>👥 Quản lý người dùng</h2>
+    <p class="muted">Thêm/sửa/xóa người dùng và gán vai trò. <b>Lưu ý:</b> đăng nhập offline chỉ là lớp phân quyền hiển thị, không bảo mật thật — bảo mật cần Supabase Auth.</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="um-name">Họ tên</label>
+        <input id="um-name" placeholder="VD: KS. Nguyễn Văn A">
+      </div>
+      <div class="form-group">
+        <label for="um-username">Tên đăng nhập</label>
+        <input id="um-username" placeholder="vd: a">
+      </div>
+      <div class="form-group">
+        <label for="um-role">Vai trò</label>
+        <select id="um-role">
+          <option value="admin">Admin</option>
+          <option value="director">Director</option>
+          <option value="pm">Project Manager</option>
+          <option value="site_manager">Site Manager</option>
+          <option value="engineer" selected>Engineer</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </div>
+      <div class="btn-group" style="height:40px; align-items:center">
+        <button class="btn btn-ok" onclick="umSave()" style="padding:10px 20px;font-weight:600">Lưu</button>
+        <button class="btn btn-mut" onclick="umReset()" style="padding:10px 20px;font-weight:600">Mới</button>
+      </div>
+    </div>
+    <p class="muted" id="um-msg" style="min-height:16px; margin-top:8px; font-weight:600; color:var(--primary)"></p>
+    <div class="sublist" id="um-list" style="margin-top:12px; max-height:250px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--bg); padding:4px"></div>
+  </div>
+
+  <!-- CARD: Quản lý vai trò -->
+  <div class="system-card card-primary">
+    <h2>🛡️ Quản lý vai trò</h2>
+    <p class="muted">Tạo vai trò mới và chọn các mục vai trò đó được phép truy cập. Vai trò mới sẽ xuất hiện ngay trong danh sách gán vai ở mục <b>Quản lý người dùng</b>. Vai trò mặc định không sửa/xóa được.</p>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr auto">
+      <div class="form-group">
+        <label for="role-name">Tên vai trò mới</label>
+        <input id="role-name" placeholder="VD: Kỹ sư QS, Giám sát hiện trường...">
+      </div>
+      <div class="form-group">
+        <label for="role-dept">Thuộc bộ phận</label>
+        <select id="role-dept"></select>
+      </div>
+      <div class="btn-group" style="height:40px; align-items:center">
+        <button class="btn btn-ok" id="role-save-btn" onclick="roleSave()" style="padding:10px 20px;font-weight:600">Lưu vai trò</button>
+        <button class="btn btn-mut" onclick="roleReset()" style="padding:10px 20px;font-weight:600">Mới</button>
+      </div>
+    </div>
+    <label class="muted" style="display:block; margin-top:10px; font-weight:600">Quyền truy cập (tick các mục được phép xem):</label>
+    <div id="role-tabs" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px"></div>
+    <p class="muted" id="role-msg" style="min-height:16px; margin-top:8px; font-weight:600; color:var(--primary)"></p>
+    <div class="sublist" id="role-list" style="margin-top:12px; max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--bg); padding:4px"></div>
+  </div>
+
+  <!-- CARD: Từ điển AI cho Voice -->
+  <div class="system-card card-accent">
+    <h2>📚 Từ điển AI cho Voice (công tác &amp; nhà thầu)</h2>
+    <p class="muted">Nạp <b>bảng tiến độ nhiều dự án</b> (có cột Công tác &amp; Nhà thầu) và <b>danh sách nhà thầu</b> để Voice nhận diện đúng từ chuyên ngành, tránh đoán sai chính tả, và điền công tác theo đúng nhà thầu. Hỗ trợ .xlsx/.csv (chọn nhiều file).</p>
+    <div class="btnbar" style="margin-bottom:16px; display:flex; gap:8px; flex-wrap:wrap">
+      <label class="btn btn-ok" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px">
+        ⬆ Nạp bảng tiến độ
+        <input type="file" id="kb-sched-file" accept=".csv,.xlsx,.xls" multiple hidden onchange="importKBSchedule(event)">
+      </label>
+      <label class="btn btn-pri" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px">
+        ⬆ Nạp danh sách nhà thầu
+        <input type="file" id="kb-ct-file" accept=".csv,.xlsx,.xls" multiple hidden onchange="importKBContractors(event)">
+      </label>
+      <label class="btn btn-pri" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px">
+        ⬆ Nạp danh sách hạng mục
+        <input type="file" id="kb-area-file" accept=".csv,.xlsx,.xls" multiple hidden onchange="importKBAreas(event)">
+      </label>
+      <button class="btn btn-mut" onclick="renderKB()" style="display:inline-flex; align-items:center; gap:6px">🔄 Xem</button>
+      <button class="btn btn-dan" onclick="clearKB()" style="display:inline-flex; align-items:center; gap:6px">Xóa kho</button>
+    </div>
+    <div class="form-grid" style="grid-template-columns: 1fr auto; margin-top:12px">
+      <div class="form-group">
+        <label for="kb-area-text">Hoặc nhập nhanh hạng mục công trình (mỗi dòng/phẩy 1 hạng mục)</label>
+        <textarea id="kb-area-text" rows="2" placeholder="VD: Nhà xưởng 1, Nhà xưởng 2, Nhà Văn phòng, Nhà bảo vệ, Trạm điện" style="resize:vertical;min-height:50px"></textarea>
+      </div>
+      <button class="btn btn-ok" onclick="importKBAreasText()" style="padding:10px 20px;font-weight:600;height:50px">Nạp hạng mục</button>
+    </div>
+    <p class="muted" id="kb-info" style="margin-top:8px; font-weight:600; color:var(--success)"></p>
+    <p class="muted" style="font-size:12px; margin-top:8px; line-height:1.4">Cột tự nhận diện: <b>Công tác/Công việc/Hạng mục/Nội dung</b>, <b>Nhà thầu/Đơn vị/Tổ đội</b>, <b>Hạng mục/Khu vực/Nhà xưởng</b>. Hạng mục sẽ thành gợi ý tự động cho ô "Khu vực". App cũng <b>tự học thêm</b> mỗi khi Sếp lưu nhật ký.</p>
+  </div>
+  <datalist id="dl-areas"></datalist>
+
+  <!-- CARD: Sao lưu & Khôi phục -->
+  <div class="system-card card-success">
+    <h2>💾 Sao lưu &amp; Khôi phục dữ liệu</h2>
+    <p class="muted">Xuất toàn bộ dữ liệu (nhật ký, tiến độ, thanh toán, ảnh, danh mục) ra một file JSON để phòng mất dữ liệu; hoặc khôi phục từ file đã lưu. <b>Khôi phục sẽ ghi đè dữ liệu hiện tại.</b></p>
+    <div class="btnbar" style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn btn-ok" onclick="exportBackup()" style="display:inline-flex; align-items:center; gap:6px">⬇ Sao lưu (JSON)</button>
+      <label class="btn btn-pri" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px">
+        ⬆ Khôi phục từ file
+        <input type="file" id="restore-file" accept=".json,application/json" hidden onchange="importBackup(event)">
+      </label>
+    </div>
+    <p class="muted" id="backup-info" style="margin-top:12px; font-weight:600; color:var(--success)"></p>
+  </div>
+
+  <!-- CARD: Nhật ký thao tác -->
+  <div class="system-card card-primary">
+    <h2>📋 Nhật ký thao tác (Audit log)</h2>
+    <p class="muted">Ghi lại các thao tác tạo/sửa/xóa gần đây trên thiết bị này (50 mục mới nhất).</p>
+    <div class="sublist" id="audit-list" style="margin-top:12px; max-height:250px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--bg); padding:4px"></div>
+    <div class="btnbar" style="margin-top:12px">
+      <button class="btn btn-mut btn-sm" onclick="clearAudit()" style="display:inline-flex; align-items:center; gap:6px">Xóa nhật ký thao tác</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TIẾN ĐỘ THI CÔNG ===== -->
+<section id="tab-tiendo" class="hide">
+  
+    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom: 20px;">
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--navy);">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-value" style="color:var(--text-strong);" id="pg-kpi-total">0</div>
+        <div class="kpi-label" style="color:var(--text-strong);">TỔNG SỐ HẠNG MỤC</div>
+      </div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--pri);">
+        <div class="kpi-icon">🚜</div>
+        <div class="kpi-value" style="color:var(--pri);" id="pg-kpi-active">0</div>
+        <div class="kpi-label" style="color:var(--pri);">ĐANG THI CÔNG</div>
+      </div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--red);">
+        <div class="kpi-icon">🚨</div>
+        <div class="kpi-value" style="color:var(--red);" id="pg-kpi-late">0</div>
+        <div class="kpi-label" style="color:var(--red);">CHẬM TIẾN ĐỘ</div>
+      </div>
+    </div>
+
+    <!-- NEW DATA INPUT CARD -->
+    <div class="card no-print" style="margin-bottom:20px; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); border-radius:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="color:var(--text-strong); margin:0; text-transform:uppercase; font-size:16px;">⚙️ Nạp Dữ Liệu & Điều Chỉnh</h3>
+        <button class="btn btn-ok btn-sm" onclick="window.print()" style="box-shadow: 0 2px 4px rgba(34,197,94,0.3); font-weight:600;">🖨️ In Báo Cáo</button>
+      </div>
+      
+      <div id="td-drop" class="dropzone" style="margin-bottom:20px;">
+        <div style="font-size:36px; margin-bottom:12px;">☁️</div>
+        <div style="font-weight:600; font-size:16px; margin-bottom:8px; color:var(--text-strong);">Kéo &amp; thả file tiến độ vào đây, hoặc <label class="link" style="color:var(--pri); cursor:pointer;">Chọn file từ máy<input type="file" id="td-file" accept=".csv,.xlsx,.xls,.pdf" hidden onchange="importProgress(event)"></label></div>
+        <div class="muted" style="margin-top:6px; font-size:13px; line-height:1.5;">Hỗ trợ <b>.csv / .xlsx</b> (tự động nạp bảng biểu) và <b>.pdf</b> (chỉ đính kèm). Hệ thống tự động nhận diện các cột: <b>Công tác, Bắt đầu, Kết thúc, Thời lượng</b>.</div>
+      </div>
+      <div id="td-fileinfo" class="muted" style="margin-top:8px"></div>
+      <div class="aibox hide" id="td-ai" style="margin-top:8px"></div>
+      
+      <div class="btnbar" style="margin-bottom:16px; display:flex; gap:10px;">
+        <button class="btn btn-mut" onclick="loadSampleProgress()">Nạp dữ liệu mẫu</button>
+        <button class="btn btn-dan" onclick="clearProgress()">Xóa dữ liệu</button>
+      </div>
+
+      <div class="panel-bg" style="padding:16px; border-radius:8px;">
+        <div style="font-weight:700; color:var(--text-strong); margin-bottom:12px; font-size:13px; text-transform:uppercase;">✏️ Bổ sung / Chỉnh sửa thủ công</div>
+        <div class="row" style="align-items:flex-end; gap:12px;">
+          <div style="flex:2;"><label style="font-weight:600; font-size:13px; color:var(--text-strong); display:block; margin-bottom:6px;">Tên công tác</label><input id="pg-task" placeholder="Nhập tên hạng mục..." style="width:100%; box-sizing:border-box; box-shadow:inset 0 1px 2px rgba(0,0,0,0.05); padding:10px; border-radius:6px; border:1px solid var(--border);"></div>
+          <div style="flex:1;min-width:140px"><label style="font-weight:600; font-size:13px; color:var(--text-strong); display:block; margin-bottom:6px;">Bắt đầu</label><input type="date" id="pg-start" style="width:100%; box-sizing:border-box; box-shadow:inset 0 1px 2px rgba(0,0,0,0.05); padding:10px; border-radius:6px; border:1px solid var(--border);"></div>
+          <div style="flex:1;min-width:140px"><label style="font-weight:600; font-size:13px; color:var(--text-strong); display:block; margin-bottom:6px;">Kết thúc</label><input type="date" id="pg-end" style="width:100%; box-sizing:border-box; box-shadow:inset 0 1px 2px rgba(0,0,0,0.05); padding:10px; border-radius:6px; border:1px solid var(--border);"></div>
+          <div style="flex:0"><button class="btn btn-ok" onclick="progSave()" style="box-shadow:0 2px 4px rgba(34,197,94,0.2); padding:10px 16px; height:40px; white-space:nowrap;">Lưu lại</button></div>
+          <div style="flex:0"><button class="btn btn-mut" onclick="progReset()" style="padding:10px 16px; height:40px; white-space:nowrap;">Xóa form</button></div>
+        </div>
+        <p class="muted" id="pg-msg" style="min-height:14px; margin:8px 0 0 0; font-size:13px;"></p>
+      </div>
+    </div>
+  
+    <!-- 3-WEEK WINDOW CARD -->
+    <div class="card" style="padding:0; overflow:hidden; border-radius:8px; margin-bottom:20px;">
+      <div class="panel-bg" style="padding:16px 20px;">
+        <h3 style="color:var(--text-strong); margin:0; text-transform: uppercase;">🚀 Tiến độ thi công - Cửa sổ 3 tuần</h3>
+        <p class="muted" id="td-range" style="margin:4px 0 0; font-size:13px;"></p>
+      </div>
+      <div class="table-sticky-wrapper">
+        <table class="table-sticky" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width:40px; text-align:center;">#</th>
+              <th>Công tác</th>
+              <th style="width:95px">Bắt đầu</th>
+              <th style="width:95px">Kết thúc</th>
+              <th style="width:120px">Trạng thái</th>
+              <th style="min-width:150px">Biểu đồ (Mini Gantt)</th>
+            </tr>
+          </thead>
+          <tbody id="td-window"></tbody>
+        </table>
+      </div>
+    </div>
+  
+    <!-- DETAILED LIST CARD -->
+    <div class="card" style="padding:0; overflow:hidden; margin-top:16px; border-radius:8px; margin-bottom:20px;">
+      <div class="panel-bg" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0px; padding:16px 20px;">
+        <h3 style="color:var(--text-strong); margin:0; text-transform: uppercase;">📋 DANH SÁCH CHI TIẾT CÔNG TÁC</h3>
+      </div>
+      <!-- BỘ LỌC NHANH CÔNG TÁC -->
+      <div style="display:flex; gap:16px; padding: 16px 20px; border-bottom: 1px solid var(--border); background: rgba(255, 255, 255, 0.02); flex-wrap: wrap; align-items: center;" class="no-print">
+        <div style="flex: 1; min-width: 250px;">
+          <input type="text" id="td-filter-search" placeholder="🔍 Tìm nhanh theo công tác, khu vực..." oninput="filterTiendo()" style="width: 100%; height: 38px; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; white-space: nowrap;">
+          <label style="font-size: 13px; font-weight: 600; color: var(--text-strong); margin: 0;">Trạng thái:</label>
+          <select id="td-filter-status" onchange="filterTiendo()" style="height: 38px; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; cursor: pointer;">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="dang-thi-cong">Đang thi công</option>
+            <option value="tre-han">Trễ hạn / Chậm tiến độ</option>
+            <option value="sap-toi">Sắp tới</option>
+            <option value="sap-het-han">Sắp hết hạn</option>
+            <option value="hoan-thanh">Hoàn thành</option>
+          </select>
+        </div>
+      </div>
+      <!-- Banner cảnh báo gia hạn -->
+      <div id="td-warning-banner" style="display:none; margin:0 16px 12px; padding:10px 16px; border-radius:8px; background:rgba(217,130,43,0.12); border:1px solid rgba(217,130,43,0.4); color:#a05a00; font-weight:600; font-size:13px;"></div>
+      <div class="table-sticky-wrapper">
+        <table class="table-sticky" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="width:40px; text-align:center;">#</th>
+              <th style="width:220px">Khu vực</th>
+              <th>Công tác thi công</th>
+              <th style="width:95px">Bắt đầu</th>
+              <th style="width:95px">Kết thúc</th>
+              <th style="width:145px; text-align:center;">Gia hạn</th>
+              <th style="width:130px; text-align:center;">Trạng thái</th>
+              <th style="width:110px; text-align:center;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="td-all"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MODAL GIA HẠN CÔNG TÁC ===== -->
+  <div id="modal-extension" class="modal-bg hide" style="align-items:center;">
+    <div class="modal" style="max-width:480px; width:95%;">
+      <div class="modal-header" style="padding:20px 24px 16px; border-bottom:1px solid var(--border);">
+        <h3 style="margin:0; color:var(--text-strong); font-size:16px;">⏱ Gia hạn công tác</h3>
+      </div>
+      <div class="modal-body" style="padding:20px 24px;">
+        <div id="ext-task-name" style="font-weight:700; color:var(--primary-dark); margin-bottom:14px; font-size:14px; line-height:1.4;"></div>
+        <div style="display:flex; gap:20px; margin-bottom:16px; padding:10px 14px; background:var(--surface-2); border-radius:8px; font-size:13px;">
+          <div><span style="color:var(--muted);">KH gốc:</span> <b id="ext-orig-end">—</b></div>
+          <div><span style="color:var(--muted);">Gia hạn hiện tại:</span> <b id="ext-cur-end" style="color:var(--warn);">—</b></div>
+          <div><span style="color:var(--muted);">Số lần GH:</span> <b id="ext-count">0</b></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label style="font-weight:600; font-size:13px; margin-bottom:5px; display:block;">📅 Gia hạn đến ngày <span style="color:var(--danger);">*</span></label>
+            <input type="date" id="ext-new-end" class="input" style="width:100%;">
+          </div>
+          <div>
+            <label style="font-weight:600; font-size:13px; margin-bottom:5px; display:block;">📊 % Hoàn thành hiện tại <span style="color:var(--danger);">*</span></label>
+            <input type="number" id="ext-pct" class="input" min="0" max="99" placeholder="0 – 99%" style="width:100%;">
+          </div>
+          <div>
+            <label style="font-weight:600; font-size:13px; margin-bottom:5px; display:block;">📝 Lý do gia hạn <span style="color:var(--danger);">*</span></label>
+            <textarea id="ext-reason" class="input" rows="3" placeholder="Nêu rõ lý do cần gia hạn..." style="width:100%; resize:vertical;"></textarea>
+          </div>
+        </div>
+        <div id="ext-history" style="margin-top:16px;"></div>
+        <div id="ext-msg" style="color:var(--danger); font-size:12px; margin-top:8px; min-height:16px;"></div>
+      </div>
+      <div class="modal-footer" style="padding:14px 24px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:12px;">
+        <button class="btn btn-mut" onclick="closeExtensionModal()">Hủy</button>
+        <button class="btn btn-pri" onclick="saveExtension()">✓ Xác nhận Gia hạn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL HOÀN THÀNH CÔNG TÁC ===== -->
+  <div id="modal-complete" class="modal-bg hide" style="align-items:center;">
+    <div class="modal" style="max-width:440px; width:95%;">
+      <div class="modal-header" style="padding:20px 24px 16px; border-bottom:1px solid var(--border);">
+        <h3 style="margin:0; color:var(--success); font-size:16px;">✅ Xác nhận Hoàn thành</h3>
+      </div>
+      <div class="modal-body" style="padding:20px 24px;">
+        <div id="cmp-task-name" style="font-weight:700; color:var(--primary-dark); margin-bottom:14px; font-size:14px; line-height:1.4;"></div>
+        <div id="cmp-kpi-info" style="padding:12px 16px; border-radius:8px; margin-bottom:16px; font-size:13px; line-height:1.6;"></div>
+        <div style="padding:10px 14px; background:var(--surface-2); border-radius:8px; font-size:13px; color:var(--muted);">
+          ⏰ Thời điểm hoàn thành: <b id="cmp-timestamp" style="color:var(--ink);"></b>
+        </div>
+        <div id="cmp-msg" style="color:var(--danger); font-size:12px; margin-top:8px; min-height:16px;"></div>
+      </div>
+      <div class="modal-footer" style="padding:14px 24px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:12px;">
+        <button class="btn btn-mut" onclick="closeCompleteModal()">Hủy</button>
+        <button class="btn" id="cmp-confirm-btn" style="background:var(--success);color:#fff;" onclick="confirmComplete()">✅ Xác nhận Hoàn thành</button>
+      </div>
+    </div>
+  </div>
+
+
+<!-- ===== THANH TOÁN ===== -->
+  <section id="tab-thanhtoan" class="hide">
+
+    <!-- KPI TỔNG QUAN -->
+    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom: 24px;">
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 4px solid var(--primary);">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-value" style="color:var(--primary); font-size:36px;" id="kpi-tc-thu">0</div>
+        <div class="kpi-label" style="color:var(--primary);">TỔNG THU CĐT</div>
+      </div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 4px solid var(--danger);">
+        <div class="kpi-icon">💸</div>
+        <div class="kpi-value" style="color:var(--danger); font-size:36px;" id="kpi-tc-chi-thau">0</div>
+        <div class="kpi-label" style="color:var(--danger);">ĐÃ CHI NHÀ THẦU</div>
+      </div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 4px solid var(--warn);">
+        <div class="kpi-icon">🧾</div>
+        <div class="kpi-value" style="color:var(--warn); font-size:36px;" id="kpi-tc-chi-le">0</div>
+        <div class="kpi-label" style="color:var(--warn);">CHI PHÍ LẺ & HÓA ĐƠN</div>
+      </div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 4px solid var(--success);">
+        <div class="kpi-icon">⚖️</div>
+        <div class="kpi-value" style="color:var(--success); font-size:36px;" id="kpi-tc-balance">0</div>
+        <div class="kpi-label" style="color:var(--success);">CÂN ĐỐI DÒNG TIỀN</div>
+      </div>
+      </div>
+      
+      <!-- PAYMENT ASSIGNEES -->
+      <div id="payment-assignees-block" style="background:var(--surface); padding:16px; border-radius:8px; border:1px solid var(--border); margin-bottom:24px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <b style="font-size:14px;">👥 Nhân sự phụ trách Khai báo Thanh toán:</b>
+          <div id="payment-assignees-list" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+             <span class="muted">Đang tải...</span>
+          </div>
+        </div>
+        <button id="btn-assign-payment" class="btn btn-ok hide" onclick="openPaymentAssignModal()">Giao quyền</button>
+      </div>
+  
+      <!-- SUB-NAV PILLS -->
+    <div class="tc-pills-container">
+      <div class="tc-pills">
+        <button class="tc-pill-btn active" id="tc-btn-cdt" onclick="switchTcTab('cdt')">Thanh toán CĐT</button>
+        <button class="tc-pill-btn" id="tc-btn-thau" onclick="switchTcTab('thau')">Nhà thầu & Tổ đội</button>
+        <button class="tc-pill-btn" id="tc-btn-phi" onclick="switchTcTab('phi')">Bảng kê chi phí lẻ</button>
+      </div>
+    </div>
+      
+    <!-- PHẦN 1: THANH TOÁN CDT -->
+    <div id="tc-sec-cdt" class="tc-section">
+      <div class="panel-bg" style="padding:16px 20px; border-radius:8px 8px 0 0; border-bottom:1px solid var(--border);">
+      <h3 style="margin:0; text-transform:uppercase; color:var(--text-strong);">Phần 1: Thanh toán Chủ đầu tư</h3>
+    </div>
+    <div class="card" style="border-top:none; border-radius:0 0 8px 8px; margin-bottom:24px;">
+      <h2 style="margin-top:0">Thanh toán CĐT - Các đợt & Điều kiện</h2>
+      <div class="btnbar"><button id="btn-add-cdt" class="btn btn-ok" onclick="openCdtModal()">+ Thêm đợt thanh toán</button></div>
+      <div id="cdt-list" style="margin-top:14px"></div>
+
+      <!-- Panel soạn đợt thanh toán CĐT -->
+      <div class="card hide" id="cdt-editor" style="border:1px solid var(--primary); margin-top:20px;">
+        <h2 id="cdt-modal-title">Đợt thanh toán</h2>
+        <label>Tên đợt</label>
+        <input id="cdt-name" placeholder="VD: Đợt 2 - Hoàn thành phần thân">
+        <div class="row" style="margin-top:10px">
+          <div style="flex:1"><label>Giá trị đợt (VNĐ)</label><input id="cdt-val" type="number" min="0" step="1000" placeholder="VD: 500000000"></div>
+          <div style="flex:1"><label>Đã thu (VNĐ)</label><input id="cdt-paid" type="number" min="0" step="1000" placeholder="VD: 300000000"></div>
+        </div>
+        <h3>Điều kiện thanh toán</h3>
+        <div id="cdt-conds"></div>
+        <button class="btn btn-mut btn-sm" onclick="cdtAddCond()">+ Thêm điều kiện</button>
+        <div class="btnbar">
+          <button class="btn btn-ok" onclick="cdtSave()">💾 Lưu đợt</button>
+          <button class="btn btn-mut" onclick="closeCdtModal()">Hủy</button>
+        </div>
+      </div>
+    </div> <!-- End tc-sec-cdt -->
+    </div>
+
+    <!-- PHẦN 2: THANH TOÁN NHÀ THẦU, TỔ ĐỘI -->
+    <div id="tc-sec-thau" class="tc-section hide">
+      <div class="panel-bg" style="padding:16px 20px; border-radius:8px 8px 0 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; text-transform:uppercase; color:var(--text-strong);">Phần 2: Thanh toán Nhà thầu, Tổ đội</h3>
+      <button class="btn btn-mut btn-sm" onclick="clearSubconData()">Làm mới dữ liệu</button>
+    </div>
+    <div class="card" style="border-top:none; border-radius:0 0 8px 8px;">
+      
+      <!-- Upload Dropzone (Mock AI) -->
+      <div id="subcon-drop" class="dropzone" style="margin-bottom:20px;" onclick="document.getElementById('subcon-file').click()" ondragover="event.preventDefault(); this.classList.add('drag');" ondragleave="this.classList.remove('drag');" ondrop="event.preventDefault(); this.classList.remove('drag'); processSubconDrop(event)">
+        <span style="font-size:32px;">📑</span><br>
+        Kéo thả một hoặc nhiều file scan Đề nghị thanh toán/Bảng công vào đây<br>
+        <span class="muted" style="font-size:13px; font-weight:normal;">App sẽ tự động bóc tách: Số hợp đồng, Tên nhà thầu, Số tiền</span>
+        <input type="file" id="subcon-file" style="display:none" accept=".pdf,.jpg,.png" multiple onchange="processSubconDrop(event)">
+      </div>
+
+      <!-- AI Loading Overlay (Hidden by default) -->
+      <div id="ai-loading" class="hide" style="text-align:center; padding:30px; border:1px solid var(--primary); border-radius:8px; background:var(--surface-2); margin-bottom:20px;">
+        <div style="font-size:40px; animation: pulse 1s infinite;">🤖</div>
+        <h3 style="color:var(--primary); margin:10px 0 0 0;">Đang phân tích AI...</h3>
+        <span class="muted">Vui lòng chờ trong lúc hệ thống bóc tách dữ liệu từ bản scan</span>
+      </div>
+
+      <!-- Modal Xử lý dữ liệu AI (Hidden by default) -->
+      <div class="card hide" id="ai-modal" style="border:1px solid var(--primary); margin-bottom:20px;">
+        <h2 style="color:var(--primary); margin-top:0;">🚀 Kết quả Bóc tách AI</h2>
+        <div style="display:flex; gap:16px; margin-bottom:16px;">
+          <div style="flex:1">
+            <label>Tên Nhà thầu / Tổ đội</label>
+            <input id="ai-contractor" placeholder="VD: Hoàng Ngân Phát">
+          </div>
+          <div style="flex:1">
+            <label>Số Hợp Đồng / Đợt</label>
+            <input id="ai-contract-no" placeholder="VD: 1909/2025/HĐGK">
+          </div>
+        </div>
+        <div style="display:flex; gap:16px; margin-bottom:16px;">
+          <div style="flex:1">
+            <label>Số Tiền Đề Nghị (VNĐ)</label>
+            <input id="ai-amount" type="number" placeholder="Chỉ nhập số">
+          </div>
+          <div style="flex:1">
+            <label>Ghi chú (Tùy chọn)</label>
+            <input id="ai-note" placeholder="Thanh toán đợt 2...">
+          </div>
+        </div>
+        <div class="btnbar" style="margin-top:20px;">
+          <button class="btn btn-ok" onclick="saveSubconPayment()">💾 Lưu & Đưa vào Danh sách</button>
+          <button class="btn btn-mut" onclick="closeAiModal()">Hủy bỏ</button>
+        </div>
+      </div>
+
+      <!-- Sticky Table cho Danh sách thanh toán nhà thầu -->
+      <div class="table-sticky-wrapper" style="max-height:400px;">
+        <table class="table-sticky">
+          <thead>
+            <tr>
+              <th style="width:50px;">STT</th>
+              <th>Số HĐ / Đợt</th>
+              <th>Tên Nhà Thầu / Tổ Đội</th>
+              <th style="text-align:right;">Số Tiền Đề Nghị (VNĐ)</th>
+              <th style="text-align:center;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="subcon-list">
+            <!-- Render by JS -->
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--surface-2); font-weight:bold;">
+              <td colspan="3" style="text-align:right;">TỔNG CỘNG ĐỀ NGHỊ:</td>
+              <td id="subcon-total-amount" style="text-align:right; color:var(--primary); font-size:16px;">0</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      </div>
+    </div> <!-- End tc-sec-thau -->
+
+      <!-- PHẦN 3: BẢNG KÊ CHI PHÍ -->
+    <div id="tc-sec-phi" class="tc-section hide">
+      <div class="panel-bg" style="padding:16px 20px; border-radius:8px 8px 0 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
+        <h3 style="margin:0; text-transform:uppercase; color:var(--text-strong);">Phần 3: Bảng kê chi phí (Hóa đơn lẻ, Xử lý ngoài)</h3>
+        <div>
+          <input type="month" id="expense-month" class="input" style="width:150px; display:inline-block; margin-right:10px;" onchange="renderExpenses()">
+          <button class="btn btn-mut btn-sm" onclick="openExpenseArchive()">📁 Kho chứng từ</button>
+          <button class="btn btn-ok btn-sm" onclick="printExpenseReport()">🖨️ In Báo cáo</button>
+          <button class="btn btn-mut btn-sm" onclick="clearExpenseData()">Làm mới</button>
+        </div>
+      </div>
+      <div class="card" style="border-top:none; border-radius:0 0 8px 8px;">
+        
+        <!-- Upload Dropzone -->
+        <div id="expense-drop" class="dropzone" style="margin-bottom:20px;" onclick="document.getElementById('expense-file').click()" ondragover="event.preventDefault(); this.classList.add('drag');" ondragleave="this.classList.remove('drag');" ondrop="event.preventDefault(); this.classList.remove('drag'); processExpenseDrop(event)">
+          <span style="font-size:32px;">🧾</span><br>
+          Kéo thả hàng loạt file scan Hóa đơn bán lẻ, Phiếu thu vào đây<br>
+          <span class="muted" style="font-size:13px; font-weight:normal;">App sẽ tự động bóc tách: Tên vật tư, Số lượng, Đơn giá, Thành tiền...</span>
+          <input type="file" id="expense-file" style="display:none" accept=".pdf,.jpg,.png" multiple onchange="processExpenseDrop(event)">
+        </div>
+
+        <!-- AI Loading -->
+        <div id="expense-loading" class="hide" style="text-align:center; padding:30px; border:1px solid var(--primary); border-radius:8px; background:var(--surface-2); margin-bottom:20px;">
+          <div style="font-size:40px; animation: pulse 1s infinite;">🤖</div>
+          <h3 style="color:var(--primary); margin:10px 0 0 0;">Đang quét và bóc tách hóa đơn...</h3>
+        </div>
+
+        <!-- Bảng danh sách chi phí -->
+        <div class="table-responsive" id="expense-print-area">
+          <table class="table" id="expense-table">
+            <thead>
+              <tr>
+                <th style="width:40px">STT</th>
+                <th>Diễn giải</th>
+                <th style="width:70px">ĐVT</th>
+                <th style="text-align:right; width:80px">Số lượng</th>
+                <th style="text-align:right; width:100px">Đơn giá</th>
+                <th style="text-align:right; width:120px">Thành tiền</th>
+                <th>Mục đích SD</th>
+                <th>Nơi SD</th>
+                <th>Ghi chú</th>
+                <th style="width:60px" class="no-print"></th>
+              </tr>
+            </thead>
+            <tbody id="expense-tbody"></tbody>
+            <tfoot>
+              <tr style="font-weight:bold; background:var(--surface-2)">
+                <td colspan="5" style="text-align:right">Tổng cộng:</td>
+                <td id="expense-total" style="text-align:right; color:var(--danger)">0</td>
+                <td colspan="4"></td>
+              </tr>
+              <tr>
+                <td colspan="10" style="font-style:italic">Số tiền bằng chữ: <span id="expense-total-words" style="font-weight:bold">Không đồng</span></td>
+              </tr>
+            </tfoot>
+          </table>
+          
+          <!-- Chữ ký in ấn (Chỉ hiển thị khi in) -->
+          <div class="print-only hide" id="expense-signatures" style="margin-top:30px; display:flex; justify-content:space-between; text-align:center;">
+             <div style="flex:1"><b>Người đề nghị</b><br><br><br><br></div>
+             <div style="flex:1"><b>Phụ trách bộ phận</b><br><br><br><br></div>
+             <div style="flex:1"><b>Kế toán kiểm tra</b><br><br><br><br></div>
+             <div style="flex:1"><b>Duyệt chi</b><br><br><br><br></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Xử lý dữ liệu AI cho Chi phí (SPLIT-VIEW) -->
+      <div class="card hide" id="expense-ai-modal" style="border:1px solid var(--primary); position:fixed; top:2%; left:50%; transform:translateX(-50%); width:95%; max-width:1400px; height:96vh; display:flex; flex-direction:column; z-index:9999; box-shadow:0 0 0 100vw rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.3); background:var(--surface, #ffffff);">
+        
+        <div style="flex-shrink:0; margin-bottom:16px;">
+            <h2 style="color:var(--primary-dark); margin-top:0; margin-bottom:4px;">🤖 Đối chiếu dữ liệu Bóc tách AI</h2>
+            <p class="muted" style="margin:0;">Kiểm tra đối chiếu với hóa đơn gốc ở màn hình bên trái trước khi lưu vào bảng kê.</p>
+        </div>
+        
+        <div style="display:flex; gap:20px; flex:1; min-height:0;">
+            <!-- CỘT TRÁI: PREVIEW HÓA ĐƠN -->
+            <div class="ai-preview-pane" style="flex: 0 0 40%;">
+                <div style="padding:10px; border-bottom:1px solid var(--border); background:var(--surface-2, #e2e8f0); font-weight:600;">
+                    📄 Bản Scan Hóa Đơn Gốc
+                </div>
+                <div class="ai-preview-scroll" id="expense-ai-preview">
+                    <!-- Images will be rendered here -->
+                    <div id="expense-ai-bbox" class="bounding-box hide"></div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: BẢNG DỮ LIỆU -->
+            <div style="flex: 1; display:flex; flex-direction:column; overflow:hidden;">
+                <div style="overflow-x:auto; overflow-y:auto; flex:1; border:1px solid var(--border); border-radius:8px;">
+                  <table class="table table-sticky" style="margin:0;">
+                    <thead>
+                      <tr>
+                        <th>Diễn giải</th>
+                        <th style="width:80px">ĐVT</th>
+                        <th style="width:80px">S.Lượng</th>
+                        <th style="width:120px">Đơn giá</th>
+                        <th style="width:140px">Thành tiền</th>
+                        <th>Mục đích SD</th>
+                        <th style="width:40px"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="expense-ai-tbody"></tbody>
+                  </table>
+                </div>
+                <div style="text-align:right; margin-top:10px; flex-shrink:0;">
+                    <button class="btn btn-mut btn-sm" onclick="addExpenseAiRow()">+ Thêm dòng</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="btnbar" style="flex-shrink:0; margin-top:20px; border-top:1px solid var(--border); padding-top:16px">
+          <button class="btn btn-ok" onclick="saveExpenseAi()">💾 Xác nhận & Lưu vào Bảng kê</button>
+          <button class="btn btn-mut" onclick="closeExpenseAiModal()">Hủy bỏ</button>
+        </div>
+      </div>
+
+      <!-- Modal Kho lưu trữ chứng từ -->
+      <div class="card hide" id="expense-archive-modal" style="border:1px solid var(--primary); margin-bottom:20px; position:fixed; top:5%; left:50%; transform:translateX(-50%); width:90%; max-width:1000px; max-height:90vh; overflow-y:auto; z-index:9999; box-shadow:0 0 0 100vw rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.3); background:var(--surface, #ffffff);">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:16px;">
+            <h2 style="color:var(--primary-dark); margin:0">📁 Kho chứng từ gốc</h2>
+            <div>
+                <button class="btn btn-ok btn-sm" onclick="printExpenseArchive()">🖨️ In toàn bộ chứng từ</button>
+                <button class="btn btn-mut btn-sm" onclick="closeExpenseArchive()">Đóng</button>
+            </div>
+        </div>
+        
+        <p class="muted">Danh sách chứng từ (ảnh scan) đã được lưu trữ trong tháng. Sắp xếp theo thứ tự thời gian quét.</p>
+        
+        <div id="expense-archive-print-area">
+            <div id="expense-archive-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
+                <!-- JS will populate images here -->
+            </div>
+        </div>
+        </div>
+      </div>
+    </div> <!-- End tc-sec-phi -->
+  </section>
+
+<!-- ===== PLACEHOLDER MODULES ===== -->
+<section id="tab-qaqc-dashboard" class="hide">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Tổng quan chất lượng dự án</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ tổng quan QA-QC</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Tiến độ xử lý sự cố</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ sự cố</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-qaqc-nhansu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Nhân sự Bộ Phận QA-QC</h2>
+    <div id="qaqc-users-list">Đang tải danh sách...</div>
+  </div>
+</section>
+
+<section id="tab-qaqc-baocao" class="hide">
+  <div class="card" style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px">📋</div>
+    <h2 style="font-size:24px;color:var(--primary-dark)">Báo cáo QA-QC</h2>
+    <p class="muted" style="font-size:16px">Giao diện Báo cáo chất lượng sẽ được xây dựng sau.</p>
+  </div>
+</section>
+
+<section id="tab-qaqc-muctieu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Quản lý Mục tiêu QA-QC</h2>
+    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+      <span class="muted">Giao diện quản lý KPI chất lượng sẽ được xây dựng sau.</span>
+    </div>
+  </div>
+</section>
+<section id="tab-hse-dashboard" class="hide">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Tổng quan an toàn lao động</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ tổng quan HSE</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Chỉ số vi phạm</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ vi phạm an toàn</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-hse-nhansu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Nhân sự Bộ Phận HSE</h2>
+    <div id="hse-users-list">Đang tải danh sách...</div>
+  </div>
+</section>
+
+<section id="tab-hse-baocao" class="hide">
+  <div class="card" style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px">🦺</div>
+    <h2 style="font-size:24px;color:var(--primary-dark)">Báo cáo HSE</h2>
+    <p class="muted" style="font-size:16px">Giao diện Báo cáo an toàn lao động sẽ được xây dựng sau.</p>
+  </div>
+</section>
+
+<section id="tab-hse-muctieu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Quản lý Mục tiêu HSE</h2>
+    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+      <span class="muted">Giao diện quản lý KPI an toàn lao động sẽ được xây dựng sau.</span>
+    </div>
+  </div>
+</section>
+<section id="tab-sd-dashboard" class="hide">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Tổng quan thực hiện mục tiêu</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ tổng quan</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Biểu đồ công việc thành viên</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ năng suất</span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <p class="muted">Dữ liệu để sẵn, sẽ phát triển chức năng thống kê thực tế ở giai đoạn sau.</p>
+  </div>
+</section>
+
+<section id="tab-sd-nhansu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Nhân sự Bộ Phận Shopdrawing</h2>
+    <div id="sd-users-list">Đang tải danh sách...</div>
+  </div>
+</section>
+
+<section id="tab-sd-baocao" class="hide">
+  <div class="card" style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px">📊</div>
+    <h2 style="font-size:24px;color:var(--primary-dark)">Báo cáo Shopdrawing</h2>
+    <p class="muted" style="font-size:16px">Chức năng quản lý báo cáo phát hành bản vẽ sẽ được xây dựng ở giai đoạn sau.</p>
+  </div>
+</section>
+
+<section id="tab-sd-muctieu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Quản lý Mục tiêu (KPI)</h2>
+    <p class="muted">Chuẩn bị nơi nhập mục tiêu bản vẽ, KPI phát hành, KPI trễ hạn.</p>
+    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+      <span class="muted">Giao diện quản lý KPI sẽ được xây dựng sau.</span>
+    </div>
+  </div>
+</section>
+<section id="tab-mt-dashboard" class="hide">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Tổng quan thiết bị</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Biểu đồ tổng quan bảo trì</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3 style="margin-top:0">Lịch trình bảo dưỡng</h3>
+      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+        <span class="muted">Lịch bảo trì thiết bị</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tab-mt-nhansu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Nhân sự Bộ Phận Bảo Trì</h2>
+    <div id="mt-users-list">Đang tải danh sách...</div>
+  </div>
+</section>
+
+<section id="tab-mt-baocao" class="hide">
+  <div class="card" style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px">🔧</div>
+    <h2 style="font-size:24px;color:var(--primary-dark)">Báo cáo Bảo Trì</h2>
+    <p class="muted" style="font-size:16px">Giao diện Báo cáo sửa chữa & bảo dưỡng sẽ được xây dựng sau.</p>
+  </div>
+</section>
+
+<section id="tab-mt-muctieu" class="hide">
+  <div class="card">
+    <h2 style="margin-top:0">Quản lý Mục tiêu Bảo Trì</h2>
+    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+      <span class="muted">Giao diện quản lý KPI bảo trì sẽ được xây dựng sau.</span>
+    </div>
+  </div>
+</section>
+
+<section id="tab-ai-center" class="hide" style="padding:24px; background:#0f172a; color:#f8fafc; min-height:100vh;">
+  <div style="border-left: 4px solid #fbbf24; padding-left: 16px; margin-bottom: 24px;">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700;">AI Center</h1>
+    <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 14px;">Trung tâm phân tích và dự báo sử dụng Trí tuệ nhân tạo</p>
+  </div>
+  <div class="enterprise-card" style="padding:24px;">
+    <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+      <div style="flex:1; min-width:240px;">
+        <label style="font-size:13px; color:#94a3b8; font-weight:600;">Hỏi nhanh tình hình công trình</label>
+        <textarea id="ai-q" rows="2" placeholder="VD: Tóm tắt tình hình tuần này? Có vấn đề an toàn nào không?" style="width:100%; margin-top:6px; padding:10px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#f8fafc;"></textarea>
+      </div>
+      <button id="ai-voice-btn" class="btn btn-ok" onclick="aiVoiceToggle()" style="height:42px;">🎤 Nói</button>
+      <button class="btn btn-pri" onclick="aiAsk()" style="height:42px;">Gửi ➤</button>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-mut btn-sm" onclick="aiAsk('Tóm tắt tình hình thi công gần đây của dự án')">Tóm tắt tình hình</button>
+      <button class="btn btn-mut btn-sm" onclick="aiAsk('Có vấn đề hoặc sự cố an toàn nào cần chú ý không?')">Vấn đề an toàn</button>
+      <button class="btn btn-mut btn-sm" onclick="aiAsk('Các đề xuất liên phòng ban đang chờ xử lý?')">Liên phòng ban</button>
+      <button class="btn btn-mut btn-sm" onclick="aiAsk('Tiến độ hiện tại nhanh hay chậm so với kế hoạch?')">Đánh giá tiến độ</button>
+    </div>
+  </div>
+  <div class="enterprise-card" style="padding:20px; margin-top:16px; min-height:120px;">
+    <div style="font-size:13px; color:#94a3b8; font-weight:600; margin-bottom:8px;">💬 Trả lời</div>
+    <div id="ai-answer"><div style="color:#94a3b8;">Hãy đặt câu hỏi để AI Center trả lời dựa trên dữ liệu công trình.</div></div>
+  </div>
+  <p style="color:#64748b; font-size:11px; margin-top:12px;">⚠️ AI dùng gói Gemini miễn phí — câu trả lời dựa trên dữ liệu trong app, có thể chưa đầy đủ. Cần đối chiếu báo cáo gốc trước khi ra quyết định.</p>
+</section>
+</div><!-- /#page-container -->
+</div><!-- /.main -->
+</div><!-- /.layout -->
+</div><!-- /.app -->
+
+<script>
+function toggleSubNav(id) {
+  const sub = document.getElementById('sub-' + id);
+  const arrow = document.getElementById('arrow-' + id);
+  if(sub.classList.contains('hide')) {
+    sub.classList.remove('hide');
+    arrow.textContent = '▾';
+  } else {
+    sub.classList.add('hide');
+    arrow.textContent = '▸';
+  }
+}
+function updateHeaderDate() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const el = document.getElementById('header-date');
+  if(el) el.textContent = dateStr;
+}
+setInterval(updateHeaderDate, 60000);
+updateHeaderDate();
+</script>
+
+<script src="modules/baocao.js"></script>
+<script src="modules/excel.js"></script>
+<script src="modules/dashboard.js"></script>
+<script src="modules/nhathau.js"></script>
+<script src="modules/tiendo.js"></script>
+<script src="modules/thanhtoan.js"></script>
+<script src="modules/dieuhanh.js"></script>
+<script src="modules/hethong.js"></script>
+<script src="modules/lpb.js"></script>
+<script src="app.js"></script>
+<script>
+  (function() {
+    const select = document.getElementById("cur-project");
+    if (!select) return;
+    function adjust() {
+      const temp = document.createElement("span");
+      temp.style.visibility = "hidden";
+      temp.style.position = "absolute";
+      temp.style.whiteSpace = "pre";
+      temp.style.font = window.getComputedStyle(select).font;
+      temp.style.fontWeight = window.getComputedStyle(select).fontWeight;
+      temp.style.fontSize = window.getComputedStyle(select).fontSize;
+      temp.textContent = select.options[select.selectedIndex]?.text || "SHUN HING";
+      document.body.appendChild(temp);
+      select.style.width = (temp.getBoundingClientRect().width + 32) + "px";
+      document.body.removeChild(temp);
+    }
+    select.addEventListener("change", adjust);
+    const observer = new MutationObserver(adjust);
+    observer.observe(select, { childList: true, attributes: true });
+    window.addEventListener("load", adjust);
+    setTimeout(adjust, 200);
+    setTimeout(adjust, 800);
+  })();
+
+  // Wrap global renderExecutive to show real stats for Khối Chuyên môn & Cảnh báo khẩn cấp
+  (function() {
+    const localEsc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+    if (typeof window.renderExecutive === 'function') {
+      const originalRender = window.renderExecutive;
+      window.renderExecutive = async function() {
+        await originalRender();
+        try {
+          const subs = typeof DataService !== 'undefined' ? await DataService.listSubmissions() : [];
+          const depts = typeof metaGet === 'function' ? await metaGet("departments", {}) : {};
+          
+          // 1. QA-QC and HSE Issues
+          const hseIssues = [];
+          const qaqcIssues = [];
+          const urgentIssues = [];
+          
+          const projects = typeof DataService !== 'undefined' ? await DataService.listProjects() : [];
+
+          subs.forEach(s => {
+            const proj = projects.find(p => p.id === s.project_id);
+            const projName = proj ? proj.name : "Dự án không rõ";
+
+            (s.issues || []).forEach(issue => {
+              // Collect urgent issues
+              if (issue.severity === "high") {
+                const isHse = /an toàn|tai nạn|bảo hộ|hse|chấn thương|sự cố|nguy hiểm|cháy nổ/i.test(issue.description || "");
+                urgentIssues.push({
+                  projId: s.project_id,
+                  projName: projName,
+                  desc: issue.description,
+                  date: s.log_date,
+                  reporter: s.submitted_by || "Kỹ sư hiện trường",
+                  sectionId: isHse ? 'grp-07' : 'grp-06'
+                });
+              }
+
+              const isHse = /an toàn|tai nạn|bảo hộ|hse|chấn thương|sự cố|nguy hiểm|cháy nổ/i.test(issue.description || "");
+              if (isHse) {
+                hseIssues.push(issue);
+              } else {
+                qaqcIssues.push(issue);
+              }
+            });
+          });
+          
+          // Quét sự cố nghiêm trọng từ các trường báo cáo chi tiết trong daily_reports
+          const dailyReports = typeof DataService !== 'undefined' ? await DataService.listDailyReports() : [];
+          dailyReports.forEach(r => {
+            const proj = projects.find(p => p.id === r.project_id);
+            const projName = proj ? proj.name : "Dự án không rõ";
+            
+            const fieldsToCheck = [
+              { name: "f_note", label: "Ghi chú", sectionId: "grp-06" },
+              { name: "f_rec", label: "Kiến nghị", sectionId: "grp-06" },
+              { name: "f_safe", label: "An toàn", sectionId: "grp-07" },
+              { name: "f_qual", label: "Chất lượng", sectionId: "grp-07" },
+              { name: "f_sched", label: "Tiến độ", sectionId: "grp-07" }
+            ];
+            
+            fieldsToCheck.forEach(f => {
+              const text = r[f.name];
+              if (text && typeof text === 'string') {
+                const lines = text.split('\n');
+                lines.forEach(line => {
+                  if (line.trim()) {
+                    const hasSiren = line.includes("🚨");
+                    const hasKeywords = /nghiêm trọng|sự cố|khẩn cấp|tai nạn|nguy hiểm/i.test(line);
+                    const isNegative = /(không|ko |chưa|đảm bảo|an toàn|tuân thủ|bình thường|ổn định|đạt yêu cầu)/i.test(line);
+                    if (hasSiren || (hasKeywords && !isNegative)) {
+                      const isDup = urgentIssues.some(x => x.projId === r.project_id && x.date === r.date && x.desc === line.trim());
+                      if (!isDup) {
+                        urgentIssues.push({
+                          projId: r.project_id,
+                          projName: projName,
+                          desc: line.trim(),
+                          date: r.date,
+                          reporter: "Báo cáo ngày",
+                          sectionId: f.sectionId
+                        });
+                      }
+                    }
+                  }
+                });
+              }
+            });
+          });
+          
+          // 2. Shopdrawing
+          const sdCount = (depts.shopdrawing || []).length;
+          const sdTasks = subs.flatMap(s => s.completed || []).filter(c => /bản vẽ|shopdrawing|thiết kế|phê duyệt/i.test(c.description || "")).length;
+          
+          // 3. Bảo trì
+          const mtCount = (depts.baotri || []).length;
+          const mtTasks = subs.flatMap(s => s.completed || []).filter(c => /bảo trì|sửa chữa|bảo dưỡng|thiết bị|máy móc/i.test(c.description || "")).length;
+          
+          // Render Urgent alerts block
+          const urgentAlertsDiv = document.getElementById("exec-urgent-alerts");
+          const urgentListDiv = document.getElementById("exec-urgent-alerts-list");
+          if (urgentAlertsDiv && urgentListDiv) {
+            if (urgentIssues.length > 0) {
+              urgentAlertsDiv.classList.remove("hide");
+              urgentListDiv.innerHTML = urgentIssues.map(issue => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid rgba(239, 68, 68, 0.15); padding: 10px 14px; border-radius: 8px; font-size: 13px; cursor:pointer; transition: background 0.2s;" onclick="openUrgentAlert('${issue.projId}', '${issue.date}', '${issue.sectionId || ''}')" class="urgent-alert-item">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                    <span style="background:var(--danger); color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase">${localEsc(issue.projName)}</span>
+                    <span style="font-weight:600; color:var(--text-strong)">${localEsc(issue.desc)}</span>
+                  </div>
+                  <div style="font-size:11px; color:var(--muted); text-align:right">
+                    <span>📅 ${localEsc(issue.date)}</span> · <span>👤 ${localEsc(issue.reporter)}</span>
+                  </div>
+                </div>
+              `).join("");
+            } else {
+              urgentAlertsDiv.classList.add("hide");
+            }
+          }
+
+          const cm = [
+            {
+              n: "QA-QC",
+              i: "✔️",
+              t: "qaqc",
+              desc: qaqcIssues.length > 0 ? `${qaqcIssues.length} vấn đề chất lượng` : "0 vấn đề chất lượng",
+              color: qaqcIssues.length > 0 ? "var(--warning)" : "var(--success)"
+            },
+            {
+              n: "HSE",
+              i: "⛑️",
+              t: "hse",
+              desc: hseIssues.length > 0 ? `${hseIssues.length} cảnh báo an toàn` : "An toàn: Tốt (0 cảnh báo)",
+              color: hseIssues.length > 0 ? "var(--danger)" : "var(--success)"
+            },
+            {
+              n: "Shopdrawing",
+              i: "✏️",
+              t: "shopdrawing",
+              desc: `${sdCount} nhân sự · ${sdTasks} bản vẽ`,
+              color: "var(--primary)"
+            },
+            {
+              n: "Bảo trì",
+              i: "🔧",
+              t: "baotri",
+              desc: `${mtCount} nhân sự · ${mtTasks} lượt bảo trì`,
+              color: "var(--accent)"
+            }
+          ];
+          
+          if (document.getElementById("exec-chuyenmon")) {
+            document.getElementById("exec-chuyenmon").innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">'
+              + cm.map(c => `
+                <div class="dept-card" style="cursor:pointer;text-align:center" onclick="switchTab('${c.t}')">
+                  <div style="font-size:24px">${c.i}</div>
+                  <div style="font-weight:700;color:var(--primary-dark);margin:4px 0">${c.n}</div>
+                  <div style="font-size:12px;font-weight:600;color:${c.color || 'var(--muted)'};margin-top:4px">${c.desc}</div>
+                </div>
+              `).join("")
+              + '</div>';
+          }
+        } catch (e) {
+          console.error("Lỗi khi cập nhật số liệu chuyên môn:", e);
+        }
+      };
+    }
+
+    // Deep-linking navigation to Daily Report sections
+    async function openUrgentAlert(projId, date, sectionId) {
+      window.PENDING_REPORT_NAV = {
+        date: date,
+        sectionId: sectionId || 'grp-06'
+      };
+      
+      if (typeof selectAndOpenProject === 'function') {
+        await selectAndOpenProject(projId, 'baocaongay-new');
+      }
+      
+      const iframe = document.querySelector('#tab-baocaongay-new iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'NAVIGATE_TO_REPORT',
+          date: date,
+          sectionId: sectionId || 'grp-06'
+        }, '*');
+      }
+    }
+    window.openUrgentAlert = openUrgentAlert;
+
+    // Listen to project selection changes and notify iframe
+    setTimeout(() => {
+      const selectProj = document.getElementById("cur-project");
+      if (selectProj) {
+        selectProj.addEventListener("change", () => {
+          setTimeout(() => {
+            const iframe = document.querySelector('#tab-baocaongay-new iframe');
+            if (iframe && iframe.contentWindow) {
+              iframe.contentWindow.postMessage({ type: 'PROJECT_CHANGED', projectId: CUR.project }, '*');
+            }
+          }, 200);
+        });
+      }
+    }, 1000);
+
+  })();
+</script>
+<script>
+// Đăng ký Service Worker (PWA + chạy offline). SW dùng no-cache cho file cùng máy nên
+// luôn lấy bản mới khi online, không còn cần gỡ SW hay bump version tay.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg) { console.log('SW registered:', reg.scope); })
+      .catch(function(err) { console.warn('SW register failed:', err); });
+  });
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

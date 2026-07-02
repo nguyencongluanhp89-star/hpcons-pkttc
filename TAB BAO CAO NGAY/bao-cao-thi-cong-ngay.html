@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>App Tạo Báo Cáo Thi Công Ngày - HP CONS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="stylesheet" href="css/style.css?v=22">
+<style>
+.date-overlay {
+  position: absolute;
+  opacity: 0;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.date-overlay::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  color: transparent;
+}
+</style>
+<style>
+.panel {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.btnbar {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  left: auto !important;
+  width: auto !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  z-index: 1000 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+}
+.btnbar button.act {
+  padding: 12px 24px !important;
+  border-radius: 50px !important;
+  box-shadow: 0 4px 12px rgba(0,166,80,0.3) !important;
+  width: auto !important;
+}
+.btnbar button.sec {
+  padding: 12px 24px !important;
+  border-radius: 50px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+  background: #fff !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+</style>
+<style>
+.paneToggle { display: none !important; }
+.panel {
+  position: absolute !important;
+  width: 0 !important;
+  left: -9999px !important;
+  overflow: visible !important;
+  z-index: 2000 !important;
+  box-shadow: none !important;
+}
+.btnbar {
+  position: fixed !important;
+  bottom: 80px !important;
+  right: 24px !important;
+  left: auto !important;
+  width: auto !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+}
+.btnbar button.act {
+  padding: 14px 28px !important;
+  border-radius: 50px !important;
+  box-shadow: 0 8px 24px rgba(0,166,80,0.4) !important;
+  width: auto !important;
+}
+.btnbar button.sec {
+  padding: 14px 28px !important;
+  border-radius: 50px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+  background: #fff !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+.preview-wrap {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 240px !important;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="paneToggle">
+      <button type="button" data-pane="form" onclick="setPane('form')">✏️ Nhập liệu</button>
+      <button type="button" data-pane="preview" onclick="setPane('preview')">👁 Xem báo cáo</button>
+    </div>
+
+    <!-- ================= BTN BAR ================= -->
+    <div class="btnbar" id="actionBar">
+      <!-- Render động các nút theo vai trò và trạng thái báo cáo -->
+    </div>
+  <!-- ================= FORM ================= -->
+  <div class="panel" id="leftPanel">
+    <!-- THANH TIẾN ĐỘ -->
+    <div id="progressWrap" style="padding:8px 12px 6px;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:700;color:var(--navy2);white-space:nowrap">Hoàn thành:</span>
+        <div style="flex:1;height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+          <div id="progressFill" style="height:100%;width:0%;background:var(--green);border-radius:4px;transition:width 0.4s ease"></div>
+        </div>
+        <span id="progressPct" style="font-size:12px;font-weight:800;color:var(--green);min-width:34px;text-align:right">0%</span>
+      </div>
+      <div id="progressSections" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    </div>
+    <details class="grp" id="grp-00" style="display:none"><summary>Tiêu đề & Ngày</summary><div class="body">
+      <label>Tên công trình</label><input type="text" id="f_proj" value="HOWELL">
+      <label>Địa chỉ</label><input type="text" id="f_contractor" value="KCN VSIP, Bình Dương">
+      <label>Ngày báo cáo</label><input type="date" id="f_date" >
+      <label>Logo Nhà Thầu (ảnh, tùy chọn)</label><input type="file" class="imgslot" id="f_logo" accept="image/*">
+      <div class="hint">Bỏ trống sẽ dùng chữ "HP CONS".</div>
+      <label>Logo Chủ Đầu Tư (ảnh, tùy chọn)</label><input type="file" class="imgslot" id="f_logo_cdt" accept="image/*">
+    </div></details>
+
+    <details class="grp" open id="grp-01" style="display:none"><summary>01 · Tổng quan dự án</summary><div class="body">
+      <div style="display:none">
+        <div style="font-weight:700;color:var(--navy);font-size:12px;margin-bottom:2px">📷 Hình ảnh tổng quan (giữ nguyên)</div>
+        <label>Ảnh tổng quan lớn</label><input type="file" class="imgslot" id="f_ovmain" accept="image/*">
+        <div class="row"><div><label>Ảnh phụ 1</label><input type="file" class="imgslot" id="f_ovsub1" accept="image/*"></div>
+        <div><label>Ảnh phụ 2</label><input type="file" class="imgslot" id="f_ovsub2" accept="image/*"></div></div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+      </div>
+      <div style="font-weight:700;color:var(--green-d);font-size:12px">📊 Tiến độ — AI đọc từ file tiến độ</div>
+      <label>Tải file tiến độ (PDF) — tùy chọn</label>
+      <input type="file" class="imgslot" id="f_sched_pdf" accept="application/pdf">
+      <div class="hint">Đã tích hợp sẵn tiến độ tổng HOWELL. Khi đổi <b>Ngày báo cáo</b>, app tự tính lại % theo kế hoạch. Tải PDF tiến độ khác để cập nhật mốc & %.</div>
+      <button class="addbtn" type="button" onclick="recalcFromSched()" style="width:100%">↻ Tính lại % theo ngày báo cáo</button>
+      <div class="hint" id="prog_note" style="color:var(--green)"></div>
+      <div style="display:none">
+        <label>Địa điểm</label><textarea id="f_loc">KCN Vsip3, Tân Uyên, Hồ Chí Minh</textarea>
+        <div class="hint">Địa điểm không có trong file tiến độ — nhập/sửa tay.</div>
+        <label>Quy mô</label><textarea id="f_scale">Nhà văn phòng & VP chuyên gia; Nhà xưởng 1 & 2; hạng mục phụ trợ + hạ tầng</textarea>
+        <div class="row"><div><label>Bắt đầu</label><input type="text" id="f_start" value="15/04/2026"></div>
+        <div><label>Kết thúc (dự kiến)</label><input type="text" id="f_end" value="30/11/2026"></div></div>
+        <label>% thực hiện (tự tính theo lịch — có thể sửa tay)</label><input type="number" id="f_prog" value="11" min="0" max="100">
+      </div>
+    </div></details>
+
+        <details class="grp" id="grp-02"><summary>02 · Nhân lực & Thời tiết<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+      <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập bằng giọng nói (AI bóc tách)</div>
+      <button class="btn-voice" type="button" id="btnVoice" onclick="toggleVoice()">🎤 Nhập giọng nói</button>
+      <div class="hint">Đọc ví dụ: <i>"Ban chỉ huy 5 người, đội anh Tâm 5 người..."</i> App chỉ điền dữ liệu nghe được — <b>không tự suy đoán/bịa</b>.</div>
+      <div id="voiceStatus" class="hint" style="color:var(--navy2)"></div>
+      <label>Lời nói nhận được (kiểm tra lại)</label>
+      <textarea id="voiceTranscript" placeholder="Nội dung giọng nói sẽ hiện ở đây..."></textarea>
+      <button class="addbtn" type="button" onclick="applyVoice(el('voiceTranscript').value)" style="width:100%">↻ Phân tích lại từ nội dung trên</button>
+      <div id="voiceResult" class="hint"></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+      <label>BCH (Ban chỉ huy)</label><input type="number" id="f_bch" value="5">
+      <label style="margin-top:8px">Tổ đội / Nhà thầu phụ</label>
+      <div id="unit-list"></div>
+      <button class="addbtn" type="button" onclick="addUnit()">+ Thêm tổ đội / nhà thầu phụ</button>
+      <label style="margin-top:8px">Tổng số nhân sự (tự cộng)</label><input type="number" id="f_total" value="38" readonly style="background:#eef4ff;font-weight:700">
+      <div class="hint">= BCH + tất cả tổ đội / nhà thầu phụ (tự động).</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+      <div style="font-weight:700;color:var(--navy);font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>THỜI TIẾT HÔM NAY</span>
+        <button type="button" class="addbtn" style="margin:0;border:1px solid var(--green);color:var(--green-d);background:#eefdf4" onclick="fetchWeatherFromGPS()">📍 Tự động lấy (GPS)</button>
+      </div>
+      <div id="weatherStatus" class="hint"></div>
+      <label>Số giờ mưa ảnh hưởng thi công (6h-21h)</label>
+      <input type="number" id="f_rain_hours" value="0" min="0" max="15" disabled style="background:#eef4ff;font-weight:700">
+      <div class="row">
+        <div>
+          <label>Thời tiết Sáng</label>
+          <select id="f_weather_m" disabled style="background:#f1f5f9;cursor:not-allowed">
+            <option value="sunny">☀️ Nắng đẹp</option>
+            <option value="cloudy">⛅ Nhiều mây</option>
+            <option value="rainy">🌧️ Có mưa</option>
+            <option value="stormy">⛈️ Giông bão</option>
+          </select>
+        </div>
+        <div>
+          <label>Thời tiết Chiều</label>
+          <select id="f_weather_a" disabled style="background:#f1f5f9;cursor:not-allowed">
+            <option value="sunny">☀️ Nắng đẹp</option>
+            <option value="cloudy">⛅ Nhiều mây</option>
+            <option value="rainy">🌧️ Có mưa</option>
+            <option value="stormy">⛈️ Giông bão</option>
+          </select>
+        </div>
+      </div>
+      <label>Ghi chú thời tiết</label>
+      <textarea id="f_weather_note" placeholder="Dữ liệu sẽ được tự động điền khi lấy thời tiết từ vệ tinh..." disabled style="background:#f1f5f9;cursor:not-allowed"></textarea>
+    </div></details>
+
+    <details class="grp" id="grp-03"><summary>03 · Tiến độ chi tiết & Ảnh<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+      <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập hạng mục bằng giọng nói</div>
+      <button class="btn-voice" type="button" id="btnVoiceWorks" onclick="toggleVoiceWorks()">🎤 Nhập giọng nói</button>
+      <div class="hint">Đọc tự nhiên: <i>"Nhà xưởng 1: một là đổ bê tông, hai là cốt pha... Nhà văn phòng: thứ nhất ép cọc, thứ hai nghiệm thu..."</i> App tự động nhận diện Hạng mục và tách dòng Chi tiết.</div>
+      <div id="worksVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+      <textarea id="worksTranscript" placeholder="Nội dung giọng nói về hạng mục..."></textarea>
+      <button class="addbtn" type="button" onclick="applyWorksVoice(el('worksTranscript').value)" style="width:100%">↻ Phân tích lại</button>
+      <div id="worksVoiceResult" class="hint"></div>
+      <label style="margin-top:8px">Các hạng mục thi công</label>
+      <div id="work-list"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="addbtn" type="button" onclick="addWork()">+ Thêm hạng mục</button>
+        <button class="addbtn" type="button" onclick="openKBLibrary()" style="background:var(--navy2);color:#fff">📚 Chọn từ Thư viện</button>
+      </div>
+            <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+      <div style="font-weight:700;color:var(--green-d);font-size:14px;margin-bottom:8px">🖼 Tải ảnh lên báo cáo</div>
+      <div class="bulk-upload-card" style="background: #f0fdf4; border: 1.5px dashed #bbf7d0; padding: 14px; border-radius: 8px; margin-bottom: 12px; text-align: left;">
+        <div style="font-weight:700; color: #15803d; font-size: 13px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          <span>⚡ TẢI NHIỀU ẢNH (TỰ ĐỘNG BỐ TRÍ LƯỚI 6 HOẶC 9 ẢNH)</span>
+        </div>
+        <div style="font-size: 12px; color: #166534; line-height: 1.5; margin-bottom: 10px;">
+          Anh chọn nhiều ảnh thi công cùng lúc. Hệ thống sẽ tự lọc ảnh trùng lặp, chọn ảnh rõ nét nhất, lấy giờ chụp từ file và sắp xếp vào lưới 6 hoặc 9 ảnh.
+        </div>
+        <input type="file" class="imgslot" id="f_photos_bulk" accept="image/*" multiple onchange="onBulkPhotos(this)" style="display: none;">
+        <button class="addbtn" type="button" onclick="el('f_photos_bulk').click()" style="background: var(--green); color: #fff; font-weight: bold; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); font-size: 12px; width: auto; margin: 0;">
+          📤 Chọn nhiều ảnh từ máy của Anh
+        </button>
+        <div id="bulkStatus" style="font-size: 12px; margin-top: 8px; font-weight: 500; color: #15803d;"></div>
+      </div>
+      <label style="margin-top:8px">Ảnh thi công trong ngày (6 ảnh)</label>
+      <div id="photo-list"></div>
+    </div></details>
+
+    <details class="grp" id="grp-04"><summary>04 · Kế hoạch thi công ngày mai<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+      <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập kế hoạch bằng giọng nói</div>
+      <button class="btn-voice" type="button" id="btnVoicePlan" onclick="toggleVoicePlan()">🎤 Nhập giọng nói</button>
+      <div class="hint">Nói <i>"một là...", "thứ nhất...", "công việc 1..."</i> hoặc <i>"chấm xuống dòng"</i> để tách dòng mới. Tự nghe liên tục — bấm Dừng khi xong. Nội dung mới được <b>thêm vào</b> phần đang có.</div>
+      <div id="planVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+      <label>Mỗi dòng = 1 đầu việc</label>
+      <textarea id="f_plan" style="min-height:120px">Tiếp tục thi công móng xưởng 1 & 2.
+Lắp dựng coppha, cốt thép đá kiềng các trục còn lại.
+Kiểm tra, nghiệm thu móng đã thi công.
+Tập kết vật tư phục vụ công tác đổ bê tông.</textarea>
+    </div></details>
+
+    <details class="grp" id="grp-05"><summary>05 · Bản vẽ & Tổng thể<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+      <div id="draw-list"></div>
+    </div></details>
+
+    <details class="grp" id="grp-06"><summary>06 · Ghi chú & Kiến nghị<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+            <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập Ghi chú & Kiến nghị cùng lúc</div>
+      <button class="btn-voice" type="button" id="btnVoiceNoteRec" onclick="toggleVoiceNoteRec()">🎤 Nhập giọng nói</button>
+      <div class="hint">Đọc ví dụ: <i>"Ghi chú: một là abc, hai là xyz. Kiến nghị: một là def..."</i> App tự tách đúng ô.</div>
+      <div id="noteRecVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+      <label>Ghi chú</label><textarea id="f_note">Thời tiết nắng ráo, công tác thi công thuận lợi.
+Vật tư, xe, thiết bị đáp ứng đủ tiến độ.</textarea>
+      <label>Kiến nghị</label><textarea id="f_rec">Tiếp tục duy trì an toàn lao động và vệ sinh công trường.
+Đề nghị các bên: Chủ đầu tư, TVGS phối hợp nghiệm thu kịp thời.</textarea>
+    </div></details>
+
+    <details class="grp" id="grp-07"><summary>07 · An toàn · Chất lượng · Tiến độ<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+            <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập An toàn, Chất lượng, Tiến độ cùng lúc</div>
+      <button class="btn-voice" type="button" id="btnVoiceAQT" onclick="toggleVoiceAQT()">🎤 Nhập giọng nói</button>
+      <div class="hint">Đọc ví dụ: <i>"An toàn: một là abc... Chất lượng: một là def... Tiến độ: ghi chú xyz..."</i> App tự tách đúng 3 ô.</div>
+      <div id="aqtVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+      <label>An toàn (mô tả)</label><textarea id="f_safe">Không xảy ra tai nạn lao động trong ngày.</textarea>
+      <label>Chất lượng (mô tả)</label><textarea id="f_qual">Thi công đúng bản vẽ, đảm bảo yêu cầu kỹ thuật.</textarea>
+      <label>Tiến độ (mô tả)</label><textarea id="f_sched">Đảm bảo tiến độ do dự án đề ra.</textarea>
+    </div></details>
+
+    <div class="btnbar">
+      <button class="act" type="button" onclick="exportPNG()">⬇ Xuất ảnh PNG</button>
+      <button class="sec" type="button" onclick="window.print()">🖨 In / Lưu PDF</button>
+    </div>
+  </div>
+
+  <!-- ================= PREVIEW ================= -->
+  <div class="preview-wrap" id="previewWrap">
+    <div id="report"></div>
+  </div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay hide" onclick="closeModal()"></div>
+
+<!-- ===== MODAL THƯ VIỆN HẠNG MỤC ===== -->
+<div id="kbLibOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center" onclick="if(event.target===this)closeKBLibrary()">
+  <div style="background:#fff;border-radius:12px;width:min(92vw,540px);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:800;font-size:15px;color:var(--navy)">📚 Thư viện Hạng mục</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">Nhấn vào tên hạng mục để thêm vào báo cáo</div>
+      </div>
+      <button type="button" onclick="closeKBLibrary()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;line-height:1">✕</button>
+    </div>
+    <div style="padding:10px 14px;border-bottom:1px solid #f1f5f9">
+      <input id="kbLibSearch" type="text" placeholder="🔍 Tìm hạng mục..." oninput="renderKBLibItems(this.value)"
+        style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;box-sizing:border-box">
+    </div>
+    <div id="kbLibItems" style="overflow-y:auto;padding:12px 14px;flex:1;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start"></div>
+    <div style="padding:10px 14px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px">
+      <span id="kbLibCount" style="font-size:12px;color:#64748b;align-self:center">0 đã chọn</span>
+      <button type="button" onclick="closeKBLibrary()" style="padding:7px 14px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Đóng</button>
+      <button type="button" id="kbLibAddBtn" onclick="addKBLibSelected()" style="padding:7px 16px;background:var(--navy2);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700" disabled>+ Thêm đã chọn</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/utils.js?v=2"></script>
+<script src="js/features.js?v=19"></script>
+<script src="js/render.js?v=40"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

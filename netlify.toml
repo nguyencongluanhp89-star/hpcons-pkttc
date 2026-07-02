@@ -1,0 +1,21 @@
+# Cấu hình Netlify cho app P.KTTC (HP CONS) — static site
+# Không cần build; publish thẳng thư mục gốc.
+
+[build]
+  publish = "."
+
+# sw.js và index.html luôn lấy bản mới (để cập nhật app được nhận ngay)
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "no-cache"
