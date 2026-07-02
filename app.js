@@ -1357,7 +1357,15 @@ async function buildCompanySnapshot(){
           hoan_thanh:(r.completed||r.completedWorks||[]).slice(0,8),
           dang_lam:(r.current||r.currentWorks||[]).slice(0,8),
           van_de:(r.issues||[]).map(i=>typeof i==='string'?i:(i.description||'')).filter(Boolean).slice(0,8),
-          ghi_chu:r.f_note||r.note||""
+          ghi_chu:r.f_note||r.note||"",
+          thoi_tiet:(function(){
+            const L={sunny:'Nắng đẹp',cloudy:'Nhiều mây',rainy:'Có mưa',stormy:'Giông bão'};
+            const sang=L[r.weather_m]||r.weather_m||'', chieu=L[r.weather_a]||r.weather_a||'';
+            let t = (sang&&sang===chieu) ? ('cả ngày '+sang) : (sang&&chieu?('sáng '+sang+', chiều '+chieu):(sang||chieu));
+            if((r.rain_hours||0)>0) t += (t?'; ':'')+'mưa ảnh hưởng thi công '+r.rain_hours+' giờ';
+            return t||'(báo cáo không ghi nhận thời tiết)';
+          })(),
+          ghi_chu_thoi_tiet:r.weather_note||""
         }))
       });
     }

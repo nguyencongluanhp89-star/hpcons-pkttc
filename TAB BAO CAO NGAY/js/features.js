@@ -1625,41 +1625,52 @@ function applyVoiceAQT(text) {
   el('aqtVoiceStatus').innerHTML='<span style="color:var(--green)">✓ Đã phân tách xong.</span>';
 }
 
-// Tự động lấy thời tiết bằng GPS và Open-Meteo API
+// Tự động lấy thời tiết ưu tiên bằng tọa độ dự án, sau đó làm dự phòng bằng GPS thiết bị và Open-Meteo API
 async function fetchWeatherFromGPS() {
   const statusEl = el('weatherStatus');
   const btn = event.currentTarget;
   if(!statusEl || !btn) return;
 
-  statusEl.innerText = "Đang lấy tọa độ GPS...";
-  statusEl.style.color = "var(--navy)";
   btn.disabled = true;
+  statusEl.style.color = "var(--navy)";
+
+  let lat = null;
+  let lon = null;
+  let useProjGPS = false;
+
+  // 1. Thử lấy tọa độ đã khai báo của dự án trước
+  try {
+    if (window.parent && window.parent.CUR && window.parent.DataService) {
+      const projects = await window.parent.DataService.listProjects();
+      const proj = projects.find(p => p.id === window.parent.CUR.project);
+      if (proj && proj.latitude != null && proj.longitude != null) {
+        lat = proj.latitude;
+        lon = proj.longitude;
+        useProjGPS = true;
+        console.log("Đã lấy tọa độ dự án:", proj.name, lat, lon);
+      }
+    }
+  } catch(err) { 
+    console.warn("Lỗi khi đọc tọa độ dự án từ parent", err); 
+  }
 
   try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-    }).catch(async e => {
-        console.warn("Lỗi GPS, dùng tọa độ mặc định của dự án", e);
-        let lat = 11.168;
-        let lon = 106.822;
-        try {
-          if (window.parent && window.parent.CUR && window.parent.DataService) {
-            const projects = await window.parent.DataService.listProjects();
-            const proj = projects.find(p => p.id === window.parent.CUR.project);
-            if (proj && proj.latitude && proj.longitude) {
-              lat = proj.latitude;
-              lon = proj.longitude;
-              console.log("Đã lấy tọa độ dự án:", proj.name, lat, lon);
-            }
-          }
-        } catch(err) { console.warn("Lỗi khi đọc tọa độ dự án từ parent", err); }
-        return { coords: { latitude: lat, longitude: lon } };
+    if (useProjGPS) {
+      statusEl.innerText = "Đang lấy thời tiết theo tọa độ dự án...";
+    } else {
+      // 2. Dự phòng: dùng định vị GPS thiết bị
+      statusEl.innerText = "Đang định vị GPS thiết bị...";
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+      }).catch(e => {
+        console.warn("Lỗi GPS thiết bị, dùng tọa độ mặc định", e);
+        return { coords: { latitude: 11.168, longitude: 106.822 } };
       });
+      lat = pos.coords.latitude;
+      lon = pos.coords.longitude;
+    }
 
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
     const dateStr = el('f_date').value; // YYYY-MM-DD
-    
     statusEl.innerText = "Đang tải dữ liệu thời tiết...";
 
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation&timezone=Asia%2FBangkok&start_date=${dateStr}&end_date=${dateStr}`;

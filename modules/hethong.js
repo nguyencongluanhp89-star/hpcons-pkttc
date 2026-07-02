@@ -114,13 +114,13 @@ const ROLES={
 
   admin:        {label:"Quản trị (Admin)",           tabs:"*"},
 
-  director:     {label:"Giám đốc (Director)",        tabs:["duan","ai-center","dieuhanh","thicong","dashboard","baocao","tiendo","thanhtoan","thanhvien","qaqc","hse","shopdrawing","baotri","lpb"]},
+  director:     {label:"Giám đốc (Director)",        tabs:["duan","ai-center","dieuhanh","thicong","dashboard","baocao","tiendo","thanhtoan","thanhvien","qaqc","hse","shopdrawing","baotri","lpb","danhmuc"]},
 
-  pm:           {label:"Quản lý dự án (PM)",         tabs:["duan","ai-center","dieuhanh","thicong","dashboard","baocao","tiendo","thanhtoan","thanhvien","qaqc","hse","shopdrawing","baotri","lpb"]},
+  pm:           {label:"Quản lý dự án (PM)",         tabs:["duan","ai-center","dieuhanh","thicong","dashboard","baocao","tiendo","thanhtoan","thanhvien","qaqc","hse","shopdrawing","baotri","lpb","danhmuc"]},
 
-  site_manager: {label:"Chỉ huy trưởng (SM)",        tabs:["duan","ai-center","thicong","dashboard","nhatky","baocaongay-new","baocao","tiendo","thanhtoan","thanhvien","lpb"]},
+  site_manager: {label:"Chỉ huy trưởng (SM)",        tabs:["duan","ai-center","thicong","dashboard","nhatky","baocaongay-new","baocao","tiendo","thanhtoan","thanhvien","lpb","danhmuc"]},
 
-  engineer:     {label:"Kỹ sư",             tabs:["duan","ai-center","thicong","dashboard","nhatky","baocaongay-new","baocao","tiendo","thanhtoan","lpb"]},
+  engineer:     {label:"Kỹ sư",             tabs:["duan","ai-center","thicong","dashboard","nhatky","baocaongay-new","baocao","tiendo","thanhtoan","lpb","danhmuc"]},
 
   storekeeper:  {label:"Thủ kho",                    tabs:["duan","ai-center","thicong","dashboard","baocao"]},
   surveyor:     {label:"Trắc đạc",                   tabs:["duan","ai-center","thicong","dashboard","baocao"]},
