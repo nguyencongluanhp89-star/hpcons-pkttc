@@ -117,6 +117,30 @@
   scroll-behavior: smooth;
   padding-bottom: 240px !important;
 }
+
+/* Thu nhỏ panel nút nổi trên điện thoại di động */
+@media (max-width: 600px) {
+  .btnbar {
+    bottom: 24px !important;
+    right: 14px !important;
+    gap: 6px !important;
+  }
+  .btnbar button.act, .btnbar button.sec {
+    padding: 8px 14px !important;
+    font-size: 11.5px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  }
+  .btnbar > div {
+    min-height: 30px !important;
+    font-size: 11px !important;
+    padding: 0 8px !important;
+    border-radius: 6px !important;
+  }
+  .preview-wrap {
+    padding-bottom: 180px !important;
+  }
+}
 </style>
 </head>
 <body>

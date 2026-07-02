@@ -32,10 +32,23 @@ function adjustReportScale() {
   const wrap = document.querySelector('.preview-wrap');
   if (!report || !wrap) return;
   
-  if (window.innerWidth <= 860) {
-    const wrapWidth = wrap.clientWidth;
-    if (wrapWidth > 0) {
-      const scale = wrapWidth / 1000;
+  let clientWidth = document.documentElement.clientWidth;
+  
+  // Vượt qua lỗi phình iframe bằng cách tham chiếu chiều rộng của window cha (trang chính index.html)
+  try {
+    if (window.parent && window.parent.innerWidth) {
+      if (window.parent.innerWidth < clientWidth) {
+        clientWidth = window.parent.innerWidth;
+      }
+    }
+  } catch (e) {
+    console.warn("Không thể truy cập window.parent:", e);
+  }
+
+  if (clientWidth <= 860) {
+    // Trừ đi 16px (padding 8px mỗi bên của preview-wrap trên mobile) để không sát mép quá
+    const scale = (clientWidth - 16) / 1000;
+    if (scale > 0) {
       report.style.transform = `scale(${scale})`;
       report.style.transformOrigin = 'top left';
       

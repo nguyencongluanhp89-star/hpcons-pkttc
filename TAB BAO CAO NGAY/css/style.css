@@ -302,6 +302,11 @@ button.sec:active { background:#e2e8f0; }
 
 /* Segmented Control cho mobile (Nhập liệu / Xem báo cáo) */
 @media (max-width:860px){
+  html, body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
   .paneToggle { 
     display:flex; background:#eef2f6; border-radius:14px; padding:4px;
     margin:0 0 12px; position:sticky; top:0; z-index:150;
