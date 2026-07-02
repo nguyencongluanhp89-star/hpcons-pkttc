@@ -6793,6 +6793,7 @@ window.filterTcProjectList = function() {
   });
 
   const editable = !CUR_USER || ["admin","director","pm","site_manager"].includes(CUR_USER.role);
+  const deletable = !CUR_USER || ["admin","director"].includes(CUR_USER.role);
 
   if (filtered.length === 0) {
     pl.innerHTML = '<p class="muted" style="text-align:center; padding:40px 0;">Không tìm thấy dự án nào khớp với bộ lọc.</p>';
@@ -6810,13 +6811,17 @@ window.filterTcProjectList = function() {
     if (editable) {
        editBtn = `<button class="btn btn-mut btn-sm" onclick="event.stopPropagation(); editProject('${p.id}')" title="Sửa thông tin">Sửa</button>`;
     }
-    
+    let delBtn = "";
+    if (deletable) {
+       delBtn = `<button class="btn btn-sm" style="background:#dc2626;color:#fff;border:none" onclick="event.stopPropagation(); deleteProject('${p.id}')" title="Xóa dự án vĩnh viễn">Xóa</button>`;
+    }
+
     html += `
     <div class="card kpi-card" style="border-top: 3px solid ${stColor}; margin-bottom:0; cursor:pointer; padding:20px; align-items: stretch; justify-content: space-between;" onclick="openProject('${p.id}')">
       <div>
         <div style="display:flex; justify-content:space-between; align-items: flex-start; gap: 8px;">
           <h3 style="margin-top:0; margin-bottom:8px; color:var(--primary-dark); font-size:16px">${esc(p.name)}</h3>
-          ${editBtn}
+          <div style="display:flex; gap:6px; flex-shrink:0">${editBtn}${delBtn}</div>
         </div>
         <div style="font-size:13px; line-height:1.6; margin-bottom:12px;">
           <div><b>Trạng thái:</b> <span style="color:${stColor}; font-weight:bold">${esc(p.status)}</span></div>
@@ -6833,6 +6838,53 @@ window.filterTcProjectList = function() {
   });
   html += '</div>';
   pl.innerHTML = html;
+};
+
+// ===== XÓA DỰ ÁN (chỉ admin/director) — xóa vĩnh viễn + đồng bộ đa máy =====
+window.deleteProject = async function(pid){
+  const projects = await metaGet('projects', []);
+  const proj = (projects||[]).find(p=>p.id===pid);
+  if(!proj){ return; }
+  const name = (proj.name || pid).trim();
+
+  const c = await Swal.fire({
+    title: '⚠️ Xóa dự án?',
+    html: `Sắp xóa <b>VĨNH VIỄN</b> dự án <b>${esc(name)}</b> cùng TOÀN BỘ dữ liệu liên quan:<br>`
+        + `<span style="font-size:13px">báo cáo ngày, tiến độ, thanh toán (nhà thầu/chi phí/CĐT), tổ đội, dữ liệu thời tiết, phiếu liên phòng ban.</span>`
+        + `<br><br><b style="color:#dc2626">KHÔNG thể hoàn tác</b> và sẽ xóa trên <b>tất cả các máy</b> (do đồng bộ).`,
+    icon: 'warning',
+    input: 'text',
+    inputLabel: `Gõ đúng tên dự án để xác nhận: "${name}"`,
+    inputValidator: (v)=> ((v||'').trim() !== name) ? 'Tên không khớp — nhập đúng tên dự án để xóa.' : undefined,
+    showCancelButton: true,
+    confirmButtonText: 'Xóa vĩnh viễn',
+    cancelButtonText: 'Hủy',
+    confirmButtonColor: '#dc2626'
+  });
+  if(!c.isConfirmed) return;
+
+  try{
+    // 1. Gỡ dự án khỏi danh sách
+    await metaSet('projects', (projects||[]).filter(p=>p.id!==pid));
+    // 2. Xóa báo cáo ngày & phiếu liên phòng ban của dự án
+    const reps = await metaGet('daily_reports', []);
+    await metaSet('daily_reports', (reps||[]).filter(r=>r.project_id!==pid));
+    const lpb = await metaGet('lpb_requests', []);
+    await metaSet('lpb_requests', (lpb||[]).filter(r=>r.project_id!==pid));
+    // 3. Xóa các dữ liệu lưu theo từng dự án
+    for(const k of ['progress:'+pid,'subcon_payments:'+pid,'expenses:'+pid,'cdt:'+pid,'team:'+pid,'weatherlogs:'+pid]){
+      const cur = await metaGet(k, null);
+      if(cur!==null) await metaSet(k, Array.isArray(cur) ? [] : {});
+    }
+    if(typeof audit==='function') audit('Xóa dự án', name);
+    if(typeof SyncEngine!=='undefined' && SyncEngine.tryPush) SyncEngine.tryPush();
+    if(typeof pushAiSnapshot==='function') pushAiSnapshot();
+    await Swal.fire({icon:'success', title:'Đã xóa', text:`Đã xóa dự án "${name}".`, timer:2000, showConfirmButton:false});
+  }catch(e){
+    await Swal.fire({icon:'error', title:'Lỗi xóa dự án', text:String(e&&e.message||e)});
+  }
+  if(typeof renderProjectList==='function') renderProjectList();
+  if(typeof renderDashboard==='function') renderDashboard();
 };
 
 // --- AUTO FIX SPELLING FOR DIỆU ANH QUỐC & NGUYỄN KHẮC DIỆP ---
