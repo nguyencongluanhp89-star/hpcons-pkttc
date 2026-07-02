@@ -1378,6 +1378,14 @@ async function pushAiSnapshot(){
     const client = SupabaseSync.init();
     if(!client) return;
     const ctx=await buildCompanySnapshot();
+    // KHÓA AN TOÀN: không đẩy snapshot "nghèo dữ liệu" đè lên bản tốt trên server.
+    // (VD: điện thoại vừa đăng nhập, chưa kéo dữ liệu về xong -> daily_reports còn rỗng.)
+    if(ctx._error){ console.warn("Bỏ đẩy snapshot vì lỗi build:", ctx._error); return; }
+    const totalReports = (ctx.du_an||[]).reduce((n,d)=>n+((d.bao_cao_gan_nhat||[]).length),0);
+    if((ctx.du_an||[]).length===0 || totalReports===0){
+      console.warn("Bỏ đẩy snapshot: chưa có dự án/báo cáo (có thể chưa đồng bộ xong) — tránh đè bản tốt.");
+      return;
+    }
     const { error } = await client.from("ai_snapshot").upsert({
       project_id: '_company',
       data: ctx,
@@ -6896,9 +6904,46 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   const installBtn = document.getElementById('pwa-install-btn');
+  
+  // Phát hiện iOS và hiển thị nút cài đặt hướng dẫn thủ công
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  
+  if (isIOS && !isStandalone && installBtn) {
+    installBtn.classList.remove('hide');
+    installBtn.style.setProperty('display', 'flex', 'important');
+  }
+
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
+      if (isIOS) {
+        Swal.fire({
+          title: 'Cài đặt ứng dụng (iOS)',
+          html: '<div style="text-align:left; font-size:14px; line-height:1.6;">' +
+                '<p>Để thêm ứng dụng HP CONS vào màn hình chính iPhone/iPad:</p>' +
+                '<ol>' +
+                '<li>Nhấp vào nút <b>Chia sẻ</b> (biểu tượng <span style="font-size:18px;">📤</span> hoặc ô vuông mũi tên lên trên thanh công cụ Safari).</li>' +
+                '<li>Cuộn xuống dưới và chọn mục <b>Thêm vào màn hình chính</b> (Add to Home Screen <span style="font-size:16px;">➕</span>).</li>' +
+                '<li>Nhấn <b>Thêm</b> (Add) ở góc phải để hoàn tất.</li>' +
+                '</ol>' +
+                '</div>',
+          icon: 'info',
+          confirmButtonText: 'Đồng ý',
+          confirmButtonColor: '#0060A8'
+        });
+        return;
+      }
+      
+      if (!deferredPrompt) {
+        Swal.fire({
+          title: 'Hướng dẫn cài đặt',
+          text: 'Vui lòng nhấn vào dấu 3 chấm góc phải trình duyệt và chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".',
+          icon: 'info',
+          confirmButtonText: 'Đồng ý',
+          confirmButtonColor: '#0060A8'
+        });
+        return;
+      }
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       console.log('PWA Install Prompt result:', outcome);
