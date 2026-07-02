@@ -26,6 +26,31 @@ function stripIdx(name){
 }
 window.stripIdx = stripIdx;
 
+/* Tự động co giãn (scale) thẻ báo cáo vừa với chiều ngang màn hình di động */
+function adjustReportScale() {
+  const report = document.getElementById('report');
+  const wrap = document.querySelector('.preview-wrap');
+  if (!report || !wrap) return;
+  
+  if (window.innerWidth <= 860) {
+    const wrapWidth = wrap.clientWidth;
+    if (wrapWidth > 0) {
+      const scale = wrapWidth / 1000;
+      report.style.transform = `scale(${scale})`;
+      report.style.transformOrigin = 'top left';
+      
+      const scaledHeight = report.offsetHeight * scale;
+      report.style.marginBottom = `-${report.offsetHeight - scaledHeight}px`;
+    }
+  } else {
+    report.style.transform = '';
+    report.style.transformOrigin = '';
+    report.style.marginBottom = '';
+  }
+}
+window.adjustReportScale = adjustReportScale;
+window.addEventListener('resize', adjustReportScale);
+
 /* ---------- main render ---------- */
 function draw(){
   const dt=fmtDate(el('f_date').value);
@@ -319,6 +344,7 @@ function draw(){
   if (typeof window.autoGrowAllTextareas === 'function') {
     window.autoGrowAllTextareas();
   }
+  adjustReportScale();
 }
 
 /* ---------- export PNG ---------- */

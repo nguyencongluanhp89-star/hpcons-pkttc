@@ -322,6 +322,11 @@ button.sec:active { background:#e2e8f0; }
   .btnbar { width:100%; padding: 16px 20px 24px; border-radius:24px 24px 0 0; }
   
   label { font-size:13px; margin-top:12px; color:#3a4756; }
+  .preview-wrap {
+    padding: 8px !important;
+    overflow-x: hidden !important;
+    display: block !important;
+  }
 }
 
 /* =================== DARK MODE =================== */
