@@ -105,7 +105,7 @@ async function deptDel(key, i){
 
 function resetProjectForm(){
   $("np-id").value=""; $("np-name").value=""; $("np-start").value=""; $("np-end").value=""; 
-  $("np-addr").value=""; $("np-lat").value=""; $("np-lon").value="";
+  $("np-addr").value=""; $("np-scale").value=""; $("np-lat").value=""; $("np-lon").value="";
   $("np-investor").value=""; $("np-commander").value=""; $("np-status").value="Đang thi công";
   $("np-contract").value="";
   $("btn-save-proj").innerText="+ Lưu dự án";
@@ -120,6 +120,7 @@ async function editProject(id){
   $("np-start").value = proj.start_date || "";
   $("np-end").value = proj.end_date || "";
   $("np-addr").value = proj.address || "";
+  $("np-scale").value = proj.scale || "";
   $("np-lat").value = proj.latitude || "";
   $("np-lon").value = proj.longitude || "";
   $("np-investor").value = proj.investor || "";
@@ -190,18 +191,19 @@ async function addProject(){
   const commander = $("np-commander").value.trim();
   const status = $("np-status").value;
   const contract_no = ($("np-contract").value || "").trim();
+  const scale = ($("np-scale").value || "").trim();
 
   const list=await DataService.listProjects();
   if(idStr){
     const idx = list.findIndex(p=>p.id===idStr);
     if(idx>=0){
-      list[idx] = {...list[idx], name, start_date:st||"", end_date:en||"", address:$("np-addr").value.trim(), latitude:lat, longitude:lon, investor, commander, status, contract_no};
+      list[idx] = {...list[idx], name, start_date:st||"", end_date:en||"", address:$("np-addr").value.trim(), scale, latitude:lat, longitude:lon, investor, commander, status, contract_no};
       audit("Sửa công trình", name);
     }
   } else {
     list.push({
-      id:uuid(), name, start_date:st||"", end_date:en||"", off_weekdays:[0], 
-      address:$("np-addr").value.trim(), latitude:lat, longitude:lon,
+      id:uuid(), name, start_date:st||"", end_date:en||"", off_weekdays:[0],
+      address:$("np-addr").value.trim(), scale, latitude:lat, longitude:lon,
       investor: investor, commander: commander, status: status, contract_no
     });
     audit("Thêm công trình", name);

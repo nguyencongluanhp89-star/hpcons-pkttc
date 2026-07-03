@@ -2241,12 +2241,16 @@ window.addEventListener('message', async (e) => {
     if (dateEl && typeof loadReportForDate === 'function') {
       await loadReportForDate(dateEl.value);
     }
-    // Cập nhật tên công trình theo dự án đang chọn (ưu tiên tên đã lưu trong báo cáo, nếu chưa có thì lấy tên dự án)
-    if (el('f_proj')) {
-      const savedName = (window.CURRENT_REPORT && window.CURRENT_REPORT.f_proj) ? window.CURRENT_REPORT.f_proj : (e.data.projName || '');
-      el('f_proj').value = savedName;
-      if (typeof draw === 'function') draw();
-    }
+    // Điền thông tin công trình theo hồ sơ dự án đang chọn (tên, địa điểm, quy mô, ngày bắt đầu/kết thúc)
+    const pi = e.data.projInfo || {};
+    const toDmy = (s)=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s||''); };
+    if (el('f_proj'))  el('f_proj').value  = pi.name || e.data.projName || '';
+    if (el('f_loc'))   el('f_loc').value   = pi.address || '';
+    if (el('f_scale')) el('f_scale').value = pi.scale || '';
+    if (el('f_start') && pi.start_date) el('f_start').value = toDmy(pi.start_date);
+    if (el('f_end')   && pi.end_date)   el('f_end').value   = toDmy(pi.end_date);
+    if (typeof recalcFromSched === 'function') recalcFromSched();
+    if (typeof draw === 'function') draw();
     window.parent.postMessage({ type: 'REQUEST_KB_SYNC' }, '*');
   }
 });
