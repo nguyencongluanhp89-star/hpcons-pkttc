@@ -279,7 +279,7 @@ async function renderExecutive(){
     {icon:"🕒", val:totalOverdue, label:"Quá hạn", color: totalOverdue>0?"var(--danger)":"var(--success)"}
   ];
   if($("exec-kpi")) $("exec-kpi").innerHTML = kpiCards.map(k=>`
-    <div class="kpi-card" style="flex:1; min-width:160px; border-top:4px solid ${k.color}">
+    <div class="kpi-card" style="min-width:0; border-top:4px solid ${k.color}">
       <div class="kpi-icon">${k.icon}</div>
       <div class="kpi-value" style="color:${k.color}; font-size:40px">${k.val}</div>
       <div class="kpi-label" style="color:${k.color}">${k.label}</div>
