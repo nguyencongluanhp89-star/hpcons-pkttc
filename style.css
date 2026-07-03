@@ -1450,7 +1450,8 @@ td:last-child {
     max-width: 80px !important;
   }
   #cur-project {
-    max-width: 130px !important;
+    min-width: 0 !important;
+    max-width: 150px !important;
     font-size: 13px !important;
     padding: 4px 6px !important;
   }
