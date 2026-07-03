@@ -293,7 +293,7 @@ async function renderExecutive(){
     if(!stats.length){
       $("exec-progress-table").innerHTML='<p class="muted" style="padding:16px">Chưa có dự án nào.</p>';
     } else {
-      $("exec-progress-table").innerHTML='<table class="table-sticky" style="width:100%"><thead><tr><th>Công trình</th><th style="text-align:center">Sức khỏe</th><th>Tiến độ KH</th><th style="text-align:center">Hôm nay</th><th></th></tr></thead><tbody>'
+      $("exec-progress-table").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px">'
        + stats.map(s=>{
           const hc=healthColor(s.health);
           const stLabel = s.overdueTasks>0 ? {t:"Chậm tiến độ",c:"var(--danger)"}
@@ -304,16 +304,31 @@ async function renderExecutive(){
           const active=(s.proj.status!=="Đã bàn giao" && s.proj.status!=="Tạm dừng");
           const hasLog=reportedToday.has(s.proj.id);
           const pct=s.schedulePct||0;
-          const todayCell= !active ? '<span class="muted">—</span>' : (hasLog? '<span style="color:var(--success);font-weight:700">✓ Đã ghi</span>' : '<span style="color:var(--danger);font-weight:700">✗ Thiếu</span>');
-          const overdue= s.overdueTasks>0 ? `<div style="font-size:11px;color:var(--danger);margin-top:3px">⚠ ${s.overdueTasks} hạng mục quá hạn</div>` : '';
-          return `<tr style="cursor:pointer" onclick="openProject('${s.proj.id}')">
-            <td><b>${esc(s.proj.name)}</b><br><span style="font-size:11px;color:var(--muted)">${esc(s.proj.commander||'-')} · ${esc(s.proj.status||'Đang thi công')}</span></td>
-            <td style="text-align:center"><span style="font-weight:800;color:${hc}">${s.health}</span><br><span style="font-size:10px;font-weight:700;color:${stLabel.c}">${stLabel.t}</span></td>
-            <td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:60px;height:10px;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--border);overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--primary)"></div></div><span style="font-size:11px;color:var(--muted);min-width:30px">${pct}%</span></div>${overdue}</td>
-            <td style="text-align:center;white-space:nowrap">${todayCell}</td>
-            <td style="text-align:center;white-space:nowrap"><span style="color:var(--primary)">Xem ›</span></td>
-          </tr>`;
-        }).join("") + '</tbody></table>';
+          const todayBadge= !active ? '<span style="color:var(--muted);font-weight:700">—</span>' : (hasLog? '<span style="color:var(--success);font-weight:700">✓ Đã ghi</span>' : '<span style="color:var(--danger);font-weight:700">✗ Thiếu</span>');
+          const overdue= s.overdueTasks>0 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ ${s.overdueTasks} hạng mục quá hạn</div>` : '';
+          return `<div onclick="openProject('${s.proj.id}')" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--surface);border-top:3px solid ${hc}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+              <div style="min-width:0;flex:1">
+                <div style="font-weight:800;font-size:15px;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis">${esc(s.proj.name)}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(s.proj.commander||'-')} · ${esc(s.proj.status||'Đang thi công')}</div>
+              </div>
+              <div style="text-align:center;flex-shrink:0;min-width:54px">
+                <div style="font-weight:800;font-size:24px;color:${hc};line-height:1">${s.health}</div>
+                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">sức khỏe</div>
+              </div>
+            </div>
+            <div style="margin-top:10px"><span style="display:inline-block;font-size:11px;font-weight:700;color:${stLabel.c};background:var(--surface-2);border:1px solid var(--border);padding:3px 10px;border-radius:var(--r-pill)">${stLabel.t}</span></div>
+            <div style="margin-top:12px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--muted)">Tiến độ kế hoạch</span><span style="font-weight:700;color:var(--ink)">${pct}%</span></div>
+              <div style="height:9px;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--border);overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--primary)"></div></div>
+              ${overdue}
+            </div>
+            <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:12px"><span style="color:var(--muted)">Báo cáo hôm nay: </span>${todayBadge}</div>
+              <span style="color:var(--primary);font-weight:700;font-size:13px">Xem ›</span>
+            </div>
+          </div>`;
+        }).join("") + '</div>';
     }
   }
 
