@@ -2241,6 +2241,12 @@ window.addEventListener('message', async (e) => {
     if (dateEl && typeof loadReportForDate === 'function') {
       await loadReportForDate(dateEl.value);
     }
+    // Cập nhật tên công trình theo dự án đang chọn (ưu tiên tên đã lưu trong báo cáo, nếu chưa có thì lấy tên dự án)
+    if (el('f_proj')) {
+      const savedName = (window.CURRENT_REPORT && window.CURRENT_REPORT.f_proj) ? window.CURRENT_REPORT.f_proj : (e.data.projName || '');
+      el('f_proj').value = savedName;
+      if (typeof draw === 'function') draw();
+    }
     window.parent.postMessage({ type: 'REQUEST_KB_SYNC' }, '*');
   }
 });
