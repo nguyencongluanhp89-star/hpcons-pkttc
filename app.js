@@ -133,8 +133,41 @@ const SyncEngine = {
     if (!this.online){ p.textContent="Chờ mạng…"; p.className="pill pill-off"; return; }
     p.textContent = "Đã đồng bộ · " + (SupabaseSync.userName||"online"); p.className="pill pill-ok";
   },
-  async tryPush(){ this.setPill(); if(!this.configured() || !this.online) return; await SupabaseSync.pushAllDirty(); this.setPill(); },
-  async pull(){ if(!this.configured() || !this.online) return; await SupabaseSync.pull(CUR.project); },
+  async tryPush(){
+    this.setPill();
+    if(!this.online) return;
+
+    let firebasePromise = Promise.resolve();
+    if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+      firebasePromise = FirebaseSync.pushAllDirty();
+    }
+
+    if(this.configured()) {
+      await SupabaseSync.pushAllDirty();
+    }
+
+    try {
+      await firebasePromise;
+    } catch (err) {
+      console.warn("FirebaseSync pushAllDirty lỗi:", err);
+    }
+    this.setPill();
+  },
+  async pull(){
+    if(!this.online) return;
+
+    const promises = [];
+    if(this.configured()) {
+      promises.push(SupabaseSync.pull(CUR.project));
+    }
+    if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+      promises.push(FirebaseSync.pull(CUR.project).catch(err => {
+        console.warn("FirebaseSync pull lỗi:", err);
+      }));
+    }
+
+    await Promise.all(promises);
+  },
 };
 window.addEventListener("online", ()=>{ SyncEngine.online=true; SyncEngine.tryPush(); });
 window.addEventListener("offline", ()=>{ SyncEngine.online=false; SyncEngine.setPill(); });
@@ -400,7 +433,20 @@ async function syncPushAll(){
     const all = await idbAll("meta");
     const keys = all.map(m=>m.key).filter(k=>!SYNC_SKIP_KEYS.includes(k));
     await idbPut("meta", { key:"meta_dirty_keys", value:keys });
+
+    let firebasePromise = Promise.resolve();
+    if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+      firebasePromise = FirebaseSync.pushAllDirty();
+    }
+
     await SupabaseSync.pushAllDirty();
+
+    try {
+      await firebasePromise;
+    } catch (err) {
+      console.warn("syncPushAll FirebaseSync lỗi:", err);
+    }
+
     alert("✅ Đã đẩy "+keys.length+" mục dữ liệu lên server. Giờ sang máy khác bấm 'Kéo toàn bộ về'.");
   }catch(e){ alert("Lỗi đẩy dữ liệu: "+e); }
 }
@@ -411,7 +457,16 @@ async function syncPullAll(){
   if(!confirm("KÉO TOÀN BỘ dữ liệu từ server về máy này (sẽ GHI ĐÈ dữ liệu local của máy này).\nDùng ở MÁY ĐỒNG BỘ THEO. Tiếp tục?")) return;
   try{
     await idbPut("meta", { key:"meta_dirty_keys", value:[] }); // bỏ cờ dirty để không chặn việc nhận bản server
-    await SupabaseSync.pull(CUR.project);
+
+    const promises = [];
+    promises.push(SupabaseSync.pull(CUR.project));
+    if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+      promises.push(FirebaseSync.pull(CUR.project).catch(err => {
+        console.warn("syncPullAll FirebaseSync lỗi:", err);
+      }));
+    }
+
+    await Promise.all(promises);
     alert("✅ Đã kéo dữ liệu từ server về. Trang sẽ tải lại để áp dụng.");
     location.reload();
   }catch(e){ alert("Lỗi kéo dữ liệu: "+e); }

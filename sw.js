@@ -1,6 +1,6 @@
 // Từ v58: KHÔNG cần bump tay mỗi lần sửa nữa — fetch dùng no-cache cho file cùng máy (xem handler bên dưới),
 // luôn lấy bản mới khi online; cache chỉ dùng làm dự phòng khi offline.
-const CACHE_NAME = 'hpcons-cache-v69';
+const CACHE_NAME = 'hpcons-cache-v70';
 
 // Danh sách các tệp cơ bản cần thiết để ứng dụng load được khi offline
 // Sẽ dùng chiến thuật Network First

@@ -5,7 +5,7 @@
 // KHÔNG BAO GIỜ được thay thế/chặn SupabaseSync — chỉ cộng thêm, luôn bọc try/catch.
 // GIAI ĐOẠN NÀY (FB-M4): viết xong, tự test thủ công — CHƯA gọi tự động ở đâu cả.
 // =====================================================================
-const FIREBASE_LEGACY_SKIP_PREFIXES = ["hr_fixed_", "hr_migrated_", "hr_dedupe_", "hr_imported_", "users_seed_v", "members:p1"];
+const FIREBASE_LEGACY_SKIP_PREFIXES = ["hr_fixed_", "hr_migrated_", "hr_dedupe_", "hr_imported_", "users_seed_v"];
 
 function fbSkipKey(key) {
   if (typeof SYNC_SKIP_KEYS !== "undefined" && SYNC_SKIP_KEYS.includes(key)) return true;
@@ -36,6 +36,11 @@ const FirebaseSync = {
           } else if (key.includes(":")) {
             const [type, pid] = key.split(":");
             await db.collection("projects").doc(pid).collection("data").doc(type).set({
+              items: valObj.value, updated_at: new Date().toISOString()
+            }, { merge: true });
+          } else if (key.startsWith("org_chart_")) {
+            const pid = key.substring("org_chart_".length);
+            await db.collection("projects").doc(pid).collection("data").doc("org_chart").set({
               items: valObj.value, updated_at: new Date().toISOString()
             }, { merge: true });
           } else {
@@ -82,7 +87,8 @@ const FirebaseSync = {
       if (projectId) {
         const dataSnap = await db.collection("projects").doc(projectId).collection("data").get();
         for (const doc of dataSnap.docs) {
-          await this._mergeLocal(doc.id + ":" + projectId, doc.data().items);
+          const key = doc.id === "org_chart" ? ("org_chart_" + projectId) : (doc.id + ":" + projectId);
+          await this._mergeLocal(key, doc.data().items);
         }
 
         const drSnap = await db.collection("daily_reports").where("project_id", "==", projectId).get();
