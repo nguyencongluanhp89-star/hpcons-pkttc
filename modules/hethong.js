@@ -484,6 +484,40 @@ document.addEventListener("click", (e) => {
 
 
 
+// Đồng bộ tài khoản Firebase Auth song song (Giai đoạn 2 di trú Firebase).
+// TUYỆT ĐỐI không được chặn/làm chậm luồng đăng nhập cục bộ hiện tại — luôn bọc try/catch,
+// KHÔNG await ở nơi gọi (xem doLogin()).
+async function firebaseAuthSync(user, plainPassword) {
+  try {
+    if (typeof FIREBASE_ENABLED === "undefined" || !FIREBASE_ENABLED) return;
+    if (!window.fb || !window.fb.auth || !window.fb.db) return;
+    const email = (user.username || user.id) + "@hpcons.local";
+    const auth = window.fb.auth;
+    try {
+      await auth.signInWithEmailAndPassword(email, plainPassword);
+    } catch (err) {
+      const code = err && err.code;
+      if (code === "auth/user-not-found" || code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") {
+        const cred = await auth.createUserWithEmailAndPassword(email, plainPassword);
+        const uid = cred.user.uid;
+        await window.fb.db.collection("users").doc(uid).set({
+          full_name: user.full_name,
+          role: user.role,
+          app_user_id: user.id,
+          updated_at: new Date().toISOString()
+        }, { merge: true });
+        console.log("Firebase Auth: đã tạo tài khoản mới cho", user.full_name);
+      } else if (code === "auth/wrong-password") {
+        console.warn("Firebase Auth: mật khẩu không khớp tài khoản Firebase hiện có của", user.full_name, "— bỏ qua, không chặn đăng nhập cục bộ.");
+      } else {
+        console.warn("Firebase Auth sync lỗi:", code || (err && err.message));
+      }
+    }
+  } catch (e) {
+    console.warn("firebaseAuthSync lỗi ngoài dự kiến:", e);
+  }
+}
+
 async function doLogin(){
 
   const uid=$("login-user").value, pw=$("login-pw").value;
@@ -529,6 +563,8 @@ async function doLogin(){
   }
 
   wrap.classList.add("hide"); $("login-pw2").value="";
+
+  firebaseAuthSync(found, pw); // Giai đoạn 2 di trú Firebase — chạy nền, an toàn khi FIREBASE_ENABLED=false
 
   await metaSet("session_user", found.id);
 

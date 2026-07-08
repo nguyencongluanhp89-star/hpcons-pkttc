@@ -1,6 +1,6 @@
 // Từ v58: KHÔNG cần bump tay mỗi lần sửa nữa — fetch dùng no-cache cho file cùng máy (xem handler bên dưới),
 // luôn lấy bản mới khi online; cache chỉ dùng làm dự phòng khi offline.
-const CACHE_NAME = 'hpcons-cache-v66';
+const CACHE_NAME = 'hpcons-cache-v69';
 
 // Danh sách các tệp cơ bản cần thiết để ứng dụng load được khi offline
 // Sẽ dùng chiến thuật Network First
@@ -9,6 +9,8 @@ const urlsToCache = [
   './index.html',
   './style.css',
   './app.js',
+  './firebase-init.js',
+  './firebase-sync.js',
   './manifest.json',
   './Logo HPC.png',
   './icon-192.png',
