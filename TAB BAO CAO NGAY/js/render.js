@@ -629,6 +629,12 @@ function exportPNG169() {
     let drawsCardHtml = '';
     const validDraws = activeDraws.filter(d => d && d.img);
     if (validDraws.length > 0) {
+      // Tính số cột và chiều cao ảnh chuẩn 16:9 chính xác (không dùng padding-bottom trick)
+      const drawCols = validDraws.length <= 4 ? 2 : 3;
+      const drawCardW = 636; // ~35% * 1920px canvas - 2×18px padding
+      const drawItemW = Math.floor((drawCardW - (drawCols - 1) * 10) / drawCols);
+      const drawImgH = Math.round(drawItemW * 9 / 16);
+      
       let drawItemsHtml = '';
       validDraws.forEach((d, idx) => {
         let t_vi = d.t || '';
@@ -641,13 +647,11 @@ function exportPNG169() {
         const t_cn = t_cn_val || ((typeof workCN === 'function') ? workCN(t_vi) : '');
         
         drawItemsHtml += `
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column;">
-            <div style="position: relative; width: 100%; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px 6px 0 0;">
-              <img src="${d.img}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
-            </div>
-            <div style="padding: 4px; text-align: center; line-height: 1.25; font-size: 11px;">
-              <div style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t_vi}</div>
-              ${t_cn ? `<div style="color: #64748b; font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;">${t_cn}</div>` : ''}
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <img src="${d.img}" class="draw-im-169" style="width: 100%; height: ${drawImgH}px; object-fit: cover; display: block;">
+            <div style="padding: 5px 6px; text-align: center; line-height: 1.3; font-size: 11px; background: #f8fafc; border-top: 1px solid #f1f5f9;">
+              <div style="font-weight: 700; color: #0f172a; text-transform: uppercase; line-height: 1.25;">${t_vi}</div>
+              ${t_cn ? `<div style="color: #64748b; font-size: 9px; line-height: 1.25; margin-top: 1px;">${t_cn}</div>` : ''}
             </div>
           </div>
         `;
@@ -656,7 +660,7 @@ function exportPNG169() {
       drawsCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
           ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;">
+          <div style="display: grid; grid-template-columns: repeat(${drawCols}, 1fr); gap: 10px;">
             ${drawItemsHtml}
           </div>
         </div>
@@ -745,25 +749,23 @@ function exportPNG169() {
     const validPhotos = activePhotos.filter(p => p && p.img);
     let photosInlineHtml = '';
     if (validPhotos.length > 0) {
-      let gridCols = '1fr 1fr';
-      let photoHeight = '110px';
+      // Số cột và chiều cao tối ưu cho layout full-width stacked (bên dưới hạng mục)
+      let photoCols, photoH;
       if (validPhotos.length === 1) {
-        gridCols = '1fr';
-        photoHeight = '180px';
-      } else if (validPhotos.length === 3) {
-        gridCols = '1fr 1fr 1fr';
-        photoHeight = '90px';
-      } else if (validPhotos.length > 4) {
-        gridCols = '1fr 1fr 1fr';
-        photoHeight = '80px';
+        photoCols = 1; photoH = 150;
+      } else if (validPhotos.length <= 4) {
+        photoCols = 2; photoH = 130;
+      } else {
+        photoCols = 3; photoH = 115;
       }
+      const photoGridCols = `repeat(${photoCols}, 1fr)`;
       
       photosInlineHtml = `
-        <div style="flex: 1; display: grid; grid-template-columns: ${gridCols}; gap: 6px; align-content: start; overflow-y: auto;">
+        <div style="display: grid; grid-template-columns: ${photoGridCols}; gap: 6px; align-content: start;">
           ${validPhotos.map((p, idx) => `
-            <div style="position: relative; height: ${photoHeight}; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0;">
-              <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover;">
-              <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,45,88,0.9); color: #fff; padding: 3px 4px; font-size: 10px; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div style="position: relative; height: ${photoH}px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+              <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,45,88,0.88); color: #fff; padding: 3px 5px; font-size: 10px; text-align: center; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${p.vi || `Ảnh ${idx+1}`}
               </div>
             </div>
@@ -771,7 +773,7 @@ function exportPNG169() {
         </div>
       `;
     } else {
-      photosInlineHtml = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:13px; font-style:italic; border: 1px dashed #e2e8f0; border-radius: 8px;">Chưa có ảnh thi công</div>`;
+      photosInlineHtml = `<div style="display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:13px; font-style:italic; border: 1px dashed #e2e8f0; border-radius: 8px; min-height: 80px;">Chưa có ảnh thi công</div>`;
     }
 
     // Khối chữ ký
@@ -871,14 +873,14 @@ function exportPNG169() {
           <!-- Khối 03: TIẾN ĐỘ + ẢNH (trái: hạng mục / phải: ảnh thi công - khớp format dọc) -->
           <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0;">
             ${secHeaderStatic('03', 'TIẾN ĐỘ THI CÔNG CHI TIẾT', '详细施工进度')}
-            <div style="flex: 1; display: flex; gap: 14px; min-height: 0; overflow: hidden;">
-              <!-- Trái (42%): Hạng mục thi công -->
-              <div style="flex: 0 0 42%; overflow-y: auto; padding-right: 5px; box-sizing: border-box;">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+              <!-- Trên: Hạng mục thi công -->
+              <div style="flex: 1; overflow-y: auto; padding-right: 5px; box-sizing: border-box; min-height: 0;">
                 <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
                 ${worksHtml}
               </div>
-              <!-- Phải: Hình ảnh thi công trong ngày -->
-              <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+              <!-- Dưới: Hình ảnh thi công trong ngày -->
+              <div style="flex-shrink: 0; border-top: 1.5px solid #e8edf5; padding-top: 14px; margin-top: 14px;">
                 <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
                 ${photosInlineHtml}
               </div>
@@ -893,11 +895,11 @@ function exportPNG169() {
           <!-- Khối 04: Kế hoạch thi công ngày mai -->
           ${planCardHtml}
 
-          <!-- Khối 06: Ghi chú & Kiến nghị -->
-          ${noteRecCardHtml}
-
           <!-- Khối 05: Bản vẽ & Tổng thể -->
           ${drawsCardHtml}
+
+          <!-- Khối 06: Ghi chú & Kiến nghị -->
+          ${noteRecCardHtml}
 
           <!-- Khối 07: An toàn - Chất lượng - Tiến độ -->
           ${safeQualCardHtml}
@@ -960,7 +962,14 @@ function exportPNG169() {
       if (col1El) col1El.style.height = bodyHeight + 'px';
       if (col2El) col2El.style.height = bodyHeight + 'px';
       if (col3El) col3El.style.height = bodyHeight + 'px';
-      
+
+      // Ép ảnh bản vẽ đúng chuẩn 16:9 theo bề rộng THỰC TẾ của ô
+      // (bề rộng card đổi theo finalWidth khi canvas co giãn nên không dùng được hằng số tính sẵn)
+      tempContainer.querySelectorAll('.draw-im-169').forEach(im => {
+        const w = im.parentElement.getBoundingClientRect().width;
+        if (w > 0) im.style.height = Math.round(w * 9 / 16) + 'px';
+      });
+
       // Chờ thêm 100ms để trình duyệt reflow layout trước khi capture
       setTimeout(captureAndDownload, 100);
     }, 400);
