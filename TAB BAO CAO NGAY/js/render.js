@@ -501,19 +501,16 @@ function exportPNG169() {
     const activeOvSub1 = (typeof ovSub1 !== 'undefined') ? ovSub1 : null;
     const activeOvSub2 = (typeof ovSub2 !== 'undefined') ? ovSub2 : null;
     
-    // Chỉ hiển thị lưới ảnh tổng quan nếu có ít nhất 1 ảnh đã tải lên
-    let ovImgsHtml = '';
-    if (activeOvMain || activeOvSub1 || activeOvSub2) {
-      ovImgsHtml = `
-        <div style="display: flex; gap: 8px; height: 180px; width: 100%; margin-bottom: 12px; flex-shrink: 0;">
-          <div style="flex: 1.4; height: 100%;">${imgStatic(activeOvMain, 'Ảnh tổng quan')}</div>
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; height: 100%;">
-            <div style="flex: 1; height: calc(50% - 3px);">${imgStatic(activeOvSub1, 'Ảnh phụ 1')}</div>
-            <div style="flex: 1; height: calc(50% - 3px);">${imgStatic(activeOvSub2, 'Ảnh phụ 2')}</div>
-          </div>
+    // Luôn hiển thị lưới ảnh tổng quan (placeholder khi chưa có ảnh) - khớp format dọc gốc
+    const ovImgsHtml = `
+      <div style="display: flex; gap: 8px; height: 180px; width: 100%; margin-bottom: 12px; flex-shrink: 0;">
+        <div style="flex: 1.4; height: 100%;">${imgStatic(activeOvMain, 'Ảnh tổng quan')}</div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; height: 100%;">
+          <div style="flex: 1; height: calc(50% - 3px);">${imgStatic(activeOvSub1, 'Ảnh phụ 1')}</div>
+          <div style="flex: 1; height: calc(50% - 3px);">${imgStatic(activeOvSub2, 'Ảnh phụ 2')}</div>
         </div>
-      `;
-    }
+      </div>
+    `;
     
     const ovInfoHtml = `
       <div style="font-size: 14.5px; margin-top: 5px; line-height: 1.55; flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
@@ -644,9 +641,11 @@ function exportPNG169() {
         const t_cn = t_cn_val || ((typeof workCN === 'function') ? workCN(t_vi) : '');
         
         drawItemsHtml += `
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; height: 110px;">
-            <img src="${d.img}" style="width: 100%; height: 75px; object-fit: cover;">
-            <div style="padding: 4px; text-align: center; line-height: 1.25; font-size: 11px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column;">
+            <div style="position: relative; width: 100%; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px 6px 0 0;">
+              <img src="${d.img}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div style="padding: 4px; text-align: center; line-height: 1.25; font-size: 11px;">
               <div style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t_vi}</div>
               ${t_cn ? `<div style="color: #64748b; font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;">${t_cn}</div>` : ''}
             </div>
@@ -741,39 +740,38 @@ function exportPNG169() {
       `;
     }
 
-    // --- Ảnh thi công trong ngày ---
+    // --- Ảnh thi công trong ngày (inline - nằm trong phần 03, không tách thành card riêng) ---
     const activePhotos = (typeof photos !== 'undefined' && Array.isArray(photos)) ? photos : [];
     const validPhotos = activePhotos.filter(p => p && p.img);
-    let photosCardHtml = '';
+    let photosInlineHtml = '';
     if (validPhotos.length > 0) {
       let gridCols = '1fr 1fr';
-      let photoHeight = '140px';
+      let photoHeight = '110px';
       if (validPhotos.length === 1) {
         gridCols = '1fr';
-        photoHeight = '240px';
+        photoHeight = '180px';
       } else if (validPhotos.length === 3) {
         gridCols = '1fr 1fr 1fr';
-        photoHeight = '120px';
+        photoHeight = '90px';
       } else if (validPhotos.length > 4) {
         gridCols = '1fr 1fr 1fr';
-        photoHeight = '100px';
+        photoHeight = '80px';
       }
       
-      photosCardHtml = `
-        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
-          ${secHeaderStatic('03*', 'HÌNH ẢNH THI CÔNG', '当日施工照片')}
-          <div style="display: grid; grid-template-columns: ${gridCols}; gap: 8px;">
-            ${validPhotos.map((p, idx) => `
-              <div style="position: relative; height: ${photoHeight}; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
-                <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover;">
-                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,45,88,0.9); color: #fff; padding: 4px; font-size: 11px; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Inter', sans-serif;">
-                  ${p.vi || `Ảnh ${idx+1}`}
-                </div>
+      photosInlineHtml = `
+        <div style="flex: 1; display: grid; grid-template-columns: ${gridCols}; gap: 6px; align-content: start; overflow-y: auto;">
+          ${validPhotos.map((p, idx) => `
+            <div style="position: relative; height: ${photoHeight}; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0;">
+              <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover;">
+              <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,45,88,0.9); color: #fff; padding: 3px 4px; font-size: 10px; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${p.vi || `Ảnh ${idx+1}`}
               </div>
-            `).join('')}
-          </div>
+            </div>
+          `).join('')}
         </div>
       `;
+    } else {
+      photosInlineHtml = `<div style="flex:1; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:13px; font-style:italic; border: 1px dashed #e2e8f0; border-radius: 8px;">Chưa có ảnh thi công</div>`;
     }
 
     // Khối chữ ký
@@ -867,14 +865,23 @@ function exportPNG169() {
 
         </div>
 
-        <!-- Cột 2 (35%): Tiến độ chi tiết -->
+        <!-- Cột 2 (35%): Tiến độ chi tiết + Ảnh thi công (giống format dọc gốc) -->
         <div id="temp-col-2" style="width: 35%; display: flex; flex-direction: column; flex-shrink: 0; box-sizing: border-box;">
           
-          <!-- Khối 03: Hạng mục thi công chính (Works) -->
+          <!-- Khối 03: TIẾN ĐỘ + ẢNH (trái: hạng mục / phải: ảnh thi công - khớp format dọc) -->
           <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0;">
             ${secHeaderStatic('03', 'TIẾN ĐỘ THI CÔNG CHI TIẾT', '详细施工进度')}
-            <div style="flex: 1; overflow-y: auto; padding-right: 6px; box-sizing: border-box;">
-              ${worksHtml}
+            <div style="flex: 1; display: flex; gap: 14px; min-height: 0; overflow: hidden;">
+              <!-- Trái (42%): Hạng mục thi công -->
+              <div style="flex: 0 0 42%; overflow-y: auto; padding-right: 5px; box-sizing: border-box;">
+                <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
+                ${worksHtml}
+              </div>
+              <!-- Phải: Hình ảnh thi công trong ngày -->
+              <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
+                ${photosInlineHtml}
+              </div>
             </div>
           </div>
 
@@ -888,9 +895,6 @@ function exportPNG169() {
 
           <!-- Khối 06: Ghi chú & Kiến nghị -->
           ${noteRecCardHtml}
-
-          <!-- Khối 03*: Ảnh thi công -->
-          ${photosCardHtml}
 
           <!-- Khối 05: Bản vẽ & Tổng thể -->
           ${drawsCardHtml}
