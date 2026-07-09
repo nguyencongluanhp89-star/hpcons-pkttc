@@ -4,19 +4,6 @@ function esc(s) {
   return (s == null ? "" : String(s)).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
 
-function applyVoice(text){
-  const out=el('voiceResult');
-  if(!text||!text.trim()){ out.innerHTML='<span style="color:var(--red)">⚠ Chưa có nội dung.</span>'; return; }
-  const u=parseUnits(text, runtimeTerms);
-  if(u.bch!=null) el('f_bch').value=u.bch;
-  if(u.units.length){ units=u.units; renderUnitForm(); }
-  recomputeTotal();
-  draw();
-  const applied=u.recognized;
-  out.innerHTML = applied.length
-    ? '<span style="color:var(--green)">✓ Đã nhận diện & điền:</span> '+applied.join(' • ')
-    : '<span style="color:var(--red)">⚠ Không nhận diện được số lượng nhân sự nào.</span>';
-}
 
 /* Web Speech API */
 let recog=null, listening=false, finalTranscript='', voiceManualStop=false;
@@ -614,21 +601,6 @@ function toggleVoiceWorks(){
 
 }
 
-function applyWorksVoice(text){
-
-  const out=el('worksVoiceResult');
-
-  if(!text||!text.trim()){ out.innerHTML='<span style="color:var(--red)">⚠ Chưa có nội dung.</span>'; return; }
-
-  const w=parseWorks(text);
-
-  if(w.length){ works=w; renderWorkForm(); draw();
-
-    out.innerHTML='<span style="color:var(--green)">✓ Đã nhận '+w.length+' hạng mục:</span> '+w.map(x=>x.t).join(', '); }
-
-  else out.innerHTML='<span style="color:var(--red)">⚠ Không nhận diện được hạng mục.</span>';
-
-}
 
 
 
@@ -1439,30 +1411,6 @@ function toggleVoicePhotos(btnElem) {
   };
   r.start();
 }
-function applyPhotosVoice(text) {
-  if(!text || !text.trim()) return;
-  const s = text.toLowerCase();
-  const parts = s.split(/(?:hình|ảnh|số)\s*(\d+)/).filter(Boolean);
-  let updated = 0;
-  for(let i=0; i<parts.length-1; i+=2) {
-    const numStr = parts[i].trim();
-    const num = parseInt(numStr, 10);
-    const content = parts[i+1].replace(/^[\s:\-]+/, '').replace(/[,.]$/, '').replace(/\s+(phẩy|chấm|và)$/gi, '').trim();
-    if(num >= 1 && num <= 6 && content) {
-       const idx = num - 1;
-       photos[idx].vi = capFirst(content);
-       photos[idx].cn = kbCN(photos[idx].vi);
-       photos[idx].auto = false;
-       updated++;
-    }
-  }
-  if(updated > 0) {
-    el('photosVoiceResult').innerHTML = '<span style="color:var(--green)">✓ Đã điền tên công tác cho '+updated+' hình.</span>';
-    renderPhotoForm(); draw();
-  } else {
-    el('photosVoiceResult').innerHTML = '<span style="color:var(--red)">⚠ Không nhận diện được cấu trúc "hình [số] - [nội dung]".</span>';
-  }
-}
 
 
 
@@ -1520,33 +1468,6 @@ function toggleVoiceNoteRec(){
   recogNR.start();
 }
 
-function applyVoiceNoteRec(text) {
-  if(!text||!text.trim()){ el('noteRecVoiceStatus').innerHTML='<span style="color:var(--red)">⚠ Chưa có nội dung.</span>'; return; }
-  let noteText = '', recText = '';
-  let s = text.toLowerCase();
-  let iNote = s.indexOf('ghi chú');
-  let iRec = Math.max(s.indexOf('kiến nghị'), s.indexOf('đề xuất'));
-  
-  if(iNote !== -1 && iRec !== -1) {
-    if (iNote < iRec) {
-      noteText = text.substring(iNote + 7, iRec);
-      recText = text.substring(iRec + (s.indexOf('kiến nghị')===iRec ? 9 : 7));
-    } else {
-      recText = text.substring(iRec + (s.indexOf('kiến nghị')===iRec ? 9 : 7), iNote);
-      noteText = text.substring(iNote + 7);
-    }
-  } else if (iNote !== -1) {
-    noteText = text.substring(iNote + 7);
-  } else if (iRec !== -1) {
-    recText = text.substring(iRec + (s.indexOf('kiến nghị')===iRec ? 9 : 7));
-  } else {
-    noteText = text; // Default to note if no keyword
-  }
-  
-  if (noteText.trim()) el('f_note').value = planFormat(noteText.replace(/^[\s:.]+/, '').trim());
-  if (recText.trim()) el('f_rec').value = planFormat(recText.replace(/^[\s:.]+/, '').trim());
-  el('noteRecVoiceStatus').innerHTML='<span style="color:var(--green)">✓ Đã phân tách xong.</span>';
-}
 
 let recogAQT=null, listeningAQT=false, finalAQT='', aqtManualStop=false;
 function toggleVoiceAQT(){
@@ -1593,37 +1514,6 @@ function toggleVoiceAQT(){
   recogAQT.start();
 }
 
-function applyVoiceAQT(text) {
-  if(!text||!text.trim()){ el('aqtVoiceStatus').innerHTML='<span style="color:var(--red)">⚠ Chưa có nội dung.</span>'; return; }
-  let s = text.toLowerCase();
-  
-  let pos = [];
-  let idxSafe = s.indexOf('an toàn');
-  if(idxSafe !== -1) pos.push({id: 'f_safe', i: idxSafe, len: 7});
-  
-  let idxQual = s.indexOf('chất lượng');
-  if(idxQual !== -1) pos.push({id: 'f_qual', i: idxQual, len: 10});
-  
-  let idxSched = s.indexOf('tiến độ');
-  if(idxSched !== -1) pos.push({id: 'f_sched', i: idxSched, len: 7});
-  
-  pos.sort((a,b) => a.i - b.i);
-  
-  if (pos.length === 0) {
-    el('f_safe').value = planFormat(text.replace(/^[\s:.]+/, '').trim());
-  } else {
-    for (let k = 0; k < pos.length; k++) {
-      let startPos = pos[k].i + pos[k].len;
-      let endPos = (k + 1 < pos.length) ? pos[k+1].i : text.length;
-      let chunk = text.substring(startPos, endPos);
-      let cleanChunk = chunk.replace(/^[\s:.]+/, '').trim();
-      if (cleanChunk) {
-        el(pos[k].id).value = planFormat(cleanChunk);
-      }
-    }
-  }
-  el('aqtVoiceStatus').innerHTML='<span style="color:var(--green)">✓ Đã phân tách xong.</span>';
-}
 
 // Tự động lấy thời tiết ưu tiên bằng tọa độ dự án, sau đó làm dự phòng bằng GPS thiết bị và Open-Meteo API
 async function fetchWeatherFromGPS() {
@@ -1841,6 +1731,7 @@ function updateActionButtons() {
   // 3. Các nút xuất ảnh và in ấn (luôn hiển thị)
   html += `
     <button class="act" type="button" style="background:#4b5563; box-shadow:0 4px 12px rgba(75,85,99,0.15)" onclick="exportPNG()">📸 Xuất Ảnh PNG</button>
+    <button class="act" type="button" style="background:#8b5cf6; box-shadow:0 4px 12px rgba(139,92,246,0.15)" onclick="exportPNG169()">📸 Xuất ảnh 16:9</button>
     <button class="sec" type="button" style="background:#e5e7eb; color:#1f2937; border:1px solid #d1d5db;" onclick="window.print()">🖨️ In / Lưu PDF</button>
   `;
   

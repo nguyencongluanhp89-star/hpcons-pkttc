@@ -1,6 +1,6 @@
 // Từ v58: KHÔNG cần bump tay mỗi lần sửa nữa — fetch dùng no-cache cho file cùng máy (xem handler bên dưới),
 // luôn lấy bản mới khi online; cache chỉ dùng làm dự phòng khi offline.
-const CACHE_NAME = 'hpcons-cache-v70';
+const CACHE_NAME = 'hpcons-cache-v80';
 
 // Danh sách các tệp cơ bản cần thiết để ứng dụng load được khi offline
 // Sẽ dùng chiến thuật Network First
@@ -66,8 +66,8 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request, fetchOpts)
       .then(response => {
-        // Cập nhật cache nếu request thành công
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+        // Cập nhật cache nếu request thành công (Cache API chỉ nhận GET — put request POST sẽ lỗi ngầm)
+        if (!response || response.status !== 200 || response.type !== 'basic' || event.request.method !== 'GET') {
           return response;
         }
         const responseToCache = response.clone();

@@ -1846,7 +1846,12 @@ async function luuPhienBan() {
 }
 
 // =================== GLOBAL CONTRACTOR DICTIONARY (KB) ===================
-async function importKBContractors(event) {
+// LƯU Ý (sửa 2026-07-09): trước đây 2 hàm dưới đặt tên importKBContractors/renderKB — TRÙNG TÊN
+// với cặp hàm của "Từ điển AI cho Voice" trong modules/tiendo.js và ĐÈ MẤT chúng (app.js nạp sau
+// cùng), làm card Từ điển Voice ở tab Hệ thống nạp nhầm kho + nút Xem không hiển thị. Đã đổi tên
+// thành importCentralKBContractors/renderCentralKB (kho kb_contractors — Từ điển Trung tâm, khác
+// với kho `kb` của Voice). Hiện KHÔNG có nút nào trong HTML gọi bản này; giữ lại để dùng khi cần.
+async function importCentralKBContractors(event) {
   const file = event.target.files[0];
   if(!file) return;
   const reader = new FileReader();
@@ -1891,7 +1896,7 @@ async function importKBContractors(event) {
       
       await metaSet('kb_contractors', kb);
       alert(`✅ Đã nạp thành công! Thêm mới ${added} nhà thầu/tổ đội vào Từ điển Trung tâm.`);
-      renderKB();
+      renderCentralKB();
       syncKBToIframe();
     } catch (err) {
       alert("❌ Lỗi đọc file Excel: " + err.message);
@@ -1900,7 +1905,7 @@ async function importKBContractors(event) {
   reader.readAsArrayBuffer(file);
 }
 
-async function renderKB() {
+async function renderCentralKB() {
   const kb = await metaGet('kb_contractors', []);
   // Có thể in ra giao diện nếu cần, tạm thời console log
   console.log("KHO TỪ ĐIỂN NHÀ THẦU:", kb);

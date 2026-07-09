@@ -310,15 +310,6 @@
   </div>
 </div>
 
-<!-- Lịch sử chỉnh sửa nhật ký -->
-<div id="hist-modal" class="modal-bg hide" style="align-items:center">
-  <div class="modal" style="max-width:520px">
-    <h2 id="hist-title" style="margin-top:0">Lịch sử chỉnh sửa</h2>
-    <div class="sublist" id="hist-list" style="max-height:50vh;overflow:auto"></div>
-    <div class="btnbar"><button class="btn btn-mut" onclick="closeHist()">Đóng</button></div>
-  </div>
-</div>
-
 <!-- Xem ảnh phóng to -->
 <div id="img-lightbox" class="modal-bg hide" style="align-items:center;z-index:300" onclick="closeLightbox()">
   <img id="lb-img" alt="" style="max-width:92vw;max-height:90vh;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.5)">
@@ -2305,13 +2296,13 @@
   <div class="row">
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Tổng quan chất lượng dự án</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ tổng quan QA-QC</span>
       </div>
     </div>
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Tiến độ xử lý sự cố</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ sự cố</span>
       </div>
     </div>
@@ -2336,7 +2327,7 @@
 <section id="tab-qaqc-muctieu" class="hide">
   <div class="card">
     <h2 style="margin-top:0">Quản lý Mục tiêu QA-QC</h2>
-    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+    <div class="panel-bg" style="border:1px dashed var(--border); padding:20px; text-align:center; border-radius:8px; margin-top:20px">
       <span class="muted">Giao diện quản lý KPI chất lượng sẽ được xây dựng sau.</span>
     </div>
   </div>
@@ -2345,13 +2336,13 @@
   <div class="row">
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Tổng quan an toàn lao động</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ tổng quan HSE</span>
       </div>
     </div>
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Chỉ số vi phạm</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ vi phạm an toàn</span>
       </div>
     </div>
@@ -2376,7 +2367,7 @@
 <section id="tab-hse-muctieu" class="hide">
   <div class="card">
     <h2 style="margin-top:0">Quản lý Mục tiêu HSE</h2>
-    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+    <div class="panel-bg" style="border:1px dashed var(--border); padding:20px; text-align:center; border-radius:8px; margin-top:20px">
       <span class="muted">Giao diện quản lý KPI an toàn lao động sẽ được xây dựng sau.</span>
     </div>
   </div>
@@ -2385,13 +2376,13 @@
   <div class="row">
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Tổng quan thực hiện mục tiêu</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ tổng quan</span>
       </div>
     </div>
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Biểu đồ công việc thành viên</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ năng suất</span>
       </div>
     </div>
@@ -2420,7 +2411,7 @@
   <div class="card">
     <h2 style="margin-top:0">Quản lý Mục tiêu (KPI)</h2>
     <p class="muted">Chuẩn bị nơi nhập mục tiêu bản vẽ, KPI phát hành, KPI trễ hạn.</p>
-    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+    <div class="panel-bg" style="border:1px dashed var(--border); padding:20px; text-align:center; border-radius:8px; margin-top:20px">
       <span class="muted">Giao diện quản lý KPI sẽ được xây dựng sau.</span>
     </div>
   </div>
@@ -2429,13 +2420,13 @@
   <div class="row">
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Tổng quan thiết bị</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Biểu đồ tổng quan bảo trì</span>
       </div>
     </div>
     <div class="card" style="flex:1">
       <h3 style="margin-top:0">Lịch trình bảo dưỡng</h3>
-      <div style="height:200px; class="panel-bg" style="border:1px dashed var(--border);" display:flex; align-items:center; justify-content:center; border-radius:8px">
+      <div class="panel-bg" style="height:200px; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; border-radius:8px">
         <span class="muted">Lịch bảo trì thiết bị</span>
       </div>
     </div>
@@ -2460,7 +2451,7 @@
 <section id="tab-mt-muctieu" class="hide">
   <div class="card">
     <h2 style="margin-top:0">Quản lý Mục tiêu Bảo Trì</h2>
-    <div style="class="panel-bg" style="border:1px dashed var(--border);" padding:20px; text-align:center; border-radius:8px; margin-top:20px">
+    <div class="panel-bg" style="border:1px dashed var(--border); padding:20px; text-align:center; border-radius:8px; margin-top:20px">
       <span class="muted">Giao diện quản lý KPI bảo trì sẽ được xây dựng sau.</span>
     </div>
   </div>
@@ -2529,7 +2520,7 @@ updateHeaderDate();
 <script src="modules/dieuhanh.js"></script>
 <script src="modules/hethong.js?v=2"></script>
 <script src="modules/lpb.js"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 <script>
   (function() {
     const select = document.getElementById("cur-project");

@@ -371,15 +371,630 @@ function exportPNG(){
   });
 }
 
+function exportPNG169() {
+  try {
+    const dt = fmtDate(el('f_date').value);
+    const prog = el('f_prog').value || 0;
+    
+    // Helper render header các phần giống báo cáo gốc (nền gradient xanh navy đặc, bo góc tròn, viền trái xanh lục)
+    function secHeaderStatic(num, titleVi, titleCn) {
+      return `
+        <div style="background: linear-gradient(90deg, #0a2d58 0%, #1e40af 100%); color: #fff; padding: 10px 18px; font-size: 15px; font-weight: 800; display: flex; align-items: center; letter-spacing: 0.3px; border-left: 5px solid #10b981; box-shadow: 0 2px 5px rgba(10,77,148,0.08); text-transform: uppercase; border-radius: 6px; margin-bottom: 15px; line-height: 1.2; flex-shrink: 0; box-sizing: border-box;">
+          <span style="background: #fff; color: #0a2d58; border-radius: 4px; padding: 2px 7px; font-size: 12.5px; font-weight: 800; line-height: 1; margin-right: 10px; font-family: 'Outfit', sans-serif;">${num}</span>
+          ${titleVi} <span style="font-weight: 500; font-size: 11.5px; opacity: 0.85; font-family: Arial; text-transform: none; margin-left: 5px;">/ ${titleCn}</span>
+        </div>
+      `;
+    }
+
+    // Helper hiển thị ảnh tĩnh không tương tác
+    function imgStatic(src, phtxt) {
+      return src 
+        ? `<img src="${src}" style="width:100%; height:100%; object-fit:cover; border-radius:8px; display:block;">`
+        : `<div style="width:100%; height:100%; background:#f8fafc; border: 1px dashed #cbd5e1; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px; font-weight:600; min-height:100px; text-align:center; padding:10px; box-sizing:border-box; line-height:1.3;">${phtxt}</div>`;
+    }
+
+    // Xây dựng logo nhà thầu
+    const logoHtml = logoImg 
+      ? `<img src="${logoImg}" style="max-height:70px; object-fit:contain;">` 
+      : `<div style="text-align:center;"><div style="font-size:28px;font-weight:900;color:#0a2d58;letter-spacing:1px;line-height:1">HP<span style="color:#10b981">CONS</span></div><div style="font-size:9px;color:#10b981;font-style:italic;margin-top:2px;text-transform:uppercase;letter-spacing:0.5px">BEYOND - Expectation</div><div style="font-size:8px;color:#0a2d58;margin-top:1px">超越期望</div></div>`;
+    
+    // Xây dựng logo chủ đầu tư
+    const logoCdtHtml = logoImgCdt 
+      ? `<img src="${logoImgCdt}" style="max-height:70px; object-fit:contain;">` 
+      : '';
+
+    // Thời tiết
+    const weatherIcons = {
+      'sunny': {i:'☀️', l:'Nắng đẹp', c:'wt-sunny'},
+      'cloudy': {i:'⛅', l:'Nhiều mây', c:'wt-cloudy'},
+      'rainy': {i:'🌧️', l:'Có mưa', c:'wt-rainy'},
+      'stormy': {i:'⛈️', l:'Giông bão', c:'wt-stormy'}
+    };
+    const wm = el('f_weather_m').value;
+    const wa = el('f_weather_a').value;
+    const wnote = el('f_weather_note').value.trim();
+    
+    let weatherText = '';
+    let weatherIcon = '☀️';
+    if (wm === wa) {
+      weatherIcon = weatherIcons[wm] ? weatherIcons[wm].i : '☀️';
+      weatherText = `Cả ngày: ${weatherIcons[wm] ? weatherIcons[wm].l : 'Nắng đẹp'}`;
+    } else {
+      weatherIcon = `${weatherIcons[wm] ? weatherIcons[wm].i : '☀️'}${weatherIcons[wa] ? weatherIcons[wa].i : '☀️'}`;
+      weatherText = `Sáng: ${weatherIcons[wm] ? weatherIcons[wm].l : 'Nắng'} | Chiều: ${weatherIcons[wa] ? weatherIcons[wa].l : 'Nắng'}`;
+    }
+    let rh = parseFloat(el('f_rain_hours') ? el('f_rain_hours').value : 0) || 0;
+    if (rh > 0) {
+      weatherText += ` (Mưa ${rh}h)`;
+    }
+    if (wnote) {
+      weatherText += ` - ${wnote}`;
+    }
+
+    // Định nghĩa wIconBox
+    let wIconBox = '';
+    if (wm === wa) {
+      wIconBox = `<div style="font-size:42px; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1))">${weatherIcons[wm] ? weatherIcons[wm].i : '☀️'}</div>`;
+    } else {
+      wIconBox = `
+        <div style="font-size:36px; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1))">${weatherIcons[wm] ? weatherIcons[wm].i : '☀️'}</div>
+        <div style="font-size:18px; color:#cbd5e1; font-weight:300; transform:rotate(15deg)">/</div>
+        <div style="font-size:36px; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.1))">${weatherIcons[wa] ? weatherIcons[wa].i : '☀️'}</div>
+      `;
+    }
+
+    // Nhân lực
+    const totalManpower = el('f_total') ? el('f_total').value : 0;
+    const bch = el('f_bch') ? el('f_bch').value : 0;
+    
+    // Tính subManpower (đề phòng units undefined)
+    const activeUnits = (typeof units !== 'undefined' && Array.isArray(units)) ? units : [];
+    const subManpower = activeUnits.reduce((a,u)=>a+(parseInt(u.n)||0),0);
+
+    // Người lập, chỉ huy trưởng & con dấu
+    const reportData = window.CURRENT_REPORT || {};
+    const createdBy = reportData.created_name || reportData.created_by || window.CURRENT_USER_NAME || "Kỹ sư";
+    const commanderName = window.CURRENT_COMMANDER || "";
+    const approval = reportData.approval || reportData.status || (window._reportStatus || "draft");
+    
+    let approveStamp = "";
+    if (approval === "approved") {
+      const appBy = reportData.approved_by || commanderName || "Chỉ huy trưởng";
+      let appAt = "";
+      try {
+        const parsedDate = reportData.approved_at ? new Date(reportData.approved_at) : null;
+        if (parsedDate && !isNaN(parsedDate.getTime())) {
+          appAt = parsedDate.toLocaleDateString("vi-VN");
+        } else {
+          appAt = new Date().toLocaleDateString("vi-VN");
+        }
+      } catch (err) {
+        appAt = new Date().toLocaleDateString("vi-VN");
+      }
+      approveStamp = `
+        <div style="border: 2px dashed #10b981; color: #10b981; font-weight: 800; font-size: 11px; padding: 4px 8px; border-radius: 6px; display: inline-block; transform: rotate(-8deg); background: rgba(16, 185, 129, 0.03); text-align: center; font-family: 'Inter', sans-serif; position: absolute; z-index: 10; right: 15px; top: 0px; box-shadow: 0 4px 10px rgba(16,185,129,0.08); line-height: 1.3;">
+          ✅ ĐÃ DUYỆT<br>
+          <span style="font-size:10px; font-weight:800;">${esc(appBy)}</span><br>
+          <span style="font-size:9px; font-weight:normal; opacity:0.8;">Ngày: ${appAt}</span>
+        </div>
+      `;
+    } else if (approval === "pending") {
+      approveStamp = `
+        <div style="border: 1.5px dashed #ea580c; color: #ea580c; font-weight: bold; font-size: 11px; padding: 4px 8px; border-radius: 4px; display: inline-block; background: rgba(234, 88, 12, 0.03); text-align: center; position: absolute; right: 15px; top: 5px;">
+          ⏳ Chờ duyệt
+        </div>
+      `;
+    } else if (approval === "rejected") {
+      const reason = reportData.reject_reason || "";
+      approveStamp = `
+        <div style="border: 1.5px dashed #dc2626; color: #dc2626; font-weight: bold; font-size: 10px; padding: 4px 8px; border-radius: 4px; display: inline-block; background: rgba(220, 38, 38, 0.03); text-align: center; max-width: 120px; word-break: break-word; position: absolute; right: 15px; top: 5px;">
+          ↩ Trả lại${reason ? `<br><span style="font-size: 8.5px; font-weight: normal; font-style: italic;">Lý do: ${esc(reason)}</span>` : ''}
+        </div>
+      `;
+    }
+
+    const createdByEsc = esc(createdBy);
+    const commanderEsc = esc(reportData.approved_by || commanderName);
+
+    // --- Khối 01: Tổng quan ---
+    const activeOvMain = (typeof ovMain !== 'undefined') ? ovMain : null;
+    const activeOvSub1 = (typeof ovSub1 !== 'undefined') ? ovSub1 : null;
+    const activeOvSub2 = (typeof ovSub2 !== 'undefined') ? ovSub2 : null;
+    
+    // Chỉ hiển thị lưới ảnh tổng quan nếu có ít nhất 1 ảnh đã tải lên
+    let ovImgsHtml = '';
+    if (activeOvMain || activeOvSub1 || activeOvSub2) {
+      ovImgsHtml = `
+        <div style="display: flex; gap: 8px; height: 180px; width: 100%; margin-bottom: 12px; flex-shrink: 0;">
+          <div style="flex: 1.4; height: 100%;">${imgStatic(activeOvMain, 'Ảnh tổng quan')}</div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; height: 100%;">
+            <div style="flex: 1; height: calc(50% - 3px);">${imgStatic(activeOvSub1, 'Ảnh phụ 1')}</div>
+            <div style="flex: 1; height: calc(50% - 3px);">${imgStatic(activeOvSub2, 'Ảnh phụ 2')}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    const ovInfoHtml = `
+      <div style="font-size: 14.5px; margin-top: 5px; line-height: 1.55; flex: 1; display: flex; flex-direction: column; justify-content: space-around;">
+        <div style="display: flex; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span style="color: #10b981; font-weight: bold; width: 26px; font-size: 16px;">🏗️</span><span style="font-weight: 800; color: #1e3a8a; width: 150px; font-size: 13px; letter-spacing:0.3px;">CÔNG TRÌNH / 工程</span><span style="flex: 1; color: #0a2d58; font-weight: 700;">${el('f_proj').value}</span></div>
+        <div style="display: flex; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span style="color: #10b981; font-weight: bold; width: 26px; font-size: 16px;">📍</span><span style="font-weight: 800; color: #1e3a8a; width: 150px; font-size: 13px; letter-spacing:0.3px;">ĐỊA ĐIỂM / 地点</span><span style="flex: 1; color: #475569; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-weight: 600;">${el('f_loc').value}</span></div>
+        <div style="display: flex; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span style="color: #10b981; font-weight: bold; width: 26px; font-size: 16px;">🏢</span><span style="font-weight: 800; color: #1e3a8a; width: 150px; font-size: 13px; letter-spacing:0.3px;">QUY MÔ / 规模</span><span style="flex: 1; color: #475569; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-weight: 600;">${el('f_scale').value}</span></div>
+        <div style="display: flex; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span style="color: #10b981; font-weight: bold; width: 26px; font-size: 16px;">📅</span><span style="font-weight: 800; color: #1e3a8a; width: 150px; font-size: 13px; letter-spacing:0.3px;">BẮT ĐẦU / 开工</span><span style="flex: 1; color: #475569; font-weight: 600;">${el('f_start').value}</span></div>
+        <div style="display: flex; padding: 6px 0; border-bottom: 1px solid #f1f5f9;"><span style="color: #10b981; font-weight: bold; width: 26px; font-size: 16px;">🏁</span><span style="font-weight: 800; color: #1e3a8a; width: 150px; font-size: 13px; letter-spacing:0.3px;">HOÀN THÀNH / 完工</span><span style="flex: 1; color: #475569; font-weight: 600;">${el('f_end').value}</span></div>
+        
+        <div style="margin-top: 15px; background: #fafbfc; padding: 12px 18px; border-radius: 10px; border: 1px solid #f1f5f9; flex-shrink: 0;">
+          <div style="display: flex; justify-content: space-between; font-weight: 800; color: #1e3a8a; font-size: 13px;">
+            <span>TIẾN ĐỘ TỔNG THỂ / 总体进度</span>
+            <span style="color: #10b981; font-size: 16px; font-weight: 900;">${prog}%</span>
+          </div>
+          <div style="height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-top: 8px;">
+            <div style="width: ${prog}%; height: 100%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); border-radius: 5px;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // --- Khối 02: Nhân lực & Thời tiết ---
+    const manpowerHtml = `
+      <div style="flex: 1; border: 1px solid #e2e8f0; border-top: 5px solid #10b981; border-radius: 12px; padding: 15px 10px; text-align: center; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.01); display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-sizing: border-box;">
+        <div style="font-size: 13px; font-weight: 800; color: #0a2d58; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.3px;">NHÂN LỰC / 人员</div>
+        <div style="font-size: 46px; font-weight: 900; color: #10b981; line-height: 1; margin-bottom: 8px; font-family: 'Outfit', sans-serif;">${totalManpower}</div>
+        <div style="font-size: 12px; color: #64748b; font-weight: 700; background: #f8fafc; padding: 4px 6px; border-radius: 6px;">BCH: ${bch} | Tổ đội: ${subManpower}</div>
+      </div>
+    `;
+
+    const weatherHtml = `
+      <div style="flex: 1; border: 1px solid #e2e8f0; border-top: 5px solid #3b82f6; border-radius: 12px; padding: 15px 10px; text-align: center; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.01); height: 100%; box-sizing: border-box;">
+        <div style="font-size: 13px; font-weight: 800; color: #0a2d58; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.3px;">THỜI TIẾT / 天气</div>
+        <div style="display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 4px; flex: 1;">
+          ${wIconBox}
+        </div>
+        <div style="font-size: 12px; line-height: 1.3; color: #475569; font-weight: 700; background: #f8fafc; padding: 4px 6px; border-radius: 6px; width: 90%; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${weatherText}</div>
+      </div>
+    `;
+
+    // --- Khối 03: Hạng mục thi công chi tiết (Việt-Trung) ---
+    let worksHtml = '';
+    const activeWorks = (typeof works !== 'undefined' && Array.isArray(works)) ? works : [];
+    activeWorks.forEach((w, idx) => {
+      const cleanT = stripIdx(w.t);
+      const cn = stripIdx((typeof workCN === 'function') ? workCN(cleanT) : '');
+      const wt = `<span style="font-weight: 800; color: #0a2d58; margin-right: 6px; font-size: 15.5px;">${idx+1}.</span> ${cleanT}` + (cn ? ` <span style="font-weight:500;color:#94a3b8; font-size:13.5px;">/ ${cn}</span>` : '');
+      
+      let detailsHtml = '';
+      if (w.d) {
+        detailsHtml = w.d.split('\n').filter(x => x.trim()).map(line => {
+          let viPart = line;
+          let cnPart = '';
+          if (line.includes('|')) {
+            const parts = line.split('|');
+            viPart = parts[0].trim();
+            cnPart = parts[1].trim();
+          }
+          const o = (typeof biLineSplit === 'function') ? biLineSplit(viPart) : {n:viPart, q:''};
+          const c = cnPart || ((typeof workCN === 'function') ? workCN(o.n) : '');
+          return `<div style="font-size: 14.5px; color: #334155; margin-top: 6px; padding-left: 15px; position: relative; line-height: 1.5; font-weight: 500;">
+            <span style="position: absolute; left: 0; color: #94a3b8; font-weight: bold;">-</span>
+            ${o.n}${o.q ? `: <strong style="color:#0f172a; font-weight: 800;">${o.q}</strong>` : ''}
+            ${c ? `<span style="color:#94a3b8; font-size: 13px; font-weight: normal; margin-left: 4px;">/ ${c}</span>` : ''}
+          </div>`;
+        }).join('');
+      }
+
+      worksHtml += `
+        <div style="border-left: 4px solid ${w.c || '#10b981'}; padding-left: 12px; margin-bottom: 18px; page-break-inside: avoid;">
+          <div style="font-weight: 800; color: #0f172a; font-size: 15px; line-height: 1.4;">${wt}</div>
+          <div style="margin-top: 4px;">${detailsHtml}</div>
+        </div>
+      `;
+    });
+    if (!worksHtml) {
+      worksHtml = `<div style="color:#94a3b8; font-style:italic; font-size:14px; text-align:center; padding: 40px 0;">Không có hạng mục thi công chi tiết</div>`;
+    }
+
+    // --- Khối 04: Kế hoạch ngày mai ---
+    let planCardHtml = '';
+    const rawPlans = el('f_plan').value.split('\n').filter(x => x.trim());
+    if (rawPlans.length > 0) {
+      let content = '';
+      rawPlans.forEach(line => {
+        let viPart = line;
+        let cnPart = '';
+        if (line.includes('|')) {
+          const parts = line.split('|');
+          viPart = parts[0].trim();
+          cnPart = parts[1].trim();
+        }
+        const o = (typeof biLineSplit === 'function') ? biLineSplit(viPart) : {n:viPart, q:''};
+        const c = cnPart || ((typeof workCN === 'function') ? workCN(o.n) : '');
+        content += `
+          <div style="font-size: 14px; color: #1e293b; margin-bottom: 8px; padding-left: 18px; position: relative; line-height: 1.5; font-weight: 500;">
+            <span style="position: absolute; left: 0; top: 0px; color: #10b981; font-weight: bold; font-size: 15px;">•</span>
+            <strong style="color: #0f172a; font-weight: 700;">${o.n}</strong>${o.q ? `: ${o.q}` : ''}
+            ${c ? `<span style="color: #64748b; font-size: 13px; font-weight: normal; margin-left: 6px;">/ ${c}</span>` : ''}
+          </div>
+        `;
+      });
+      
+      planCardHtml = `
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
+          ${secHeaderStatic('04', 'KẾ HOẠCH NGÀY MAI', '明日施工计划')}
+          <div style="display: flex; flex-direction: column;">
+            ${content}
+          </div>
+        </div>
+      `;
+    }
+
+    // --- Khối 05: Bản vẽ & Tổng thể (Chỉ hiện khi có ảnh) ---
+    const activeDraws = (typeof draws !== 'undefined' && Array.isArray(draws)) ? draws : [];
+    let drawsCardHtml = '';
+    const validDraws = activeDraws.filter(d => d && d.img);
+    if (validDraws.length > 0) {
+      let drawItemsHtml = '';
+      validDraws.forEach((d, idx) => {
+        let t_vi = d.t || '';
+        let t_cn_val = '';
+        if (t_vi.includes('|')) {
+          const parts = t_vi.split('|');
+          t_vi = parts[0].trim();
+          t_cn_val = parts[1].trim();
+        }
+        const t_cn = t_cn_val || ((typeof workCN === 'function') ? workCN(t_vi) : '');
+        
+        drawItemsHtml += `
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; height: 110px;">
+            <img src="${d.img}" style="width: 100%; height: 75px; object-fit: cover;">
+            <div style="padding: 4px; text-align: center; line-height: 1.25; font-size: 11px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+              <div style="font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t_vi}</div>
+              ${t_cn ? `<div style="color: #64748b; font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;">${t_cn}</div>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      
+      drawsCardHtml = `
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
+          ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;">
+            ${drawItemsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    // --- Khối 06: Ghi chú & Kiến nghị ---
+    const noteVal = el('f_note').value.trim();
+    const recVal = el('f_rec').value.trim();
+    let noteRecCardHtml = '';
+    if (noteVal || recVal) {
+      let content = '';
+      if (noteVal) {
+        content += `
+          <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;">
+            <div style="font-weight: 800; color: #166534; font-size: 12.5px; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">📝 GHI CHÚ / 备注</div>
+            <div style="font-size: 14px; color: #14532d; margin-top: 5px; line-height: 1.5; white-space: pre-line; font-weight: 500;">${noteVal}</div>
+          </div>
+        `;
+      }
+      if (recVal) {
+        content += `
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px;">
+            <div style="font-weight: 800; color: #b45309; font-size: 12.5px; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">⚠️ KIẾN NGHỊ / 建议</div>
+            <div style="font-size: 14px; color: #78350f; margin-top: 5px; line-height: 1.5; white-space: pre-line; font-weight: 500;">${recVal}</div>
+          </div>
+        `;
+      }
+      
+      noteRecCardHtml = `
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
+          ${secHeaderStatic('06', 'GHI CHÚ & KIẾN NGHỊ', '备注 & 建议')}
+          ${content}
+        </div>
+      `;
+    }
+
+    // --- Khối 07: An toàn - Chất lượng - Tiến độ ---
+    const safeVal = el('f_safe').value.trim();
+    const qualVal = el('f_qual').value.trim();
+    const schedVal = el('f_sched').value.trim();
+    let safeQualCardHtml = '';
+    if (safeVal || qualVal || schedVal) {
+      let content = '';
+      if (safeVal) {
+        content += `
+          <div style="border: 1px solid #dcfce7; background: #f0fdf4; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">🛡️</span>
+            <div style="font-size: 13.5px; color: #166534; line-height: 1.4; font-weight: 500;">
+              <strong style="text-transform: uppercase; color: #14532d; font-weight: 800;">An toàn / 安全:</strong> ${safeVal}
+            </div>
+          </div>
+        `;
+      }
+      if (qualVal) {
+        content += `
+          <div style="border: 1px solid #dbeafe; background: #eff6ff; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">⭐</span>
+            <div style="font-size: 13.5px; color: #1e40af; line-height: 1.4; font-weight: 500;">
+              <strong style="text-transform: uppercase; color: #1e3a8a; font-weight: 800;">Chất lượng / 质量:</strong> ${qualVal}
+            </div>
+          </div>
+        `;
+      }
+      if (schedVal) {
+        content += `
+          <div style="border: 1px solid #ffedd5; background: #fff7ed; padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">⏱️</span>
+            <div style="font-size: 13.5px; color: #c2410c; line-height: 1.4; font-weight: 500;">
+              <strong style="text-transform: uppercase; color: #7c2d12; font-weight: 800;">Tiến độ / 进度:</strong> ${schedVal}
+            </div>
+          </div>
+        `;
+      }
+      
+      safeQualCardHtml = `
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
+          ${secHeaderStatic('07', 'AN TOÀN - CHẤT LƯỢNG - TIẾN ĐỘ', '安全·质量·进度')}
+          ${content}
+        </div>
+      `;
+    }
+
+    // --- Ảnh thi công trong ngày ---
+    const activePhotos = (typeof photos !== 'undefined' && Array.isArray(photos)) ? photos : [];
+    const validPhotos = activePhotos.filter(p => p && p.img);
+    let photosCardHtml = '';
+    if (validPhotos.length > 0) {
+      let gridCols = '1fr 1fr';
+      let photoHeight = '140px';
+      if (validPhotos.length === 1) {
+        gridCols = '1fr';
+        photoHeight = '240px';
+      } else if (validPhotos.length === 3) {
+        gridCols = '1fr 1fr 1fr';
+        photoHeight = '120px';
+      } else if (validPhotos.length > 4) {
+        gridCols = '1fr 1fr 1fr';
+        photoHeight = '100px';
+      }
+      
+      photosCardHtml = `
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
+          ${secHeaderStatic('03*', 'HÌNH ẢNH THI CÔNG', '当日施工照片')}
+          <div style="display: grid; grid-template-columns: ${gridCols}; gap: 8px;">
+            ${validPhotos.map((p, idx) => `
+              <div style="position: relative; height: ${photoHeight}; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+                <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover;">
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,45,88,0.9); color: #fff; padding: 4px; font-size: 11px; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Inter', sans-serif;">
+                  ${p.vi || `Ảnh ${idx+1}`}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Khối chữ ký
+    const signatureHtml = `
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.01); display: flex; justify-content: space-around; align-items: stretch; text-align: center; height: 130px; box-sizing: border-box; flex-shrink: 0; position: relative;">
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-right: 1px solid #f1f5f9; padding-right: 10px; box-sizing: border-box;">
+          <div>
+            <div style="font-weight: 800; color: #0a2d58; font-size: 13px; text-transform: uppercase; line-height: 1.1;">Người lập báo cáo</div>
+            <div style="font-size: 10px; color: #94a3b8; font-style: italic; margin-top: 1px;">报告人</div>
+          </div>
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px;">
+            <div style="color: #94a3b8; font-weight: bold; font-size: 13px; font-style: italic; opacity: 0.65;">(Đã ký)</div>
+          </div>
+          <div style="font-weight: 800; color: #1e3a8a; font-size: 14.5px; white-space: nowrap;">${createdByEsc}</div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-left: 10px; box-sizing: border-box; position: relative;">
+          <div>
+            <div style="font-weight: 800; color: #0a2d58; font-size: 13px; text-transform: uppercase; line-height: 1.1;">Chỉ huy trưởng</div>
+            <div style="font-size: 10px; color: #94a3b8; font-style: italic; margin-top: 1px;">施工队长</div>
+          </div>
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px; position: relative; width: 100%;">
+            ${approveStamp || '<div style="color: #cbd5e1; font-size: 12px; font-style: italic;">Chưa duyệt</div>'}
+          </div>
+          <div style="font-weight: 800; color: #1e3a8a; font-size: 14.5px; white-space: nowrap;">${commanderEsc || "Chỉ huy trưởng"}</div>
+        </div>
+      </div>
+    `;
+
+    // Tạo container tạm offscreen
+    const tempContainer = document.createElement('div');
+    tempContainer.id = 'temp-report-169';
+    tempContainer.style.cssText = `
+      position: fixed;
+      left: -9999px;
+      top: -9999px;
+      width: 1920px;
+      height: 1080px;
+      background-color: #f8fafc;
+      box-sizing: border-box;
+      padding: 35px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #0f172a;
+      z-index: -9999;
+    `;
+
+    // Thêm HTML của 3 cột
+    tempContainer.innerHTML = `
+      <!-- Header -->
+      <div id="temp-header" style="display: flex; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; width: 100%; box-sizing: border-box; flex-shrink: 0; background: #ffffff; padding: 18px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.01);">
+        <div style="width: 320px; display: flex; align-items: center; justify-content: flex-start; height: 70px;">
+          ${logoHtml}
+        </div>
+        <div style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70px;">
+          <div style="font-size: 34px; font-weight: 900; color: #0a2d58; letter-spacing: 0.5px; line-height: 1.1;">BÁO CÁO THI CÔNG NGÀY</div>
+          <div style="font-size: 16px; color: #64748b; font-weight: 600; margin-top: 2px; letter-spacing: 0.5px;">每日施工报告</div>
+          <div style="font-size: 15px; font-weight: 800; color: #10b981; margin-top: 6px; background: #f0fdf4; padding: 3px 14px; border-radius: 20px; border: 1px solid #dcfce7; display: inline-block;">
+            NGÀY <span style="font-weight: 500;">/ 日期:</span> ${dt.d} (${dt.w})
+          </div>
+        </div>
+        <div style="width: 320px; display: flex; align-items: center; justify-content: flex-end; height: 70px;">
+          ${logoCdtHtml}
+        </div>
+      </div>
+
+      <!-- Body Layout: 3 Columns -->
+      <div id="temp-body" style="flex: 1; display: flex; gap: 20px; width: 100%; box-sizing: border-box; min-height: 0;">
+        
+        <!-- Cột 1 (30%): Tổng quan & Nhân lực thời tiết -->
+        <div id="temp-col-1" style="width: 30%; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; box-sizing: border-box;">
+          
+          <!-- Khối 01: Tổng quan -->
+          <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 1.4; min-height: 0;">
+            ${secHeaderStatic('01', 'TỔNG QUAN DỰ ÁN', '项目概况')}
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+              ${ovImgsHtml}
+              ${ovInfoHtml}
+            </div>
+          </div>
+
+          <!-- Khối 02: Nhân lực & Thời tiết -->
+          <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0.6; min-height: 0;">
+            ${secHeaderStatic('02', 'NHÂN LỰC & THỜI TIẾT', '人员与天气')}
+            <div style="display: flex; gap: 15px; flex: 1; align-items: center; box-sizing: border-box;">
+              ${manpowerHtml}
+              ${weatherHtml}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Cột 2 (35%): Tiến độ chi tiết -->
+        <div id="temp-col-2" style="width: 35%; display: flex; flex-direction: column; flex-shrink: 0; box-sizing: border-box;">
+          
+          <!-- Khối 03: Hạng mục thi công chính (Works) -->
+          <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; height: 100%; min-height: 0;">
+            ${secHeaderStatic('03', 'TIẾN ĐỘ THI CÔNG CHI TIẾT', '详细施工进度')}
+            <div style="flex: 1; overflow-y: auto; padding-right: 6px; box-sizing: border-box;">
+              ${worksHtml}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Cột 3 (35%): Kế hoạch, Ghi chú, Ảnh, Bản vẽ, An toàn & Chữ ký -->
+        <div id="temp-col-3" style="width: 35%; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; box-sizing: border-box; justify-content: space-between;">
+          
+          <!-- Khối 04: Kế hoạch thi công ngày mai -->
+          ${planCardHtml}
+
+          <!-- Khối 06: Ghi chú & Kiến nghị -->
+          ${noteRecCardHtml}
+
+          <!-- Khối 03*: Ảnh thi công -->
+          ${photosCardHtml}
+
+          <!-- Khối 05: Bản vẽ & Tổng thể -->
+          ${drawsCardHtml}
+
+          <!-- Khối 07: An toàn - Chất lượng - Tiến độ -->
+          ${safeQualCardHtml}
+
+          <!-- Chữ ký & Phê duyệt (Luôn luôn nằm đáy) -->
+          ${signatureHtml}
+
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div id="temp-footer" style="border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; font-weight: 700; flex-shrink: 0; box-sizing: border-box; padding-left: 5px; padding-right: 5px;">
+        <span>HỆ THỐNG QUẢN LÝ THI CÔNG HP CONS © 2026</span>
+        <span style="font-weight: 800; color: #10b981; display: flex; align-items: center; gap: 5px;">
+          <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+          ẢNH XUẤT KHỔ NGANG 16:9 • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP
+        </span>
+      </div>
+    `;
+
+    // Render ra DOM
+    document.body.appendChild(tempContainer);
+
+    // Tính toán chiều cao động & chiều rộng theo tỷ lệ 16:9 để chứa hết nội dung không bị tràn
+    setTimeout(() => {
+      const headerEl = document.getElementById('temp-header');
+      const footerEl = document.getElementById('temp-footer');
+      const col1El = document.getElementById('temp-col-1');
+      const col2El = document.getElementById('temp-col-2');
+      const col3El = document.getElementById('temp-col-3');
+
+      const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 106;
+      const footerHeight = footerEl ? footerEl.getBoundingClientRect().height : 36;
+      
+      // Đo chiều cao tự nhiên của các cột khi không bị giới hạn height
+      const col1Height = col1El ? col1El.scrollHeight : 0;
+      const col2Height = col2El ? col2El.scrollHeight : 0;
+      const col3Height = col3El ? col3El.scrollHeight : 0;
+      
+      const maxColHeight = Math.max(col1Height, col2Height, col3Height);
+      
+      // Tổng chiều cao cần thiết: padding-top/bottom là 35px*2 = 70px, gap giữa header-body-footer là 20px*2 = 40px -> tổng cộng cộng thêm 110px
+      const totalNeededHeight = headerHeight + maxColHeight + footerHeight + 110;
+      
+      let finalHeight = 1080;
+      if (totalNeededHeight > 1080) {
+        finalHeight = Math.round(totalNeededHeight);
+      }
+      
+      // Gán chiều cao và chiều rộng chuẩn 16:9 cho container
+      tempContainer.style.height = finalHeight + 'px';
+      const finalWidth = Math.round(finalHeight * 16 / 9);
+      tempContainer.style.width = finalWidth + 'px';
+      
+      // Tính toán chiều cao thực tế của phần thân (body) sau khi container đã co giãn
+      const bodyHeight = finalHeight - headerHeight - footerHeight - 110;
+      
+      // Set chiều cao của cả 3 cột bằng đúng bodyHeight để chúng dài bằng nhau và cột 3 đẩy chữ ký xuống sát đáy
+      if (col1El) col1El.style.height = bodyHeight + 'px';
+      if (col2El) col2El.style.height = bodyHeight + 'px';
+      if (col3El) col3El.style.height = bodyHeight + 'px';
+      
+      // Chờ thêm 100ms để trình duyệt reflow layout trước khi capture
+      setTimeout(captureAndDownload, 100);
+    }, 400);
+
+    function captureAndDownload() {
+      const finalWidth = parseInt(tempContainer.style.width);
+      const finalHeight = parseInt(tempContainer.style.height);
+      
+      html2canvas(tempContainer, {
+        scale: 1.5,
+        useCORS: true,
+        backgroundColor: '#f8fafc',
+        width: finalWidth,
+        height: finalHeight
+      }).then(canvas => {
+        const a = document.createElement('a');
+        const d = el('f_date').value || 'bao-cao';
+        a.download = 'BaoCao169_' + el('f_proj').value + '_' + d + '.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        document.body.removeChild(tempContainer);
+      }).catch(err => {
+        console.error("Lỗi khi xuất ảnh 16:9:", err);
+        alert("Lỗi chụp canvas 16:9: " + err.message);
+        document.body.removeChild(tempContainer);
+      });
+    }
+  } catch (err) {
+    console.error("Lỗi crash trong exportPNG169:", err);
+    alert("Lỗi crash trong exportPNG169:\n" + err.message + "\nStack: " + err.stack);
+  }
+}
+
 /* ---------- init ---------- */
 /* v4: mục 02 nhập giọng nói + bóc tách + học thuật ngữ theo dự án */
 el('f_proj').addEventListener('change',loadTerms);
 
-function esc(s) {
-  return (s == null ? "" : String(s)).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-}
-
-
+// esc() dùng chung đã có ở features.js — không định nghĩa lại ở đây (tránh trùng tên đè nhau).
 
 /* ===== MODAL SYSTEM ===== */
 let logoImgCdt = null;
