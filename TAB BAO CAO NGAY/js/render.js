@@ -68,7 +68,11 @@ window.addEventListener('resize', adjustReportScale);
 function draw(){
   const dt=fmtDate(el('f_date').value);
   const prog=el('f_prog').value||0;
-  const logoHtml=logoImg?`<img src="${logoImg}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để đổi logo nhà thầu">`:`<div style="cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để tải logo nhà thầu"><div class="lg">HP<span class="c2">CONS</span></div><div class="slogan">BEYOND - Expectation</div><div class="slogan-cn">超越期望</div></div>`;
+  const logoHtml = logoImg
+    ? `<img src="${logoImg}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để đổi logo nhà thầu">`
+    : (window.parent && window.parent.HPCONS_LOGO) || window.HPCONS_LOGO
+      ? `<img src="${(window.parent && window.parent.HPCONS_LOGO) || window.HPCONS_LOGO}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để tải logo nhà thầu">`
+      : `<div style="cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để tải logo nhà thầu"><div class="lg">HP<span class="c2">CONS</span></div><div class="slogan">BEYOND - Expectation</div><div class="slogan-cn">超越期望</div></div>`;
   const logoCdtHtml=logoImgCdt?`<img src="${logoImgCdt}" style="max-height:80px;cursor:pointer" onclick="el('f_logo_cdt').click()" title="Nhấn để đổi logo chủ đầu tư">`:'<div style="cursor:pointer;border:1.5px dashed #cbd5e1;border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94a3b8;min-width:140px;background:#f8fafc" onclick="el(\'f_logo_cdt\').click()" title="Nhấn để tải logo chủ đầu tư"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><div style="font-size:11px;font-weight:700">LOGO CHỦ ĐẦU TƯ</div><div style="font-size:10px;font-weight:400">(Nhấn để tải lên)</div></div>';
 
   const weatherIcons = {
@@ -101,7 +105,7 @@ function draw(){
   
   let rh = parseFloat(el('f_rain_hours') ? el('f_rain_hours').value : 0) || 0;
   if (rh > 0) {
-    wTextBox += `<div style="text-align:center;font-weight:700;color:var(--red);font-size:var(--fs-body);margin-top:6px;background:#fdeaea;padding:4px 8px;border-radius:4px;display:inline-block">Mưa ảnh hưởng thi công: ${rh} giờ</div><div style="text-align:center"></div>`;
+    wTextBox += `<div style="text-align:center;font-weight:700;color:var(--red);font-size:var(--fs-body);margin-top:6px;background:#fdeaea;padding:4px 8px;border-radius:4px;display:inline-block">Thời gian mưa: ${rh} giờ</div><div style="text-align:center"></div>`;
   }
   
   let wNoteCls = 'good';
@@ -262,7 +266,7 @@ function draw(){
         <div class="t2" style="margin-bottom:8px">每日施工报告</div>
         <div style="position:relative;display:inline-block;cursor:pointer;font-size:14px;font-weight:700;color:var(--navy);letter-spacing:0.5px;padding:4px 12px;margin-left:-12px;border-radius:6px;transition:0.2s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" title="Nhấn để đổi ngày">
           <input type="date" class="date-overlay" value="${el('f_date').value}" onchange="el('f_date').value=this.value;draw()">
-          NGÀY <span style="font-weight:400">/ 日期:</span> <span style="color:var(--navy2);font-size:16px;font-weight:800;margin-left:4px">${dt.d}</span>
+          NGÀY <span style="font-weight:400">/ 日期:</span> <span style="color:var(--green);font-size:16px;font-weight:800;margin-left:4px">${dt.d}</span>
         </div>
       </div>
     <div class="r-logo-cdt">${logoCdtHtml}</div>
@@ -291,7 +295,7 @@ function draw(){
       <div class="card2">
         <div class="ch">NHÂN LỰC / 人员资源</div>
         <div style="height:70px; display:flex; align-items:center; justify-content:center; margin-bottom:12px">
-          <div style="font-size:64px; font-weight:800; color:var(--navy2); letter-spacing:-2px; line-height:1">${el('f_total').value}</div>
+          <div style="font-size:64px; font-weight:800; color:var(--green); letter-spacing:-2px; line-height:1">${el('f_total').value}</div>
         </div>
         <div class="kv"><span class="k"><span style="opacity:0.6;margin-right:6px">👷</span>BCH / 指挥部</span><span class="v">${String(el('f_bch').value).padStart(2,'0')}</span></div>
         <div class="kv" style="border-bottom:0"><span class="k"><span style="opacity:0.6;margin-right:6px">👥</span>Tổ đội / Nhà thầu phụ / 班组·分包商</span><span class="v">${units.reduce((a,u)=>a+(parseInt(u.n)||0),0)}</span></div>
@@ -409,7 +413,7 @@ async function exportPNG169() {
     // Helper render header các phần giống báo cáo gốc (nền gradient xanh navy đặc, bo góc tròn, viền trái xanh lục)
     function secHeaderStatic(num, titleVi, titleCn) {
       return `
-        <div style="background: linear-gradient(90deg, var(--navy) 0%, var(--navy2) 100%); color: #fff; padding: 17px 26px; font-size: ${FS.secTitle}px; font-weight: ${FW.title}; display: flex; align-items: center; letter-spacing: 0.3px; border-left: 8px solid var(--navy2); box-shadow: 0 2px 5px rgba(9,106,167,0.08); text-transform: uppercase; border-radius: 8px; margin-bottom: 20px; line-height: 1.2; flex-shrink: 0; box-sizing: border-box;">
+        <div style="background: linear-gradient(90deg, var(--navy) 0%, var(--navy2) 100%); color: #fff; padding: 17px 26px; font-size: ${FS.secTitle}px; font-weight: ${FW.title}; display: flex; align-items: center; letter-spacing: 0.3px; border-left: 8px solid var(--navy2); box-shadow: 0 2px 5px rgba(0,0,0,0.08); text-transform: uppercase; border-radius: 8px; margin-bottom: 20px; line-height: 1.2; flex-shrink: 0; box-sizing: border-box;">
           <span style="background: #fff; color: var(--navy); border-radius: 5px; padding: 6px 12px; font-size: ${FS.secNum}px; font-weight: ${FW.title}; line-height: 1; margin-right: 13px; font-family: 'Outfit', sans-serif;">${num}</span>
           ${titleVi} <span style="font-weight: 400; font-size: ${FS.secCn}px; opacity: 0.85; font-family: Arial; text-transform: none; margin-left: 7px;">/ ${titleCn}</span>
         </div>
@@ -428,7 +432,9 @@ async function exportPNG169() {
     // KHÔNG dùng align-self:stretch: trong flexbox ảnh vẫn góp chiều cao tự nhiên -> header phình theo ảnh gốc.
     const logoHtml = logoImg
       ? `<img src="${logoImg}" class="hdr-logo" style="width:auto; max-width:100%; object-fit:contain; display:block;">`
-      : `<div style="text-align:center;"><div style="font-size:${FS.pageSub}px;font-weight: 400;color:#0a2d58;letter-spacing:1px;line-height:1">HP<span style="color:#10b981">CONS</span></div><div style="font-size:${FS.tiny}px;color:#10b981;font-style:italic;margin-top:2px;text-transform:uppercase;letter-spacing:0.5px">BEYOND - Expectation</div><div style="font-size:${FS.tiny}px;color:#0a2d58;margin-top:1px">超越期望</div></div>`;
+      : (window.parent && window.parent.HPCONS_LOGO) || window.HPCONS_LOGO
+        ? `<img src="${(window.parent && window.parent.HPCONS_LOGO) || window.HPCONS_LOGO}" class="hdr-logo" style="width:auto; max-width:100%; object-fit:contain; display:block;">`
+        : `<div style="text-align:center;"><div style="font-size:${FS.pageSub}px;font-weight: 400;color:#2E6B22;letter-spacing:1px;line-height:1">HP<span style="color:#60BB46">CONS</span></div><div style="font-size:${FS.tiny}px;color:#60BB46;font-style:italic;margin-top:2px;text-transform:uppercase;letter-spacing:0.5px">BEYOND - Expectation</div><div style="font-size:${FS.tiny}px;color:#2E6B22;margin-top:1px">超越期望</div></div>`;
     
     // Xây dựng logo chủ đầu tư
     const logoCdtHtml = logoImgCdt
@@ -504,7 +510,7 @@ async function exportPNG169() {
         appAt = new Date().toLocaleDateString("vi-VN");
       }
       approveStamp = `
-        <div style="border: 2px dashed var(--green-d); color: var(--green-d); font-weight: 400; font-size: ${FS.bodySmall}px; padding: 6px 12px; border-radius: 6px; display: inline-block; transform: rotate(-6deg); background: rgba(46, 107, 34, 0.03); text-align: center; font-family: 'Inter', sans-serif; box-shadow: 0 4px 10px rgba(46,107,34,0.08); line-height: 1.35;">
+        <div style="border: 2px dashed var(--green-d); color: var(--green-d); font-weight: 400; font-size: ${FS.bodySmall}px; padding: 6px 12px; border-radius: 6px; display: inline-block; transform: rotate(-6deg); background: rgba(46, 107, 34, 0.03); text-align: center; font-family: 'Inter', sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.08); line-height: 1.35;">
           ✅ ĐÃ DUYỆT<br>
           <span style="font-size:${FS.bodySmall}px; font-weight: 400;">${esc(appBy)}</span><br>
           <span style="font-size:${FS.tiny}px; font-weight:normal; opacity:0.8;">Ngày: ${appAt}</span>
@@ -674,13 +680,13 @@ async function exportPNG169() {
         pathHtml += `<path d="${areaD}" fill="url(#chart-grad-real)" />`;
       }
       if (pathD) {
-        pathHtml += `<path d="${pathD}" fill="none" stroke="#096AA7" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />`;
+        pathHtml += `<path d="${pathD}" fill="none" stroke="#60BB46" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />`;
       }
 
       let pointsHtml = '';
       activePoints.forEach(p => {
         pointsHtml += `
-          <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#096AA7" stroke="none" />
+          <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#60BB46" stroke="none" />
           <text x="${p.x.toFixed(1)}" y="${Math.max(padTop - 4, p.y - Math.round(fsDay * 0.6)).toFixed(1)}" text-anchor="middle" font-size="${fsDay}px" font-weight="700" fill="#0F172A">${p.val}</text>
         `;
       });
@@ -692,7 +698,7 @@ async function exportPNG169() {
         let textColor = '#0F172A';
         let fontWeight = '400';
         if (d.isToday) {
-          textColor = '#096AA7';
+          textColor = '#60BB46';
           fontWeight = '700';
         } else if (d.isFuture) {
           textColor = '#94A3B8';
@@ -720,8 +726,8 @@ async function exportPNG169() {
         <svg width="${wPx}" height="${hPx}" style="font-family: 'Inter', system-ui, sans-serif; overflow: visible;">
           <defs>
             <linearGradient id="chart-grad-real" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#096AA7" stop-opacity="0.22" />
-              <stop offset="100%" stop-color="#096AA7" stop-opacity="0.00" />
+              <stop offset="0%" stop-color="#60BB46" stop-opacity="0.22" />
+              <stop offset="100%" stop-color="#60BB46" stop-opacity="0.00" />
             </linearGradient>
           </defs>
           <!-- Lưới ngang -->
@@ -804,7 +810,7 @@ async function exportPNG169() {
     const weatherHtml = `
       <div class="card" style="flex: 1; border: 1px solid #e2e8f0; border-top: 6px solid #3b82f6; border-radius: 12px; padding: 12px 20px; background: #eff6ff; box-shadow: 0 2px 8px rgba(0,0,0,0.01); display: grid; grid-template-rows: auto 1fr 44px 44px; height: 100%; box-sizing: border-box; justify-content: stretch; align-content: stretch; overflow: hidden;">
         <!-- Hàng 1 (Tiêu đề) -->
-        <div style="grid-row: 1; font-size: ${FS.body}px; font-weight: 700; color: #0a2d58; text-transform: uppercase; text-align: center; letter-spacing: 0.3px; display: flex; align-items: center; justify-content: center; height: 24px;">THỜI TIẾT <span style="font-size: ${FS.bodySmall}px; font-weight: 400; opacity: 0.85; font-family: Arial; text-transform: none; margin-left: 5px;">/ 天气</span></div>
+        <div style="grid-row: 1; font-size: ${FS.body}px; font-weight: 700; color: var(--navy); text-transform: uppercase; text-align: center; letter-spacing: 0.3px; display: flex; align-items: center; justify-content: center; height: 24px;">THỜI TIẾT <span style="font-size: ${FS.bodySmall}px; font-weight: 400; opacity: 0.85; font-family: Arial; text-transform: none; margin-left: 5px;">/ 天气</span></div>
         
         <!-- Hàng 2 (Vùng nội dung chính) -->
         <div style="grid-row: 2; display: flex; align-items: center; justify-content: center; min-height: 0; transform: translateY(-10px);">
@@ -830,7 +836,7 @@ async function exportPNG169() {
     activeWorks.forEach((w, idx) => {
       const cleanT = stripIdx(w.t);
       const cn = stripIdx((typeof workCN === 'function') ? workCN(cleanT) : '');
-      const wt = `<span style="font-weight: 400; color: #0a2d58; margin-right: 7px; font-size: ${FS.body}px;">${idx+1}.</span> ${cleanT}` + (cn ? ` <span style="font-weight: 400;color:#94a3b8; font-size:${FS.bodySmall}px;">/ ${cn}</span>` : '');
+      const wt = `<span style="font-weight: 400; color: var(--navy2); margin-right: 7px; font-size: ${FS.body}px;">${idx+1}.</span> ${cleanT}` + (cn ? ` <span style="font-weight: 400;color:#94a3b8; font-size:${FS.bodySmall}px;">/ ${cn}</span>` : '');
       
       let detailsHtml = '';
       if (w.d) {
@@ -854,7 +860,7 @@ async function exportPNG169() {
 
       const nLines = 1 + (w.d ? w.d.split('\n').filter(x => x.trim()).length : 0);
       workBlocks.push({ lines: nLines, html: `
-        <div style="border-left: 5px solid ${w.c || '#10b981'}; padding-left: 16px; margin-bottom: 22px; page-break-inside: avoid;">
+        <div style="border-left: 5px solid ${w.c || '#096AA7'}; padding-left: 16px; margin-bottom: 22px; page-break-inside: avoid;">
           <div style="font-weight: 400; color: #0f172a; font-size: ${FS.body}px; line-height: 1.4;">${wt}</div>
           <div style="margin-top: 6px;">${detailsHtml}</div>
         </div>
@@ -896,7 +902,7 @@ async function exportPNG169() {
         const c = cnPart || ((typeof workCN === 'function') ? workCN(o.n) : '');
         content += `
           <div style="font-size: ${FS.body}px; color: #1e293b; margin-bottom: 11px; padding-left: 25px; position: relative; line-height: 1.5; font-weight: 400;">
-            <span style="position: absolute; left: 0; top: 0px; color: #10b981; font-weight: 400; font-size: ${FS.body}px;">•</span>
+            <span style="position: absolute; left: 0; top: 0px; color: #096AA7; font-weight: 400; font-size: ${FS.body}px;">•</span>
             <strong style="color: #0f172a; font-weight: 400;">${o.n}</strong>${o.q ? `: ${o.q}` : ''}
             ${c ? `<span style="color: #64748b; font-size: ${FS.bodySmall}px; font-weight: normal; margin-left: 7px;">/ ${c}</span>` : ''}
           </div>
@@ -1001,10 +1007,10 @@ async function exportPNG169() {
       }
       if (qualVal) {
         content += `
-          <div style="border: 1px solid #dbeafe; background: #eff6ff; padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+          <div style="border: 1px solid #dcfce7; background: #f0fdf4; padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
             <span style="font-size: ${FS.pageSub}px;">⭐</span>
-            <div style="font-size: ${FS.body}px; color: #1e40af; line-height: 1.4; font-weight: 400;">
-              <strong style="text-transform: uppercase; color: #1e3a8a; font-weight: 400;">Chất lượng / 质量:</strong> ${qualVal}
+            <div style="font-size: ${FS.body}px; color: #2E6B22; line-height: 1.4; font-weight: 400;">
+              <strong style="text-transform: uppercase; color: #2E6B22; font-weight: 400;">Chất lượng / 质量:</strong> ${qualVal}
             </div>
           </div>
         `;
@@ -1057,23 +1063,23 @@ async function exportPNG169() {
       <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.01); display: flex; justify-content: space-around; align-items: stretch; text-align: center; min-height: 210px; box-sizing: border-box; flex-shrink: 0; position: relative;">
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border-right: 1px solid #f1f5f9; padding-right: 10px; box-sizing: border-box;">
           <div>
-            <div style="font-weight: 400; color: #0a2d58; font-size: ${FS.body}px; text-transform: uppercase; line-height: 1.1;">Người lập báo cáo</div>
+            <div style="font-weight: 400; color: #2E6B22; font-size: ${FS.body}px; text-transform: uppercase; line-height: 1.1;">Người lập báo cáo</div>
             <div style="font-size: ${FS.bodySmall}px; color: #94a3b8; font-style: italic; margin-top: 3px;">报告人</div>
           </div>
           <div style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px;">
             <div style="color: #94a3b8; font-weight: 400; font-size: ${FS.bodySmall}px; font-style: italic; opacity: 0.65;">(Đã ký)</div>
           </div>
-          <div style="font-weight: 400; color: #1e3a8a; font-size: ${FS.pageSub}px; white-space: nowrap;">${createdByEsc}</div>
+          <div style="font-weight: 400; color: #2E6B22; font-size: ${FS.pageSub}px; white-space: nowrap;">${createdByEsc}</div>
         </div>
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-left: 10px; box-sizing: border-box; position: relative;">
           <div>
-            <div style="font-weight: 400; color: #0a2d58; font-size: ${FS.body}px; text-transform: uppercase; line-height: 1.1;">Chỉ huy trưởng</div>
+            <div style="font-weight: 400; color: #2E6B22; font-size: ${FS.body}px; text-transform: uppercase; line-height: 1.1;">Chỉ huy trưởng</div>
             <div style="font-size: ${FS.bodySmall}px; color: #94a3b8; font-style: italic; margin-top: 3px;">施工队长</div>
           </div>
           <div style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px; position: relative; width: 100%;">
             ${approveStamp || `<div style="color: #cbd5e1; font-size: ${FS.bodySmall}px; font-style: italic;">Chưa duyệt</div>`}
           </div>
-          <div style="font-weight: 400; color: #1e3a8a; font-size: ${FS.pageSub}px; white-space: nowrap;">${commanderEsc || "Chỉ huy trưởng"}</div>
+          <div style="font-weight: 400; color: #2E6B22; font-size: ${FS.pageSub}px; white-space: nowrap;">${commanderEsc || "Chỉ huy trưởng"}</div>
         </div>
       </div>
     `;
@@ -1101,14 +1107,14 @@ async function exportPNG169() {
     // Thêm HTML của 3 cột
     tempContainer.innerHTML = `
       <!-- Header -->
-      <div id="temp-header" style="display: flex; align-items: flex-start; border-bottom: 3px solid #1e40af; padding-bottom: 15px; width: 100%; box-sizing: border-box; flex-shrink: 0; background: #ffffff; padding: 18px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.01);">
+      <div id="temp-header" style="display: flex; align-items: flex-start; border-bottom: 3px solid #2E6B22; padding-bottom: 15px; width: 100%; box-sizing: border-box; flex-shrink: 0; background: #ffffff; padding: 18px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.01);">
         <div style="width: 340px; display: flex; align-items: flex-start; justify-content: flex-start;">
           ${logoHtml}
         </div>
         <div id="temp-head-center" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;">
-          <div style="font-size: ${FS.pageTitle}px; font-weight: ${FW.title}; color: #0a2d58; letter-spacing: 0.5px; line-height: 1.1;">BÁO CÁO THI CÔNG NGÀY</div>
+          <div style="font-size: ${FS.pageTitle}px; font-weight: ${FW.title}; color: #2E6B22; letter-spacing: 0.5px; line-height: 1.1;">BÁO CÁO THI CÔNG NGÀY</div>
           <div style="font-size: ${FS.pageSub}px; color: #64748b; font-weight: 400; margin-top: 4px; letter-spacing: 0.5px;">每日施工报告</div>
-          <div style="font-size: ${FS.pageSub}px; font-weight: 400; color: #10b981; margin-top: 8px; background: #f0fdf4; padding: 5px 18px; border-radius: 22px; border: 1px solid #dcfce7; display: inline-block;">
+          <div style="font-size: ${FS.pageSub}px; font-weight: 400; color: #2E6B22; margin-top: 8px; background: #f0fdf4; padding: 5px 18px; border-radius: 22px; border: 1px solid #dcfce7; display: inline-block;">
             NGÀY <span style="font-weight: 400;">/ 日期:</span> ${dt.d} (${dt.w})
           </div>
         </div>
@@ -1196,7 +1202,7 @@ async function exportPNG169() {
               
               <!-- Dưới: Biểu đồ tuần (Biểu đồ nhân lực tuần) - chiếm 55% -->
               <div class="chart-section">
-                <div style="font-size: ${FS.body}px; font-weight: 700; color: var(--navy); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-left: 4px;">
+                <div style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-left: 4px;">
                   📈 BIỂU ĐỒ NHÂN LỰC TRONG TUẦN / 本周人员图表
                 </div>
                 <div class="chart-container-169">
@@ -1217,12 +1223,12 @@ async function exportPNG169() {
             <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
               <!-- Trên: Hạng mục — chỉ dùng chỗ CÒN LẠI sau khi khu ảnh đã giữ chỗ; nhiều thì tự tách 2 cột -->
               <div id="works-text-169" style="flex: 1 1 auto; min-height: 0; padding-right: 5px; box-sizing: border-box;">
-                <div style="font-size: ${FS.body}px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
+                <div style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
                 ${worksHtml}
               </div>
               <!-- Dưới: Khu ảnh GIỮ CHỖ CỐ ĐỊNH đủ 8 hình (2×4) — không co theo chữ, không phình khi ít ảnh -->
               <div id="photos-sec-169" style="flex: 0 0 ${PHOTO_AREA_PCT}%; min-height: 0; display: flex; flex-direction: column; border-top: 1.5px solid #e8edf5; padding-top: 14px; margin-top: 14px;">
-                <div style="font-size: ${FS.body}px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px; flex-shrink: 0;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
+                <div style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px; flex-shrink: 0;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
                 ${photosInlineHtml}
               </div>
             </div>
@@ -1392,12 +1398,10 @@ async function exportPNG169() {
         if (window.parent) {
           window.parent.LAST_EXPORTED_PNG = imgData;
         }
-        const a = document.createElement('a');
         const d = el('f_date').value || 'bao-cao';
-        a.download = 'BaoCao169_' + el('f_proj').value + '_' + d + '.png';
-        a.href = imgData;
-        a.click();
+        const fname = 'BaoCao169_' + el('f_proj').value + '_' + d + '.png';
         document.body.removeChild(tempContainer);
+        showExportPreview(imgData, fname);   // xem trước trong app + nút tải về (đồng bộ bản chuẩn BAO-CAO-APP)
       }).catch(err => {
         console.error("Lỗi khi xuất ảnh 16:9:", err);
         alert("Lỗi chụp canvas 16:9: " + err.message);
@@ -1409,6 +1413,66 @@ async function exportPNG169() {
     alert("Lỗi crash trong exportPNG169:\n" + err.message + "\nStack: " + err.stack);
   }
 }
+
+// Chuyển ảnh dataURL -> File để chia sẻ qua Web Share (Zalo/Telegram...).
+function dataURLtoFile(dataurl, filename) {
+  const arr = dataurl.split(',');
+  const mime = (arr[0].match(/:(.*?);/) || [])[1] || 'image/png';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8 = new Uint8Array(n);
+  while (n--) u8[n] = bstr.charCodeAt(n);
+  return new File([u8], filename, { type: mime });
+}
+
+// Xem trước ảnh báo cáo 16:9 NGAY TRONG APP + nút Chia sẻ (Zalo/Telegram) + Tải về (không phụ thuộc dialog hệ thống).
+function showExportPreview(imgData, filename) {
+  const old = document.getElementById('exportPreviewOverlay');
+  if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'exportPreviewOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;padding:16px;overflow:auto;-webkit-overflow-scrolling:touch;';
+  ov.innerHTML = `
+    <div style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:12px;align-items:center;padding-bottom:24px">
+      <div style="color:#fff;font-weight:700;font-size:15px;text-align:center;line-height:1.4">Ảnh báo cáo 16:9<br><span style="font-weight:400;font-size:13px;color:#cbd5e1">Gửi thẳng qua Zalo/Telegram, hoặc Tải về / nhấn giữ ảnh để lưu</span></div>
+      <img src="${imgData}" style="max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5)">
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:420px;position:sticky;bottom:0">
+        <button id="expShareBtn" style="min-height:54px;background:var(--hp-primary,#096AA7);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(9,106,167,0.45)">📤 Gửi Zalo / Telegram</button>
+        <div style="display:flex;gap:12px">
+          <button id="expDlBtn" style="flex:1;min-height:48px;background:#334155;color:#fff;border:1px solid #64748b;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">⬇ Tải về</button>
+          <button id="expCloseBtn" style="flex:1;min-height:48px;background:#475569;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">✕ Đóng</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.getElementById('expCloseBtn').onclick = () => ov.remove();
+
+  // Gửi thẳng ảnh qua Zalo/Telegram bằng bảng chia sẻ hệ thống (Web Share) — không phải tải rồi mở app.
+  document.getElementById('expShareBtn').onclick = async () => {
+    try {
+      const file = dataURLtoFile(imgData, filename);
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Báo cáo thi công ngày', text: 'Báo cáo thi công ngày' });
+      } else {
+        alert('Thiết bị chưa hỗ trợ chia sẻ ảnh trực tiếp.\nHãy bấm "Tải về" rồi gửi, hoặc mở app bằng Safari/Chrome (thay vì trong Zalo) để chia sẻ nhanh.');
+      }
+    } catch (e) { /* người dùng đóng bảng chia sẻ — bỏ qua */ }
+  };
+
+  document.getElementById('expDlBtn').onclick = () => {
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = imgData;
+    a.click();
+    // Thông báo đã tải
+    const t = document.createElement('div');
+    t.textContent = '✅ Đã lưu ảnh. Kiểm tra trong Ảnh/Tệp tải về của máy.';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--hp-primary,#096AA7);color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;z-index:100001;box-shadow:0 4px 14px rgba(0,0,0,0.3);text-align:center;max-width:90vw';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  };
+}
+window.showExportPreview = showExportPreview;
 
 /* ---------- init ---------- */
 /* v4: mục 02 nhập giọng nói + bóc tách + học thuật ngữ theo dự án */
@@ -1427,6 +1491,11 @@ function setPane(mode){ const app=document.querySelector('.app'); if(!app)return
 function openModal(id) {
   const modal = el(id);
   const overlay = el('modalOverlay');
+    // Nếu đang mở popup 03 (Hạng mục) mà chuyển sang popup khác -> dịch song ngữ hạng mục trước (liền mạch).
+    const grp03 = el('grp-03');
+    if (grp03 && grp03.classList.contains('is-modal') && id !== 'grp-03' && typeof window.translateAllWorks === 'function') {
+      window.translateAllWorks();
+    }
     if(modal && overlay) {
       document.querySelectorAll('.grp').forEach(g => {
         if(g.id !== 'grp-00' && g.id !== 'grp-01') {
@@ -1441,6 +1510,12 @@ function openModal(id) {
 }
 function closeModal() {
   const overlay = el('modalOverlay');
+  // Nếu đang đóng popup 03 (Hạng mục) -> dịch song ngữ TẤT CẢ hạng mục 1 lần (chạy nền sau khi đóng),
+  // tránh dịch/nhảy form khi kỹ sư đang gõ.
+  const grp03 = el('grp-03');
+  if (grp03 && grp03.classList.contains('is-modal') && typeof window.translateAllWorks === 'function') {
+    window.translateAllWorks();
+  }
   if(overlay) overlay.classList.add('hide');
   document.querySelectorAll('.grp').forEach(g => {
     if(g.id !== 'grp-00' && g.id !== 'grp-01') g.classList.remove('is-modal');
@@ -1553,6 +1628,13 @@ async function loadReportForDate(date) {
           if (typeof renderDrawForm === 'function') renderDrawForm();
         }
 
+        // Phục hồi logo và ảnh tổng quan
+        logoImgCdt = report.logo_cdt || null;
+        logoImg = report.logo_ntc || null;
+        ovMain = report.ov_main || null;
+        ovSub1 = report.ov_sub1 || null;
+        ovSub2 = report.ov_sub2 || null;
+
         // Phục hồi trạng thái nháp/đã nộp
         window.CURRENT_REPORT = report || null;
         window._reportStatus = report.approval || report.status || 'approved'; // Báo cáo cũ coi như đã duyệt
@@ -1577,6 +1659,7 @@ async function loadReportForDate(date) {
         window.CURRENT_REPORT = null;
         window._reportStatus = 'draft';
         if (typeof updateStatusBadge === 'function') updateStatusBadge();
+        logoImg = null; logoImgCdt = null; ovMain = null; ovSub1 = null; ovSub2 = null;
         setUnits([]); setWorks([]); setPhotos([]); setDraws([]);
         if (typeof renderUnitForm === 'function') renderUnitForm();
         if (typeof renderWorkForm === 'function') renderWorkForm();

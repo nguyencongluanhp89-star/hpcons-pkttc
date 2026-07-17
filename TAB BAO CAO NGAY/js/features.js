@@ -1796,7 +1796,7 @@ function updateActionButtons() {
   }
 
   // 4. Nút xuất ảnh 16:9 (để gửi Zalo) — luôn hiển thị. (Bỏ Xuất PNG + In/Lưu PDF cho đồng bộ app báo cáo mới.)
-  html += `<button class="act" type="button" style="background:var(--hp-primary); box-shadow:0 4px 12px rgba(96,187,70,0.25)" onclick="exportPNG169()">📸 Xuất ảnh 16:9</button>`;
+  html += `<button class="act" type="button" style="background:var(--hp-primary); box-shadow:0 4px 12px rgba(96,187,70,0.25)" onclick="exportPNG169()">📸 Xuất ảnh</button>`;
 
   bar.innerHTML = html;
 }
