@@ -93,19 +93,22 @@
       border-left: none !important;
       transition: all 0.2s ease !important;
     }
-    #sidebar .nav-btn svg {
+    #sidebar .nav-btn svg,
+    #sidebar .nav-btn .side-icon {
       width: 18px !important;
       height: 18px !important;
       stroke-width: 2px !important;
-      color: #E2E8F0 !important; /* sidebar nền luôn tối -> chữ sáng cố định cả 2 theme (Sếp: nâng sáng cho dễ nhìn) */
+      /* Sếp chốt 17/07: icon menu XANH DƯƠNG SÁNG (pha từ token primary, không chế hex mới) */
+      color: color-mix(in srgb, var(--hp-primary) 40%, #ffffff) !important;
       transition: color 0.2s ease !important;
     }
     #sidebar .nav-btn:hover {
       background: rgba(255, 255, 255, 0.05) !important;
       color: #F3F4F6 !important;
     }
-    #sidebar .nav-btn:hover svg {
-      color: #F3F4F6 !important;
+    #sidebar .nav-btn:hover svg,
+    #sidebar .nav-btn:hover .side-icon {
+      color: color-mix(in srgb, var(--hp-primary) 25%, #ffffff) !important; /* hover: xanh sáng hơn nữa */
     }
     #sidebar .nav-btn.active {
       background: rgba(255, 255, 255, 0.08) !important;
@@ -113,15 +116,16 @@
       font-weight: 600 !important;
       box-shadow: none !important;
     }
-    #sidebar .nav-btn.active svg {
-      color: var(--accent) !important;
+    #sidebar .nav-btn.active svg,
+    #sidebar .nav-btn.active .side-icon {
+      color: color-mix(in srgb, var(--hp-primary) 40%, #ffffff) !important; /* active: cùng tông xanh sáng */
     }
     #sidebar .nav-btn::before,
     #sidebar .nav-btn.active::before {
       display: none !important;
     }
     #sidebar #side-brand-sub {
-      color: var(--accent) !important;
+      color: color-mix(in srgb, var(--hp-primary) 40%, #ffffff) !important; /* PHÒNG KỸ THUẬT xanh dương sáng (Sếp chốt 17/07) */
       font-size: 11px !important;
       font-weight: 700 !important;
       text-transform: uppercase !important;
