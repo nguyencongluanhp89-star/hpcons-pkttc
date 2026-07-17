@@ -1,4 +1,7 @@
 const SUPABASE_CONFIG = { url: "https://guqttgckrqwvtlpfchws.supabase.co", anonKey: "sb_publishable_eg2mhQLEfcJhi_YmjXq9cg_EcDT8gGc", functionUrl: "https://guqttgckrqwvtlpfchws.supabase.co/functions/v1/consolidate" };
+// CÔNG TẮC SUPABASE — Sếp chốt 2026-07-15 chuyển TOÀN BỘ sang Firebase, tắt Supabase (hết lỗi 503).
+// Đặt false = không dùng Supabase (chỉ Firebase). Bật lại true nếu cần lùi. Giữ nguyên code Supabase bên dưới.
+const SUPABASE_ENABLED = false;
 
 // CÔNG TẮC ĐĂNG NHẬP: để false = TẮT đăng nhập (tự vào quyền Admin, thấy mọi tab).
 // Khi hoàn thiện xong, đổi thành true để bật lại màn đăng nhập + phân quyền.
@@ -9,10 +12,10 @@ const LOGIN_ENABLED = true; // TẮT đăng nhập giai đoạn test (Antigravit
 var HPCONS_LOGO = (window.HPCONS_LOGO) || ("data:image/svg+xml;utf8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="110" viewBox="0 0 900 110">'
   + '<rect width="900" height="110" fill="#ffffff"/>'
-  + '<rect x="0" y="0" width="150" height="110" fill="#287D1C"/>'
+  + '<rect x="0" y="0" width="150" height="110" fill="#096AA7"/>'
   + '<text x="75" y="70" font-family="Arial" font-size="36" font-weight="700" fill="#ffffff" text-anchor="middle">P.KTTC</text>'
-  + '<text x="180" y="52" font-family="Arial" font-size="34" font-weight="700" fill="#034A82">P.KTTC</text>'
-  + '<text x="180" y="84" font-family="Arial" font-size="15" fill="#0060A8">HE THONG QUAN LY PHONG KY THUAT THI CONG - HPCONS</text>'
+  + '<text x="180" y="52" font-family="Arial" font-size="34" font-weight="700" fill="#075687">P.KTTC</text>'
+  + '<text x="180" y="84" font-family="Arial" font-size="15" fill="#075687">HE THONG QUAN LY PHONG KY THUAT THI CONG - HPCONS</text>'
   + '</svg>'));
 
 // ---------- IndexedDB ----------
@@ -58,7 +61,7 @@ async function metaSet(key, value){
 
 // ---------- DATA SERVICE ----------
 const DataService = {
-  async listProjects(){ return await metaGet("projects", SEED.projects); },
+  async listProjects(){ return await metaGet("projects", []); },
   async listUsers(){ return await metaGet("users", SEED.users); },
   async listContractors(pid){ const all = await metaGet("contractors", SEED.contractors); return all.filter(c => c.project_id === pid); },
   async addContractor(pid, name){
@@ -116,7 +119,7 @@ const DataService = {
 // ---------- SYNC (stub an toàn) ----------
 const SyncEngine = {
   online: navigator.onLine,
-  configured(){ return !!SUPABASE_CONFIG.url && !!SUPABASE_CONFIG.anonKey; },
+  configured(){ return SUPABASE_ENABLED && !!SUPABASE_CONFIG.url && !!SUPABASE_CONFIG.anonKey; },
   setPill(){
     const p = document.getElementById("sync-pill"); if(!p) return;
     // Chỉ hiển thị cho tài khoản admin theo yêu cầu
@@ -126,7 +129,17 @@ const SyncEngine = {
     } else {
       p.style.display = "";
     }
-    if (!this.configured()){ p.textContent="Offline (local)"; p.className="pill pill-off"; p.style.cursor="default"; p.onclick=null; return; }
+    if (!this.configured()){
+      // Supabase tắt → hệ thống chạy Firebase. Hiển thị theo trạng thái Firebase.
+      p.style.cursor="default"; p.onclick=null;
+      if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED && typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+        p.textContent = this.online ? "Đã đồng bộ (Firebase)" : "Chờ mạng…";
+        p.className = this.online ? "pill pill-ok" : "pill pill-off";
+      } else {
+        p.textContent="Offline (local)"; p.className="pill pill-off";
+      }
+      return;
+    }
     p.style.cursor="pointer";
     p.onclick=()=>SupabaseSync.toggleAuth();
     if (!SupabaseSync.user){ p.textContent="Đăng nhập"; p.className="pill pill-off"; return; }
@@ -137,19 +150,23 @@ const SyncEngine = {
     this.setPill();
     if(!this.online) return;
 
-    let firebasePromise = Promise.resolve();
-    if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
-      firebasePromise = FirebaseSync.pushAllDirty();
-    }
-
     if(this.configured()) {
-      await SupabaseSync.pushAllDirty();
+      try {
+        await SupabaseSync.pushAllDirty(true);
+      } catch (err) {
+        // Supabase lỗi (vd 503) KHÔNG được chặn việc đẩy lên Firebase — nếu không, app báo cáo (đọc Firebase) sẽ thiếu dữ liệu.
+        console.warn("SupabaseSync pushAllDirty lỗi (bỏ qua, vẫn đẩy Firebase):", err);
+      }
     }
 
-    try {
-      await firebasePromise;
-    } catch (err) {
-      console.warn("FirebaseSync pushAllDirty lỗi:", err);
+    if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED) {
+      try {
+        if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+          await FirebaseSync.pushAllDirty(true);
+        }
+      } catch (err) {
+        console.warn("FirebaseSync pushAllDirty lỗi:", err);
+      }
     }
     this.setPill();
   },
@@ -158,19 +175,49 @@ const SyncEngine = {
 
     const promises = [];
     if(this.configured()) {
-      promises.push(SupabaseSync.pull(CUR.project));
-    }
-    if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
-      promises.push(FirebaseSync.pull(CUR.project).catch(err => {
-        console.warn("FirebaseSync pull lỗi:", err);
+      // Bọc catch: Supabase sập (503) KHÔNG được làm chết bước kéo Firebase + làm mới form phía sau.
+      promises.push(SupabaseSync.pull(CUR.project).catch(err => {
+        console.warn("SupabaseSync pull lỗi (bỏ qua, không chặn Firebase):", err && err.message);
       }));
+    }
+    if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED) {
+      if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+        promises.push(FirebaseSync.pull(CUR.project).catch(err => {
+          console.warn("FirebaseSync pull lỗi:", err);
+        }));
+      }
     }
 
     await Promise.all(promises);
+
+    if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED) {
+      try {
+        if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+          await FirebaseSync.pullDailyReports();
+        }
+      } catch (err) {
+        console.warn("FirebaseSync pullDailyReports lỗi:", err);
+      }
+    }
+
+    // Làm mới form Báo cáo ngày sau khi dữ liệu đã về (độc lập Supabase) — iframe hiển thị
+    // mẫu mặc định cho tới khi nhận lệnh nạp. Chỉ gửi khi có hồ sơ dự án thật (tránh xóa trắng form).
+    try {
+      const list = await DataService.listProjects();
+      const _p = (list || []).find(x => x.id === CUR.project);
+      if (_p) {
+        const _f = document.querySelector('iframe');
+        if (_f && _f.contentWindow) _f.contentWindow.postMessage({ type:'PROJECT_CHANGED', projName:_p.name||'', projInfo:{ name:_p.name||'', address:_p.address||'', scale:_p.scale||'', start_date:_p.start_date||'', end_date:_p.end_date||'' } }, '*');
+      }
+    } catch(_) {}
   },
 };
 window.addEventListener("online", ()=>{ SyncEngine.online=true; SyncEngine.tryPush(); });
 window.addEventListener("offline", ()=>{ SyncEngine.online=false; SyncEngine.setPill(); });
+
+// Hàm đệm: renderMySubs thuộc module nhật ký cũ đã gỡ, nhưng còn 4 nơi gọi
+// (đổi/mở dự án, sau pull) — thiếu nó là ReferenceError làm đứt cả chuỗi đổi dự án.
+function renderMySubs(){}
 
 // =====================================================================
 // SUPABASE SYNC — sẵn sàng cắm key. Để trống SUPABASE_CONFIG => không kích hoạt.
@@ -207,6 +254,7 @@ const SupabaseSync = {
     }
   },
   init(){
+    if(!SUPABASE_ENABLED) return null; // Supabase đã tắt -> mọi nơi gọi init() tự dừng an toàn
     if(this.client) return this.client;
     if(!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) return null;
     if(typeof supabase==="undefined" || !supabase.createClient) return null; // chưa nạp được lib (offline)
@@ -314,7 +362,7 @@ const SupabaseSync = {
     }
     return true;
   },
-  async pushAllDirty(){
+  async pushAllDirty(autoOnly=false){
     const c=this.init(); if(!c) return;
     // Phương án A (đồng bộ nội bộ): CHỈ đồng bộ qua app_meta. Bỏ đồng bộ hệ cũ submissions/daily_consolidated
     // (dữ liệu báo cáo ngày đã nằm trong app_meta key 'daily_reports') — tránh lỗi 403 RLS không cần thiết.
@@ -324,6 +372,8 @@ const SupabaseSync = {
       if (dirtyMetaKeys.length > 0) {
         const remainingKeys = [];
         for (const key of dirtyMetaKeys) {
+          // Auto-push (sau mỗi sửa) BỎ QUA key dữ liệu nền/danh mục — giữ dirty để bấm "Đẩy toàn bộ" mới đẩy.
+          if (autoOnly && isManualPushOnlyKey(key)) { remainingKeys.push(key); continue; }
           const valObj = await idbGet("meta", key);
           if (valObj) {
             // GỘP THÔNG MINH cho báo cáo ngày: đọc bản server mới nhất rồi gộp báo cáo của mình vào,
@@ -424,9 +474,21 @@ const SupabaseSync = {
 };
 
 const SYNC_SKIP_KEYS = ["meta_dirty_keys","cur_user","cur_project","meta_dark_mode","session_user"];
+
+// Các key DỮ LIỆU NỀN/DANH MỤC (dự án, người dùng, nhà thầu, phòng ban, thành viên, sơ đồ tổ chức...):
+// CHỈ đẩy lên server khi bấm nút "Đẩy toàn bộ lên" (chủ đích), KHÔNG auto-push. Mục đích: browser lạ
+// (vd Antigravity mở app test) dù có dữ liệu cũ cũng KHÔNG tự đẩy lên làm rối/hồi sinh demo.
+// Báo cáo ngày (daily_reports), liên phòng ban, tiến độ, thanh toán... vẫn auto-push bình thường.
+function isManualPushOnlyKey(key){
+  const M = ["projects","users","departments","contractors","kb_contractors","custom_roles","tc_goals","kb"];
+  if (M.includes(key)) return true;
+  return key.startsWith("members:") || key.startsWith("team:") || key.startsWith("org_chart_");
+}
+window.isManualPushOnlyKey = isManualPushOnlyKey;
 // MÁY NGUỒN CHUẨN: đẩy TOÀN BỘ dữ liệu local lên server (ghi đè server). Dùng cho lần thiết lập đầu.
 async function syncPushAll(){
-  if(!SyncEngine.configured()){ alert("Chưa cấu hình Supabase."); return; }
+  const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
+  if(!SyncEngine.configured() && !fbReady){ alert("Chưa sẵn sàng đồng bộ (Firebase)."); return; }
   if(!navigator.onLine){ alert("Cần kết nối mạng."); return; }
   if(!confirm("ĐẨY TOÀN BỘ dữ liệu máy này lên server (sẽ GHI ĐÈ dữ liệu trên server).\nChỉ dùng ở MÁY NGUỒN CHUẨN. Tiếp tục?")) return;
   try{
@@ -439,7 +501,9 @@ async function syncPushAll(){
       firebasePromise = FirebaseSync.pushAllDirty();
     }
 
-    await SupabaseSync.pushAllDirty();
+    if (SyncEngine.configured()) {
+      try { await SupabaseSync.pushAllDirty(); } catch(err){ console.warn("syncPushAll Supabase lỗi (bỏ qua):", err); }
+    }
 
     try {
       await firebasePromise;
@@ -452,14 +516,19 @@ async function syncPushAll(){
 }
 // MÁY ĐỒNG BỘ THEO: kéo TOÀN BỘ dữ liệu từ server về (ghi đè local).
 async function syncPullAll(){
-  if(!SyncEngine.configured()){ alert("Chưa cấu hình Supabase."); return; }
+  const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
+  if(!SyncEngine.configured() && !fbReady){ alert("Chưa sẵn sàng đồng bộ (Firebase)."); return; }
   if(!navigator.onLine){ alert("Cần kết nối mạng."); return; }
   if(!confirm("KÉO TOÀN BỘ dữ liệu từ server về máy này (sẽ GHI ĐÈ dữ liệu local của máy này).\nDùng ở MÁY ĐỒNG BỘ THEO. Tiếp tục?")) return;
   try{
     await idbPut("meta", { key:"meta_dirty_keys", value:[] }); // bỏ cờ dirty để không chặn việc nhận bản server
 
     const promises = [];
-    promises.push(SupabaseSync.pull(CUR.project));
+    if (SyncEngine.configured()) {
+      promises.push(SupabaseSync.pull(CUR.project).catch(err => {
+        console.warn("syncPullAll Supabase lỗi (bỏ qua):", err);
+      }));
+    }
     if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
       promises.push(FirebaseSync.pull(CUR.project).catch(err => {
         console.warn("syncPullAll FirebaseSync lỗi:", err);
@@ -474,10 +543,10 @@ async function syncPullAll(){
 
 // ---------- SEED ----------
 const SEED = {
-  projects: [
-    {id:"p3", name:"SHUN HING", start_date:"2026-05-01", end_date:"2026-12-31", off_weekdays:[0], latitude:10.8231, longitude:106.6297, address:"Bình Dương", status:"Đang thi công"},
-    {id:"p4", name:"HOWELL", start_date:"2026-06-01", end_date:"2027-02-28", off_weekdays:[0], latitude:10.8245, longitude:106.6305, address:"Hồ Chí Minh", status:"Đang thi công"}
-  ],
+  // KHÔNG seed dự án demo nữa (vận hành thật): mỗi browser mới mở app với IndexedDB trống mà seed
+  // SHUN HING/HOWELL (id cứng p3/p4) sẽ tự đẩy chúng lên Firebase làm demo "sống lại". Để rỗng —
+  // máy mới sẽ tự kéo dự án thật từ Firebase/Supabase về.
+  projects: [],
   users: [
     {id:"u1", full_name:"KS. Nguyễn Văn A"},
     {id:"u2", full_name:"KS. Trần Thị B"},
@@ -950,7 +1019,7 @@ async function fvManpowerConfirm(text){
     const bm=bestTaskMatch(r.work_desc||"", tasks, linked);
     let sugg="", note="";
     if(bm.task && vNorm(bm.task)!==vNorm(r.work_desc||"")){
-      if(bm.score>=0.8){ r.work_desc=bm.task; note='<div class="muted" style="font-size:12px;margin:0 0 4px 2px;color:#287D1C">✓ đã chuẩn hoá theo từ điển: <b>'+esc(bm.task)+'</b></div>'; }
+      if(bm.score>=0.8){ r.work_desc=bm.task; note='<div class="muted" style="font-size:12px;margin:0 0 4px 2px;color:#2E6B22">✓ đã chuẩn hoá theo từ điển: <b>'+esc(bm.task)+'</b></div>'; }
       else if(bm.score>=0.5){ FVM_SUGG.push(bm.task); const si=FVM_SUGG.length-1;
         sugg='<div class="muted" style="font-size:12px;margin:0 0 4px 2px">≈ Gợi ý: <b>'+esc(bm.task)+'</b> <button class="btn btn-mut btn-sm" onclick="fvmSugg(this,'+si+')">Thay</button></div>'; }
     }
@@ -1015,6 +1084,12 @@ function consolidate(subs){
   return {total, manpower, completed, issues};
 }
 let CUR = { user:"u1", project:"p1", editing:null, editingCreated:null, photoIds:[] };
+
+// Expose lên window để iframe "Báo cáo ngày" (TAB BAO CAO NGAY) truy cập được qua window.parent.
+// CUR + DataService khai bằng let/const (KHÔNG tự lên window) — thiếu 2 dòng này thì
+// window.parent.DataService/CUR = undefined -> iframe không nạp được báo cáo (form kẹt ở mẫu mặc định).
+window.CUR = CUR;
+window.DataService = DataService;
 
 // ---------- NAV + KHỞI ĐỘNG ----------
 const HOME_TABS=["dieuhanh","hethong"];                                                   // cấp công ty
@@ -1177,13 +1252,19 @@ window.addEventListener("load", async ()=>{
   }
   await db();
   let users = await DataService.listUsers();
-  // Đảm bảo nạp và lưu cả hai dự án SHUN HING và HOWELL
-  let projects = SEED.projects;
-  await metaSet("projects", projects);
+  let projects = await DataService.listProjects();
+  const seededOnce = await metaGet("projects_seeded_once", false);
+  if (projects && projects.length > 0) {
+    if (!seededOnce) await metaSet("projects_seeded_once", true); // máy đã có dữ liệu -> đánh dấu đã qua seed
+  } else if (!seededOnce) {
+    projects = SEED.projects;                    // chỉ seed lần đầu tiên trên máy mới tinh
+    await metaSet("projects", projects);
+    await metaSet("projects_seeded_once", true);
+  }
   
   $("cur-user").innerHTML=users.map(u=>'<option value="'+u.id+'">'+esc(u.full_name)+'</option>').join("");
   $("cur-project").innerHTML=projects.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join("");
-  CUR.user=await metaGet("cur_user", users[0].id); CUR.project=await metaGet("cur_project", projects[0].id);
+  CUR.user=await metaGet("cur_user", users[0]?.id || ""); CUR.project=await metaGet("cur_project", projects[0]?.id || "");
   $("cur-user").value=CUR.user; $("cur-project").value=CUR.project;
   $("cur-user").onchange=e=>{ CUR.user=e.target.value; metaSet("cur_user",CUR.user); renderMySubs(); };
   $("cur-project").onchange=async e=>{ CUR.project=e.target.value; metaSet("cur_project",CUR.project); const _p0=(projects||[]).find(x=>x.id===CUR.project); try{ if(typeof Swal!=='undefined') Swal.fire({toast:true, position:'top', icon:'info', title:'Đang chuyển sang: '+((_p0&&_p0.name)||'…'), showConfirmButton:false, timer:900, didOpen:(t)=>{ const b=Swal.getContainer(); } }); }catch(_){} document.body.style.cursor='progress'; await SyncEngine.pull(); renderDashboard(); renderMySubs(); renderContractors(); renderTiendo(); renderCdt(); renderTeam(); updateProjBanner(document.querySelector(".nav-btn.active, .sub-btn.active")?.dataset.tab); syncKBToIframe(); const _p=(projects||[]).find(x=>x.id===CUR.project); const _bcn=document.querySelector('iframe'); if(_bcn&&_bcn.contentWindow) _bcn.contentWindow.postMessage({type:'PROJECT_CHANGED', projName:(_p&&_p.name)||'', projInfo:_p?{name:_p.name||'', address:_p.address||'', scale:_p.scale||'', start_date:_p.start_date||'', end_date:_p.end_date||''}:null},'*'); document.body.style.cursor=''; try{ if(typeof Swal!=='undefined') Swal.fire({toast:true, position:'top', icon:'success', title:'Đang xem: '+((_p&&_p.name)||''), showConfirmButton:false, timer:1200}); }catch(_){} };
@@ -1196,13 +1277,14 @@ window.addEventListener("load", async ()=>{
   }
   $("r-date").value=todayISO();
   // Đồng bộ Supabase chạy NỀN (không chặn hiển thị) — tránh app đứng chờ ~1 phút khi mạng/Supabase chậm
+  // Supabase (nếu còn bật): auth + realtime chạy nền.
   if(SyncEngine.configured()){
-    SupabaseSync.refreshUser()
-      .then(()=>{ if(SupabaseSync.user) return SyncEngine.pull(); })
-      .then(()=>{ SyncEngine.setPill(); })
-      .catch(()=>{});
+    SupabaseSync.refreshUser().catch(()=>{});
     try{ SupabaseSync.subscribeRealtime(); }catch(_){}
   }
+  // Kéo dữ liệu LUÔN chạy (SyncEngine.pull tự lo Firebase + Supabase-nếu-bật + làm mới form) —
+  // KHÔNG gate theo Supabase, để tắt Supabase thì Firebase vẫn kéo về lúc khởi động.
+  SyncEngine.pull().then(()=>SyncEngine.setPill()).catch(()=>{});
   SyncEngine.setPill();
   if(typeof renderProjectList === "function") renderProjectList();
   // Cổng đăng nhập (RBAC) — bật/tắt bằng LOGIN_ENABLED
@@ -1673,6 +1755,12 @@ async function viewReport() {
   const lineLabels = dates.map(d => { const x=d.split('-'); return `${x[2]}/${x[1]}`; });
   const lineData = dates.map(d => dateTotals[d]);
 
+  const css = getComputedStyle(document.documentElement);
+  const C = (n) => css.getPropertyValue(n).trim();
+  const brandAccent = C('--hp-brand-accent') || '#0969A7';
+  const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
+  const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+
   if (document.getElementById('chart-manpower-line')) {
     window.myLineChart = new Chart(document.getElementById('chart-manpower-line'), {
       type: 'line',
@@ -1681,20 +1769,30 @@ async function viewReport() {
         datasets: [{
           label: 'Tổng nhân lực',
           data: lineData,
-          borderColor: '#4f46e5',
-          backgroundColor: 'rgba(79, 70, 229, 0.1)',
+          borderColor: brandAccent,
+          backgroundColor: `color-mix(in srgb, ${brandAccent} 10%, transparent)`,
           borderWidth: 2,
           fill: true,
           tension: 0.3
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: textSecondary } }
+        },
+        scales: {
+          x: { ticks: { color: textSecondary }, grid: { color: borderCol } },
+          y: { ticks: { color: textSecondary }, grid: { color: borderCol } }
+        }
+      }
     });
   }
 
   const pieLabels = [];
   const pieData = [];
-  const bgColors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
+  const bgColors = [C('--hp-brand-primary'), C('--hp-brand-accent'), C('--hp-warning'), C('--hp-danger'), C('--hp-muted')];
   let colorIdx = 0;
   for (const [name, row] of Object.entries(mpMap)) {
     pieLabels.push(name);
@@ -1708,10 +1806,21 @@ async function viewReport() {
         labels: pieLabels,
         datasets: [{
           data: pieData,
-          backgroundColor: pieLabels.map(() => bgColors[(colorIdx++) % bgColors.length])
+          backgroundColor: pieLabels.map(() => bgColors[(colorIdx++) % bgColors.length]),
+          borderColor: borderCol,
+          borderWidth: 1
         }]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+          legend: { 
+            position: 'right',
+            labels: { color: textSecondary }
+          } 
+        } 
+      }
     });
   }
   
@@ -1749,6 +1858,18 @@ window.addEventListener('message', async (e) => {
     }
   }
 
+  // Iframe Báo cáo ngày xin danh sách báo cáo (nút "Mẫu hôm qua", biểu đồ tuần...).
+  // Bắt buộc đi qua kênh này: DataService/CUR khai báo const/let nên KHÔNG nằm trên window,
+  // iframe truy cập window.parent.DataService trực tiếp sẽ luôn là undefined.
+  if (e.data.type === 'GET_DAILY_REPORTS') {
+    try {
+      const reports = await DataService.listDailyReports();
+      e.source.postMessage({ type: 'GET_DAILY_REPORTS_SUCCESS', reqId: e.data.reqId, data: { reports, project: CUR.project } }, '*');
+    } catch(err) {
+      e.source.postMessage({ type: 'GET_DAILY_REPORTS_ERROR', reqId: e.data.reqId, error: err.message }, '*');
+    }
+  }
+
   if (e.data.type === 'REQUEST_KB_SYNC') {
     syncKBToIframe();
   }
@@ -1769,8 +1890,9 @@ function toggleDarkMode() {
     iframe.contentWindow.postMessage({ type: 'TOGGLE_DARK_MODE', isDark: isDark }, '*');
   }
 }
-const savedDark = localStorage.getItem('meta_dark_mode') === 'true';
-if (savedDark) { document.body.classList.add('dark-mode'); }
+const savedDark = localStorage.getItem('meta_dark_mode');
+const isDark = (savedDark === null) ? true : (savedDark === 'true');
+if (isDark) { document.body.classList.add('dark-mode'); }
 
 // Quản lý Gemini API Key
 function saveGeminiKey() {
@@ -2093,22 +2215,22 @@ async function printDashboard() {
   + 'table.layout>thead>tr>td,table.layout>tfoot>tr>td{border:none;padding:0;}'
   + 'table.layout>tbody>tr>td{border:none;padding:10px 0 0;}'
   + 'thead{display:table-header-group;}tfoot{display:table-footer-group;}'
-  + '.hdr{border-bottom:2px solid #287D1C;padding-bottom:3px;margin-bottom:10px;}'
+  + '.hdr{border-bottom:2px solid #2E6B22;padding-bottom:3px;margin-bottom:10px;}'
   + '.hdr img{width:100%;height:auto;aspect-ratio:1200/113;display:block;}'
   + '.ftr{border-top:1px solid #ccc;padding-top:3px;font-size:10px;color:#555;}'
-  + 'h1{font-size:17px;color:#034A82;text-align:center;margin:0 0 2px;}'
+  + 'h1{font-size:17px;color:#2E6B22;text-align:center;margin:0 0 2px;}'
   + '.sub{text-align:center;color:#555;margin:0 0 12px;font-size:11px;}'
   + '.kpi-row{display:flex;gap:12px;margin:8px 0 14px;}'
   + '.kpi-box{flex:1;border:1px solid #cbd5e1;border-radius:6px;padding:8px;text-align:center;}'
-  + '.kpi-box .v{font-size:20px;font-weight:700;color:#034A82;}'
+  + '.kpi-box .v{font-size:20px;font-weight:700;color:#2E6B22;}'
   + '.kpi-box .l{font-size:10px;color:#555;text-transform:uppercase;}'
   + 'table.data{width:100%;border-collapse:collapse;margin:6px 0 12px;}'
   + 'table.data th,table.data td{border:1px solid #cbd5e1;padding:5px 8px;text-align:center;}'
-  + 'table.data th{background:#287D1C;color:#fff;}'
+  + 'table.data th{background:#2E6B22;color:#fff;}'
   + 'table.data td:first-child{text-align:left;}'
-  + 'h3{font-size:13px;color:#287D1C;margin:14px 0 4px;border-bottom:1px solid #e5e7eb;padding-bottom:2px;}'
+  + 'h3{font-size:13px;color:#2E6B22;margin:14px 0 4px;border-bottom:1px solid #e5e7eb;padding-bottom:2px;}'
   + '.ticket-card{border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin:6px 0;}'
-  + '.ticket-date{font-weight:700;color:#034A82;margin-bottom:4px;}'
+  + '.ticket-date{font-weight:700;color:#2E6B22;margin-bottom:4px;}'
   + '.ticket-content{margin:0;padding-left:18px;}'
   + '.gallery-container{display:flex;flex-wrap:wrap;gap:6px;}'
   + '.gallery-item{width:31%;}'
@@ -6939,6 +7061,47 @@ window.deleteProject = async function(pid){
     if(typeof audit==='function') audit('Xóa dự án', name);
     if(typeof SyncEngine!=='undefined' && SyncEngine.tryPush) SyncEngine.tryPush();
     if(typeof pushAiSnapshot==='function') pushAiSnapshot();
+
+    // 4. Xóa dữ liệu trên Firebase (không chặn luồng nếu gặp lỗi)
+    if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED && typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+      try {
+        const db = window.fb.db;
+        
+        // a. Xóa các subcollection data của projects/{pid}
+        const dataSnap = await db.collection('projects').doc(pid).collection('data').get();
+        let subDocsCount = 0;
+        for (const doc of dataSnap.docs) {
+          await doc.ref.delete();
+          subDocsCount++;
+        }
+        
+        // b. Xóa tài liệu dự án chính
+        await db.collection('projects').doc(pid).delete();
+        
+        // c. Xóa báo cáo ngày liên quan
+        const drSnap = await db.collection('daily_reports').where('project_id', '==', pid).get();
+        let drDocsCount = 0;
+        for (const doc of drSnap.docs) {
+          await doc.ref.delete();
+          drDocsCount++;
+        }
+        
+        // d. Xóa phiếu lpb_requests liên quan
+        const lpbSnap = await db.collection('lpb_requests').where('project_id', '==', pid).get();
+        let lpbDocsCount = 0;
+        for (const doc of lpbSnap.docs) {
+          await doc.ref.delete();
+          lpbDocsCount++;
+        }
+        
+        // e. Ảnh Storage reports/{pid}/... (TODO: Thực hiện xóa ảnh ở giai đoạn sau)
+
+        console.log(`[FirebaseSync] Da xoa du an ${pid} tren Firebase: ${subDocsCount} sub-docs, 1 project doc, ${drDocsCount} daily_reports, ${lpbDocsCount} lpb_requests.`);
+      } catch (fbErr) {
+        console.warn("[FirebaseSync] Loi xoa du an tren Firebase (khong chan luong):", fbErr);
+      }
+    }
+
     await Swal.fire({icon:'success', title:'Đã xóa', text:`Đã xóa dự án "${name}".`, timer:2000, showConfirmButton:false});
   }catch(e){
     await Swal.fire({icon:'error', title:'Lỗi xóa dự án', text:String(e&&e.message||e)});
@@ -7047,7 +7210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 '</div>',
           icon: 'info',
           confirmButtonText: 'Đồng ý',
-          confirmButtonColor: '#0060A8'
+          confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#096AA7'
         });
         return;
       }
@@ -7058,7 +7221,7 @@ document.addEventListener('DOMContentLoaded', () => {
           text: 'Vui lòng nhấn vào dấu 3 chấm góc phải trình duyệt và chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".',
           icon: 'info',
           confirmButtonText: 'Đồng ý',
-          confirmButtonColor: '#0060A8'
+          confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#096AA7'
         });
         return;
       }
@@ -7080,3 +7243,65 @@ window.addEventListener('appinstalled', (evt) => {
     installBtn.style.setProperty('display', 'none', 'important');
   }
 });
+
+function renderTimeline(startStr, endStr, completedPct, isProjectDone = false) {
+  if (!startStr || !endStr) return '';
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  const today = new Date();
+  
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+  today.setHours(0,0,0,0);
+  
+  const totalDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  const passedDays = Math.round((today - start) / (1000 * 60 * 60 * 24)) + 1;
+  
+  let timePct = 0;
+  if (totalDays > 0) {
+    timePct = Math.max(0, Math.min(100, Math.round((passedDays / totalDays) * 100)));
+  }
+  
+  const dLeft = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+  let statusText = '';
+  let statusColor = 'var(--hp-primary)';
+  
+  if (isProjectDone) {
+    statusText = 'Hoàn thành';
+    statusColor = 'var(--hp-success)';
+  } else if (dLeft < 0) {
+    statusText = `Quá hạn ${Math.abs(dLeft)} ngày`;
+    statusColor = 'var(--hp-danger)';
+  } else {
+    statusText = `Còn ${dLeft} ngày`;
+    if (timePct >= 90) statusColor = 'var(--hp-danger)';
+    else if (timePct >= 70) statusColor = 'var(--hp-warning)';
+  }
+  
+  const startFmt = start.getDate().toString().padStart(2,'0') + '/' + (start.getMonth()+1).toString().padStart(2,'0') + '/' + start.getFullYear();
+  const endFmt = end.getDate().toString().padStart(2,'0') + '/' + (end.getMonth()+1).toString().padStart(2,'0') + '/' + end.getFullYear();
+
+  return `
+    <div class="hp-timeline-container" style="margin-top:12px; margin-bottom:12px; width:100%; box-sizing:border-box;">
+      <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--hp-text-secondary); font-weight:500;">
+        <span>📅 Bắt đầu: <b>${startFmt}</b> · Kết thúc: <b>${endFmt}</b></span>
+        <span style="font-weight:700; color:${statusColor}">${statusText} (${timePct}% thời gian đã dùng)</span>
+      </div>
+      <div class="hp-timeline-track" style="height:9px; border-radius:10px; background:var(--hp-divider); overflow:hidden; border:1px solid var(--hp-border); position:relative;">
+        <div class="hp-timeline-bar" style="width:${timePct}%; height:100%; background:${statusColor}; border-radius:10px; transition:width 0.3s ease;"></div>
+      </div>
+    </div>
+  `;
+}
+window.renderTimeline = renderTimeline;
+
+function renderEmptyState(icon, title, desc) {
+  return `
+    <div class="hp-empty-state">
+      <div class="icon">${icon}</div>
+      <div class="title">${title}</div>
+      <div class="desc">${desc}</div>
+    </div>
+  `;
+}
+window.renderEmptyState = renderEmptyState;

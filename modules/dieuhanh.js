@@ -30,7 +30,7 @@ async function projectStats(id){
   return {proj, rate, highIssues, overdueConds, readyDots, dotCount:cdt.length, health, totalManpower, manpowerToday, schedulePct, overdueTasks, logDays:days.length};
 }
 
-function healthColor(h){ return h>=80?"#287D1C":h>=60?"#0060A8":h>=40?"#854F0B":"#A32D2D"; }
+function healthColor(h){ return h>=80?"var(--hp-brand-primary)":h>=60?"var(--hp-brand-accent)":h>=40?"var(--hp-warning)":"var(--hp-danger)"; }
 
 const DEPARTMENTS=[
   {key:"banql",       name:"Quản lý",              positions:["P. TGĐ","TP. KTTC"]},
@@ -67,7 +67,7 @@ async function renderDepartments(){
     const members=data[d.key]||[];
     const by={}; members.forEach(m=>by[m.position]=(by[m.position]||0)+1);
     const breakdown = d.positions.map(p=>by[p]?(esc(p)+": <b>"+by[p]+"</b>"):null).filter(Boolean).join(" · ") || "Chưa có thành viên";
-    return `<div class="dept-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0;color:#287D1C">${esc(d.name)} <span class="muted" style="font-weight:400;font-size:12px">(${members.length} người)</span></h3><button class="btn btn-mut btn-sm" onclick="openDeptModal('${d.key}')">Quản lý ></button></div><div class="muted" style="margin-top:6px">${breakdown}</div></div>`;
+    return `<div class="dept-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0;color:#2E6B22">${esc(d.name)} <span class="muted" style="font-weight:400;font-size:12px">(${members.length} người)</span></h3><button class="btn btn-mut btn-sm" onclick="openDeptModal('${d.key}')">Quản lý ></button></div><div class="muted" style="margin-top:6px">${breakdown}</div></div>`;
   }).join("");
 }
 
@@ -142,7 +142,7 @@ async function renderProjectList() {
   const editable = !CUR_USER || ["admin","director","pm","site_manager"].includes(CUR_USER.role);
 
   if(list.length === 0){
-    pl.innerHTML = '<p class="muted">Chưa có dự án nào được phân quyền cho bạn.</p>';
+    pl.innerHTML = renderEmptyState('🏢', 'Chưa có dự án phân quyền', 'Vui lòng liên hệ Admin để được cấp quyền quản lý dự án.');
     return;
   }
   let html = '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">';
@@ -274,17 +274,18 @@ async function renderExecutive(){
 
   // KPI tổng quan
   const kpiCards=[
-    {icon:"🏢", val:total, label:"Tổng dự án", color:"var(--primary)"},
-    {icon:"🚧", val:stCounts["Đang thi công"], label:"Đang thi công", color:"var(--accent)"},
-    {icon:"⚠️", val:risky, label:"Cảnh báo rủi ro", color:"var(--danger)"},
-    {icon:"👷", val:(subs.filter(s=>s.log_date===tToday).length===0 ? "—" : manpowerToday), label:"Nhân lực hôm nay", color:"var(--success)"},
-    {icon:"🕒", val:totalOverdue, label:"Quá hạn", color: totalOverdue>0?"var(--danger)":"var(--success)"}
+    {icon:"🏢", val:total, label:"Tổng dự án", color:"var(--hp-primary)", iconBg:"var(--hp-info-bg)", desc:"Các dự án đang quản lý"},
+    {icon:"🚧", val:stCounts["Đang thi công"], label:"Đang thi công", color:"var(--hp-brand-accent)", iconBg:"var(--hp-info-bg)", desc:"Đang triển khai thực tế"},
+    {icon:"⚠️", val:risky, label:"Cảnh báo rủi ro", color:"var(--hp-danger)", iconBg:"var(--hp-danger-bg)", desc: risky > 0 ? "Yêu cầu kiểm tra" : "Hiện tại an toàn"},
+    {icon:"👷", val:(subs.filter(s=>s.log_date===tToday).length===0 ? "—" : manpowerToday), label:"Nhân lực hôm nay", color:"var(--hp-success)", iconBg:"var(--hp-success-bg)", desc:"Tổng số thợ & kỹ sư"},
+    {icon:"🕒", val:totalOverdue, label:"Quá hạn", color: totalOverdue>0?"var(--hp-danger)":"var(--hp-success)", iconBg: totalOverdue>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: totalOverdue>0 ? "Hạng mục trễ kế hoạch" : "Tiến độ đạt yêu cầu"}
   ];
   if($("exec-kpi")) $("exec-kpi").innerHTML = kpiCards.map(k=>`
     <div class="kpi-card" style="min-width:0; border-top:4px solid ${k.color}">
-      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-icon" style="background:${k.iconBg}; color:${k.color}">${k.icon}</div>
       <div class="kpi-value" style="color:${k.color}; font-size:40px">${k.val}</div>
       <div class="kpi-label" style="color:${k.color}">${k.label}</div>
+      <div class="kpi-desc">${k.desc}</div>
     </div>`).join("");
 
   const subsToday=subs.filter(s=>s.log_date===tToday);
@@ -293,7 +294,7 @@ async function renderExecutive(){
   // Bảng tình trạng dự án (Tiến độ kế hoạch theo thời gian + hạng mục quá hạn)
   if($("exec-progress-table")){
     if(!stats.length){
-      $("exec-progress-table").innerHTML='<p class="muted" style="padding:16px">Chưa có dự án nào.</p>';
+      $("exec-progress-table").innerHTML = renderEmptyState('🏢', 'Chưa có dự án nào', 'Hệ thống chưa khởi tạo dự án nào trên hệ thống điều hành.');
     } else {
       $("exec-progress-table").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px">'
        + stats.map(s=>{
@@ -321,8 +322,7 @@ async function renderExecutive(){
             </div>
             <div style="margin-top:10px"><span style="display:inline-block;font-size:11px;font-weight:700;color:${stLabel.c};background:var(--surface-2);border:1px solid var(--border);padding:3px 10px;border-radius:var(--r-pill)">${stLabel.t}</span></div>
             <div style="margin-top:12px">
-              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="color:var(--muted)">Tiến độ kế hoạch</span><span style="font-weight:700;color:var(--ink)">${pct}%</span></div>
-              <div style="height:9px;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--border);overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--primary)"></div></div>
+              ${renderTimeline(s.proj.start_date || s.proj.startDate, s.proj.end_date || s.proj.endDate, pct, s.proj.status === "Đã bàn giao")}
               ${overdue}
             </div>
             <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
@@ -389,9 +389,13 @@ async function renderExecutive(){
   // Biểu đồ cơ cấu trạng thái
   if(typeof Chart!=="undefined" && $("exec-status-chart")){
     if(window._execChart){ try{ window._execChart.destroy(); }catch(e){} }
+    const css = getComputedStyle(document.documentElement);
+    const C = (n) => css.getPropertyValue(n).trim();
+    const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+    const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
     window._execChart=new Chart($("exec-status-chart"),{ type:'doughnut',
-      data:{ labels:Object.keys(stCounts), datasets:[{ data:Object.values(stCounts), backgroundColor:['#9CA3AF','#0060A8','#D9822B','#1E9E63'], borderWidth:2, borderColor:'#fff' }] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ boxWidth:10, usePointStyle:true, font:{size:11} } } }, cutout:'66%' } });
+      data:{ labels:Object.keys(stCounts), datasets:[{ data:Object.values(stCounts), backgroundColor:[C('--hp-muted'), C('--hp-brand-accent'), C('--hp-warning'), C('--hp-brand-primary')], borderWidth:2, borderColor:borderCol }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:textSecondary, boxWidth:10, usePointStyle:true, font:{size:11} } } }, cutout:'66%' } });
   }
 
   // Biểu đồ cột đôi Đã thu vs Đã chi theo dự án (grouped, cột dính nhau)
@@ -409,6 +413,13 @@ async function renderExecutive(){
         return n % 1 === 0 ? n.toLocaleString('vi-VN') : n.toLocaleString('vi-VN', {minimumFractionDigits:1, maximumFractionDigits:3});
       };
 
+      const css = getComputedStyle(document.documentElement);
+      const C = (n) => css.getPropertyValue(n).trim();
+      const brandPrimary = C('--hp-brand-primary') || '#60BB46';
+      const warningColor = C('--hp-warning') || '#FFA726';
+      const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
+      const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+
       window._financeChart = new Chart($("exec-finance-chart"), {
         type: 'bar',
         data: {
@@ -417,7 +428,7 @@ async function renderExecutive(){
             {
               label: 'Đã thu',
               data: finTop.map(r => +(r.thu / divisor).toFixed(3)),
-              backgroundColor: '#1E9E63',
+              backgroundColor: brandPrimary,
               borderRadius: { topLeft: 5, topRight: 5 },
               borderSkipped: false,
               barPercentage: 0.85,
@@ -426,7 +437,7 @@ async function renderExecutive(){
             {
               label: 'Đã chi',
               data: finTop.map(r => +(r.chi / divisor).toFixed(3)),
-              backgroundColor: '#D9822B',
+              backgroundColor: warningColor,
               borderRadius: { topLeft: 5, topRight: 5 },
               borderSkipped: false,
               barPercentage: 0.85,
@@ -440,7 +451,7 @@ async function renderExecutive(){
           plugins: {
             legend: {
               position: 'top', align: 'end',
-              labels: { boxWidth: 12, usePointStyle: true, font: { size: 11 } }
+              labels: { color: textSecondary, boxWidth: 12, usePointStyle: true, font: { size: 11 } }
             },
             tooltip: {
               callbacks: {
@@ -454,13 +465,13 @@ async function renderExecutive(){
               ticks: {
                 callback: (v) => v + ' ' + unit,
                 font: { size: 10 },
-                color: '#6B7280'
+                color: textSecondary
               },
-              grid: { color: '#EEF2F7' }
+              grid: { color: borderCol }
             },
             x: {
               grid: { display: false },
-              ticks: { font: { size: 11 }, color: '#374151' }
+              ticks: { font: { size: 11 }, color: textSecondary }
             }
           }
         }

@@ -86,7 +86,7 @@ async function setCdt(arr){ return metaSet(cdtKey(), arr); }
 async function renderCdt(){
   const ed=$("cdt-editor"); if(ed) ed.classList.add("hide");
   const dots=await getCdt(); const w=$("cdt-list"); const t=todayISO();
-  if(!dots.length){ w.innerHTML='<p class="muted">Chưa có đợt thanh toán nào.</p>'; return; }
+  if(!dots.length){ w.innerHTML = renderEmptyState('💵', 'Chưa có đợt thanh toán', 'Dự án này chưa được thiết lập kế hoạch thanh toán từ CĐT.'); return; }
   w.innerHTML=dots.map(dot=>{
     const allDone=dot.conditions.length>0 && dot.conditions.every(c=>c.done);
     const badge=allDone?'<span class="pill pill-ok">Đủ điều kiện thanh toán</span>':'<span class="pill pill-off">Chưa đủ điều kiện</span>';
@@ -153,7 +153,7 @@ async function renderSubconPayments() {
   if (!tbody || !totalEl) return;
   
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center; padding:20px;">Chưa có đề nghị thanh toán nhà thầu nào. Kéo thả file phía trên để thêm mới.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5">' + renderEmptyState('📋', 'Chưa có đề nghị', 'Chưa có đề nghị thanh toán nhà thầu nào. Kéo thả file phía trên để thêm mới.') + '</td></tr>';
     totalEl.textContent = "0";
     return;
   }
@@ -445,7 +445,7 @@ function closeExpenseAiModal() { document.getElementById("expense-ai-modal").cla
 function renderExpenseAiRows() {
     const tbody = document.getElementById("expense-ai-tbody");
     if(!currentExpenseAiItems.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center" class="muted">Chưa có dòng dữ liệu nào</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7">${renderEmptyState('🤖', 'Không tìm thấy dữ liệu', 'Trình AI chưa trích xuất được dòng hóa đơn nào từ hình ảnh/PDF.')}</td></tr>`;
         return;
     }
     

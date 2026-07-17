@@ -50,6 +50,8 @@ async function renderDashboard() {
   let healthScore = "--";
   let healthColor = "var(--text-strong)";
   let delayedTasks = [];
+  let doneTasksCount = 0;
+  let workTasksCount = 0;
   try {
     const tasks = await metaGet("progress:" + CUR.project, []);
     if(tasks && tasks.length > 0) {
@@ -64,9 +66,10 @@ async function renderDashboard() {
         }
         return true;
       });
+      workTasksCount = workTasks.length;
 
       workTasks.forEach(it => {
-        if(it.status === "done") doneTasks++;
+        if(it.status === "done") doneTasksCount++;
         let stObj = {label: "Đang làm"};
         if (typeof statusOf === 'function') {
           stObj = statusOf(it.start, it.end, it);
@@ -140,12 +143,20 @@ async function renderDashboard() {
   
   const elProgress = document.getElementById("dash-kpi-progress");
   if(elProgress) elProgress.textContent = progressPct + "%";
+  const elProgressDesc = document.getElementById("dash-kpi-progress-desc");
+  if(elProgressDesc) {
+    elProgressDesc.textContent = workTasksCount > 0 ? `Đã xong ${doneTasksCount}/${workTasksCount} việc` : "Chưa có hạng mục";
+  }
 
   const elLate = document.getElementById("dash-kpi-late");
   if(elLate) {
     elLate.textContent = delayedTasks.length;
     elLate.style.color = delayedTasks.length > 0 ? "var(--danger)" : "var(--success)";
     elLate.style.fontSize = "36px";
+  }
+  const elLateDesc = document.getElementById("dash-kpi-late-desc");
+  if(elLateDesc) {
+    elLateDesc.textContent = delayedTasks.length > 0 ? "Cần xử lý gấp" : "Tiến độ an toàn";
   }
   
   const elHealth = document.getElementById("dash-health");
@@ -195,6 +206,10 @@ async function renderDashboard() {
     elBalance.style.fontSize = textVal.length > 12 ? "20px" : textVal.length > 8 ? "24px" : "32px";
     elBalance.style.color = balanceValue < 0 ? "var(--danger)" : "var(--success)";
   }
+  const elBalanceDesc = document.getElementById("dash-kpi-balance-desc");
+  if(elBalanceDesc) {
+    elBalanceDesc.textContent = `Thu: ${fmtAuto(totalThuCDT)} · Chi: ${fmtAuto(totalChi)}`;
+  }
   
   // Render Finance Chart (Đã thu vs Đã chi) — đơn vị linh động
   const canvasFin = document.getElementById("dash-chart-finance");
@@ -205,8 +220,7 @@ async function renderDashboard() {
     if(totalThuCDT === 0 && totalChi === 0) {
       canvasFin.style.display = 'none';
       const finEm = document.createElement('div'); finEm.className = 'chart-empty';
-      finEm.style.cssText = 'display:flex;align-items:center;justify-content:center;height:200px;flex-direction:column;gap:8px;color:var(--muted)';
-      finEm.innerHTML = '<span style="font-size:32px">📊</span><span style="font-size:13px">Chưa có dữ liệu tài chính</span>';
+      finEm.innerHTML = renderEmptyState('📊', 'Chưa có dữ liệu tài chính', 'Hệ thống chưa ghi nhận các khoản thu chi cho dự án này.');
       finWrap.appendChild(finEm);
     } else { canvasFin.style.display = '';
     const maxFinVal = Math.max(totalThuCDT, totalChi);
@@ -214,6 +228,13 @@ async function renderDashboard() {
     const divisor = useTy ? 1e9 : 1e6;
     const unit = useTy ? 'tỷ' : 'tr';
     const fmtTick = (v) => v.toLocaleString('vi-VN', {minimumFractionDigits:0, maximumFractionDigits:3}) + ' ' + unit;
+    const css = getComputedStyle(document.documentElement);
+    const C = (n) => css.getPropertyValue(n).trim();
+    const brandPrimary = C('--hp-brand-primary') || '#096AA7';
+    const warningColor = C('--hp-warning') || '#FFA726';
+    const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
+    const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+
     const ctxFin = canvasFin.getContext('2d');
     window._dashFinChart = new Chart(ctxFin, {
       type: 'bar',
@@ -221,7 +242,7 @@ async function renderDashboard() {
         labels: ['Đã thu (CĐT)', 'Đã chi (Công trình)'],
         datasets: [{
           data: [+(totalThuCDT / divisor).toFixed(3), +(totalChi / divisor).toFixed(3)],
-          backgroundColor: ['#1E9E63', '#D9822B'],
+          backgroundColor: [brandPrimary, warningColor],
           borderRadius: 6,
           maxBarThickness: 45
         }]
@@ -234,8 +255,15 @@ async function renderDashboard() {
           tooltip: { callbacks: { label: (c) => fmtTick(c.raw) } }
         },
         scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' } } },
-          y: { beginAtZero: true, ticks: { callback: (v) => v + ' ' + unit, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+          x: { 
+            grid: { display: false }, 
+            ticks: { color: textSecondary, font: { size: 11, weight: 'bold' } } 
+          },
+          y: { 
+            beginAtZero: true, 
+            ticks: { color: textSecondary, callback: (v) => v + ' ' + unit, font: { size: 10 } }, 
+            grid: { color: borderCol } 
+          }
         }
       }
     });
@@ -257,7 +285,7 @@ async function renderDashboard() {
       .sort((a, b) => b.val - a.val)
       .slice(0, 3);
     if(sorted.length === 0) {
-      elFinTop.innerHTML = `<div class="subitem" style="color:var(--muted); font-style:italic;">Chưa có dữ liệu thanh toán</div>`;
+      elFinTop.innerHTML = renderEmptyState('💳', 'Chưa có thanh toán', 'Không có nhà thầu nào phát sinh chi phí thanh toán.');
     } else {
       elFinTop.innerHTML = sorted.map((x, idx) => {
         return `<div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border);">
@@ -320,6 +348,10 @@ async function renderDashboard() {
   if(elManpower) {
     elManpower.textContent = todayManpower.toLocaleString('vi-VN');
   }
+  const elManpowerDesc = document.getElementById("dash-kpi-manpower-desc");
+  if(elManpowerDesc) {
+    elManpowerDesc.textContent = `Tuần này: ${manpowerData.reduce((a,b) => a+b, 0).toLocaleString('vi-VN')} công`;
+  }
 
   // Update Weather — hiển thị trong Hero card
   const elWeather = document.getElementById("dash-hero-weather");
@@ -379,10 +411,15 @@ async function renderDashboard() {
     if(totalMp === 0) {
       canvas.style.display = 'none';
       const mpEm = document.createElement('div'); mpEm.className = 'chart-empty';
-      mpEm.style.cssText = 'display:flex;align-items:center;justify-content:center;height:250px;flex-direction:column;gap:8px;color:var(--muted)';
-      mpEm.innerHTML = '<span style="font-size:32px">👷</span><span style="font-size:13px">Chưa có báo cáo nhân lực tuần này</span>';
+      mpEm.innerHTML = renderEmptyState('👷', 'Chưa có báo cáo nhân lực', 'Vui lòng cập nhật báo cáo ngày để hiển thị biểu đồ.');
       mpWrap.appendChild(mpEm);
     } else { canvas.style.display = '';
+    const css = getComputedStyle(document.documentElement);
+    const C = (n) => css.getPropertyValue(n).trim();
+    const brandAccent = C('--hp-brand-accent') || '#0969A7';
+    const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
+    const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+
     const ctx = canvas.getContext('2d');
     window._dashMpChart = new Chart(ctx, {
       type: 'line',
@@ -391,8 +428,8 @@ async function renderDashboard() {
         datasets: [{
           label: 'Nhân lực',
           data: manpowerData,
-          borderColor: '#0284c7', // var(--info)
-          backgroundColor: 'rgba(2, 132, 199, 0.2)',
+          borderColor: brandAccent,
+          backgroundColor: `color-mix(in srgb, ${brandAccent} 20%, transparent)`,
           borderWidth: 2,
           pointRadius: 3,
           tension: 0.3,
@@ -406,8 +443,17 @@ async function renderDashboard() {
           legend: { display: false }
         },
         scales: {
-          x: { display: true, ticks: {font: {size: 9}} },
-          y: { display: true, min: 0, ticks: {font: {size: 9}, stepSize: 5}, grid: {color: 'rgba(0,0,0,0.04)'} }
+          x: { 
+            display: true, 
+            ticks: { color: textSecondary, font: {size: 9} },
+            grid: { color: borderCol }
+          },
+          y: { 
+            display: true, 
+            min: 0, 
+            ticks: { color: textSecondary, font: {size: 9}, stepSize: 5 }, 
+            grid: { color: borderCol } 
+          }
         },
         layout: {
           padding: 0

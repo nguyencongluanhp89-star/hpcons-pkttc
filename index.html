@@ -10,10 +10,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="firebase-init.js?v=1"></script>
-<script src="firebase-sync.js?v=2"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="firebase-init.js?v=2"></script>
+<script src="firebase-sync.js?v=4"></script>
 <script src="logo.js"></script>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=1.3">
 <link rel="stylesheet" href="modules/lpb.css?v=2">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -37,7 +38,7 @@
       <select id="cur-user" title="Người nhập" style="display:none"></select>
     </div>
     <div class="header-right" style="display:flex;align-items:center;gap:12px">
-      <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="background:transparent; border:none; font-size:20px; cursor:pointer; padding:4px; border-radius:50%; transition:all 0.3s;" title="Bật/Tắt chế độ Ban đêm">🌙</button>
+      <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="background:transparent; border:none; font-size:20px; cursor:pointer; padding:12px; border-radius:50%; transition:all 0.3s;" title="Bật/Tắt chế độ Ban đêm">🌙</button>
       <div class="header-date" style="background:#F4F7FB; border:1px solid #E2E8F0; border-radius:20px; padding:6px 14px; font-size:13px; font-weight:600; color:#475569; display:flex; align-items:center; gap:6px;">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#64748B"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         <span id="header-date"></span>
@@ -54,8 +55,8 @@
   <style>
     /* Scoped overrides to match the requested simple clean design in the screenshot */
     #sidebar {
-      background-color: #1F2937 !important;
-      height: calc(100vh - 54px) !important;
+      background-color: var(--sidebar-bg) !important;
+      height: calc(100vh - 60px) !important;
       overflow-y: auto !important;
     }
     #sidebar .side-brand {
@@ -70,7 +71,7 @@
     #sidebar .nav-group {
       font-size: 11px !important;
       letter-spacing: 1.5px !important;
-      color: #6B7280 !important;
+      color: #B8C0C8 !important; /* sidebar nền luôn tối -> chữ sáng cố định cả 2 theme */
       padding: 16px 12px 6px !important;
       font-weight: 700 !important;
       text-transform: uppercase !important;
@@ -84,7 +85,7 @@
       background: transparent !important;
       border: none !important;
       border-radius: 8px !important;
-      color: #9CA3AF !important;
+      color: #B8C0C8 !important; /* sidebar nền luôn tối -> chữ sáng cố định cả 2 theme */
       font-size: 14px !important;
       font-weight: 500 !important;
       position: relative !important;
@@ -96,7 +97,7 @@
       width: 18px !important;
       height: 18px !important;
       stroke-width: 2px !important;
-      color: #9CA3AF !important;
+      color: #B8C0C8 !important; /* sidebar nền luôn tối -> chữ sáng cố định cả 2 theme */
       transition: color 0.2s ease !important;
     }
     #sidebar .nav-btn:hover {
@@ -347,25 +348,29 @@
     
     <!-- KHỐI 1: SỨC KHỎE TỔNG QUAN -->
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
-      <div class="kpi-card" style="border-top:4px solid var(--primary);" onclick="switchTab('tiendo')">
-        <div class="kpi-icon">📈</div>
-        <div class="kpi-value" style="color:var(--primary);" id="dash-kpi-progress">--</div>
-        <div class="kpi-label" style="color:var(--primary);">TIẾN ĐỘ CHUNG</div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-primary);" onclick="switchTab('tiendo')">
+        <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-primary);">📈</div>
+        <div class="kpi-value" style="color:var(--hp-primary);" id="dash-kpi-progress">--</div>
+        <div class="kpi-label" style="color:var(--hp-primary);">TIẾN ĐỘ CHUNG</div>
+        <div class="kpi-desc" id="dash-kpi-progress-desc">--</div>
       </div>
-      <div class="kpi-card" style="border-top:4px solid var(--success);" id="dash-kpi-finance-card" onclick="switchTab('thanhtoan')">
-        <div class="kpi-icon">💰</div>
-        <div class="kpi-value" style="color:var(--success);" id="dash-kpi-balance">--</div>
-        <div class="kpi-label" style="color:var(--success);">CÂN ĐỐI DÒNG TIỀN</div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-success);" id="dash-kpi-finance-card" onclick="switchTab('thanhtoan')">
+        <div class="kpi-icon" style="background:var(--hp-success-bg); color:var(--hp-success);">💰</div>
+        <div class="kpi-value" style="color:var(--hp-success);" id="dash-kpi-balance">--</div>
+        <div class="kpi-label" style="color:var(--hp-success);">CÂN ĐỐI DÒNG TIỀN</div>
+        <div class="kpi-desc" id="dash-kpi-balance-desc">--</div>
       </div>
-      <div class="kpi-card" style="border-top:4px solid var(--info);" onclick="switchTab('baocaongay-new')">
-        <div class="kpi-icon">👷</div>
-        <div class="kpi-value" style="color:var(--info);" id="dash-kpi-manpower">--</div>
-        <div class="kpi-label" style="color:var(--info);">NHÂN LỰC HÔM NAY</div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-brand-accent);" onclick="switchTab('baocaongay-new')">
+        <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-brand-accent);">👷</div>
+        <div class="kpi-value" style="color:var(--hp-brand-accent);" id="dash-kpi-manpower">--</div>
+        <div class="kpi-label" style="color:var(--hp-brand-accent);">NHÂN LỰC HÔM NAY</div>
+        <div class="kpi-desc" id="dash-kpi-manpower-desc">--</div>
       </div>
-      <div class="kpi-card" style="border-top:4px solid var(--danger);" onclick="switchTab('tiendo')">
-        <div class="kpi-icon">🚨</div>
-        <div class="kpi-value" style="color:var(--danger);" id="dash-kpi-late">--</div>
-        <div class="kpi-label" style="color:var(--danger);">HẠNG MỤC TRỄ HẠN</div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-danger);" onclick="switchTab('tiendo')">
+        <div class="kpi-icon" style="background:var(--hp-danger-bg); color:var(--hp-danger);">🚨</div>
+        <div class="kpi-value" style="color:var(--hp-danger);" id="dash-kpi-late">--</div>
+        <div class="kpi-label" style="color:var(--hp-danger);">HẠNG MỤC TRỄ HẠN</div>
+        <div class="kpi-desc" id="dash-kpi-late-desc">--</div>
       </div>
     </div>
     
@@ -491,7 +496,6 @@
     }
 
     #tab-dieuhanh .kpi-card:hover {
-      transform: translateY(-4px);
       box-shadow: var(--shadow-lg);
       border-color: rgba(0,0,0,0.1);
     }
@@ -612,7 +616,6 @@
     }
 
     #tab-dieuhanh #exec-payment-summary > div:last-child > div:hover {
-      transform: translateY(-2px);
       box-shadow: var(--shadow-md) !important;
     }
 
@@ -626,7 +629,6 @@
     }
 
     #tab-dieuhanh .dept-card:hover {
-      transform: translateY(-3px);
       box-shadow: var(--shadow-md);
       border-color: rgba(0,0,0,0.1);
     }
@@ -733,7 +735,6 @@
       
       #tab-dieuhanh .table-sticky tr:hover,
       #tab-tc-dashboard #tc-progress-table .table-sticky tr:hover {
-        transform: translateY(-2px);
         box-shadow: var(--shadow-md);
       }
       
@@ -1208,20 +1209,23 @@
     <!-- DASHBOARD -->
     <div id="report-dashboard" style="display:none; gap:20px; flex-direction:column;">
       <div style="display:flex; gap:20px; flex-wrap:wrap;">
-        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--red);">
-          <div class="kpi-icon">🌧️</div>
-          <div class="kpi-value" style="color:var(--red);" id="stat-rain">0h</div>
-          <div class="kpi-label" style="color:var(--red);">TỔNG GIỜ MƯA ẢNH HƯỞNG</div>
+        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-danger);">
+          <div class="kpi-icon" style="background:var(--hp-danger-bg); color:var(--hp-danger);">🌧️</div>
+          <div class="kpi-value" style="color:var(--hp-danger);" id="stat-rain">0h</div>
+          <div class="kpi-label" style="color:var(--hp-danger);">TỔNG GIỜ MƯA ẢNH HƯỞNG</div>
+          <div class="kpi-desc" id="stat-rain-desc">Mưa làm gián đoạn thi công</div>
         </div>
-        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--green);">
-          <div class="kpi-icon">👷</div>
-          <div class="kpi-value" style="color:var(--green);" id="stat-manpower">0</div>
-          <div class="kpi-label" style="color:var(--green);">NHÂN LỰC TRUNG BÌNH / NGÀY</div>
+        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-success);">
+          <div class="kpi-icon" style="background:var(--hp-success-bg); color:var(--hp-success);">👷</div>
+          <div class="kpi-value" style="color:var(--hp-text-primary);" id="stat-manpower">0</div>
+          <div class="kpi-label">NHÂN LỰC TRUNG BÌNH / NGÀY</div>
+          <div class="kpi-desc" id="stat-manpower-desc">Tính trên các ngày có báo cáo</div>
         </div>
-        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--pri);">
-          <div class="kpi-icon">📅</div>
-          <div class="kpi-value" style="color:var(--pri);" id="stat-days">0</div>
-          <div class="kpi-label" style="color:var(--pri);">SỐ NGÀY ĐÃ BÁO CÁO</div>
+        <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-primary);">
+          <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-primary);">📅</div>
+          <div class="kpi-value" style="color:var(--hp-text-primary);" id="stat-days">0</div>
+          <div class="kpi-label">SỐ NGÀY ĐÃ BÁO CÁO</div>
+          <div class="kpi-desc" id="stat-days-desc">Lịch sử ghi chép nhật ký</div>
         </div>
       </div>
 
@@ -1527,7 +1531,6 @@
     }
     #tab-hethong .system-card:hover {
       box-shadow: var(--shadow-md, 0 4px 10px rgba(0,0,0,0.05));
-      transform: translateY(-2px);
     }
     #tab-hethong .system-card.card-primary {
       border-top-color: var(--primary);
@@ -1820,22 +1823,27 @@
 <section id="tab-tiendo" class="hide">
   
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom: 20px;">
-      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--navy);">
-        <div class="kpi-icon">📋</div>
-        <div class="kpi-value" style="color:var(--text-strong);" id="pg-kpi-total">0</div>
-        <div class="kpi-label" style="color:var(--text-strong);">TỔNG SỐ HẠNG MỤC</div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-primary);">
+        <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-primary);">📋</div>
+        <div class="kpi-value" style="color:var(--hp-text-primary);" id="pg-kpi-total">0</div>
+        <div class="kpi-label" style="color:var(--hp-text-primary);">TỔNG SỐ HẠNG MỤC</div>
+        <div class="kpi-desc" id="pg-kpi-total-desc">Tất cả hạng mục của dự án</div>
       </div>
-      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--pri);">
-        <div class="kpi-icon">🚜</div>
-        <div class="kpi-value" style="color:var(--pri);" id="pg-kpi-active">0</div>
-        <div class="kpi-label" style="color:var(--pri);">ĐANG THI CÔNG</div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-brand-accent);">
+        <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-brand-accent);">🚜</div>
+        <div class="kpi-value" style="color:var(--hp-text-primary);" id="pg-kpi-active">0</div>
+        <div class="kpi-label" style="color:var(--hp-text-primary);">ĐANG THI CÔNG</div>
+        <div class="kpi-desc" id="pg-kpi-active-desc">Đang triển khai thực tế</div>
       </div>
-      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--red);">
-        <div class="kpi-icon">🚨</div>
-        <div class="kpi-value" style="color:var(--red);" id="pg-kpi-late">0</div>
-        <div class="kpi-label" style="color:var(--red);">CHẬM TIẾN ĐỘ</div>
+      <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-danger);">
+        <div class="kpi-icon" style="background:var(--hp-danger-bg); color:var(--hp-danger);">🚨</div>
+        <div class="kpi-value" style="color:var(--hp-danger);" id="pg-kpi-late">0</div>
+        <div class="kpi-label" style="color:var(--hp-danger);">CHẬM TIẾN ĐỘ</div>
+        <div class="kpi-desc" id="pg-kpi-late-desc">Tiến độ đạt yêu cầu</div>
       </div>
     </div>
+    
+    <div id="tiendo-project-timeline" style="margin-bottom: 20px;"></div>
 
     <!-- NEW DATA INPUT CARD -->
     <div class="card no-print" style="margin-bottom:20px; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); border-radius:8px;">
@@ -2513,14 +2521,14 @@ updateHeaderDate();
 
 <script src="modules/baocao.js"></script>
 <script src="modules/excel.js"></script>
-<script src="modules/dashboard.js"></script>
+<script src="modules/dashboard.js?v=1.1"></script>
 <script src="modules/nhathau.js"></script>
 <script src="modules/tiendo.js"></script>
 <script src="modules/thanhtoan.js"></script>
 <script src="modules/dieuhanh.js"></script>
 <script src="modules/hethong.js?v=2"></script>
 <script src="modules/lpb.js"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=1.1"></script>
 <script>
   (function() {
     const select = document.getElementById("cur-project");
@@ -2734,20 +2742,9 @@ updateHeaderDate();
     }
     window.openUrgentAlert = openUrgentAlert;
 
-    // Listen to project selection changes and notify iframe
-    setTimeout(() => {
-      const selectProj = document.getElementById("cur-project");
-      if (selectProj) {
-        selectProj.addEventListener("change", () => {
-          setTimeout(() => {
-            const iframe = document.querySelector('#tab-baocaongay-new iframe');
-            if (iframe && iframe.contentWindow) {
-              iframe.contentWindow.postMessage({ type: 'PROJECT_CHANGED', projectId: CUR.project }, '*');
-            }
-          }, 200);
-        });
-      }
-    }, 1000);
+    // (Đã gỡ bộ gửi PROJECT_CHANGED trùng ở đây: bản này thiếu projInfo, gửi sau 200ms
+    // nên GHI ĐÈ TRẮNG tên/ngày công trình mà bản đầy đủ trong app.js onchange vừa điền.
+    // Nguồn gửi duy nhất giờ là $("cur-project").onchange trong app.js.)
 
   })();
 </script>

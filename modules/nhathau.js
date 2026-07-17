@@ -219,7 +219,7 @@ async function renderContractors() {
   if(!tbody) return;
   
   if(!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-dim);">Chưa có dữ liệu nhà thầu/tổ đội phù hợp.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6">${renderEmptyState('👷', 'Chưa có dữ liệu', 'Không có nhà thầu hoặc tổ đội nào khớp với bộ lọc tìm kiếm.')}</td></tr>`;
     return;
   }
 

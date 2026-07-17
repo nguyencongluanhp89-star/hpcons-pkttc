@@ -28,9 +28,11 @@ const firebaseConfig = {
     // Khởi tạo các service cần thiết
     const db = firebase.firestore();
     const auth = firebase.auth();
+    let storage = null;
+    try { storage = firebase.storage(); } catch(e) { console.warn("Firebase Storage chưa sẵn sàng:", e); }
 
     // Export các đối tượng Firebase ra window
-    window.fb = { app, db, auth };
+    window.fb = { app, db, auth, storage };
 
     console.log("Firebase connected");
   } catch (error) {

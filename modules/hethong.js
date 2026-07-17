@@ -22,7 +22,7 @@ async function renderAuditList(){
 
   const w=$("audit-list"); if(!w) return;
 
-  w.innerHTML = log.length ? log.map(e=>'<div class="it"><span><b>'+new Date(e.at).toLocaleString("vi-VN")+'</b> · '+esc(e.user)+' · '+esc(e.action)+(e.detail?' — '+esc(e.detail):'')+'</span></div>').join("") : '<p class="muted">Chưa có thao tác nào.</p>';
+  w.innerHTML = log.length ? log.map(e=>'<div class="it"><span><b>'+new Date(e.at).toLocaleString("vi-VN")+'</b> · '+esc(e.user)+' · '+esc(e.action)+(e.detail?' — '+esc(e.detail):'')+'</span></div>').join("") : renderEmptyState('📋', 'Chưa có nhật ký', 'Hệ thống chưa ghi nhận thao tác lịch sử nào.');
 
 }
 
@@ -494,7 +494,14 @@ async function firebaseAuthSync(user, plainPassword) {
     const email = (user.username || user.id) + "@hpcons.local";
     const auth = window.fb.auth;
     try {
-      await auth.signInWithEmailAndPassword(email, plainPassword);
+      const cred = await auth.signInWithEmailAndPassword(email, plainPassword);
+      const uid = cred.user.uid;
+      await window.fb.db.collection("users").doc(uid).set({
+        full_name: user.full_name,
+        role: user.role,
+        app_user_id: user.id,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
     } catch (err) {
       const code = err && err.code;
       if (code === "auth/user-not-found" || code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") {
@@ -709,9 +716,7 @@ async function renderDeptPersonnel(elementId, deptKey, deptName) {
   let html = '';
 
   if(members.length === 0) {
-
-    html += `<p class="muted" style="text-align:center;padding:40px 0">Chưa có nhân sự nào được phân công tại ${deptName}.</p>`;
-
+    html += renderEmptyState('👥', 'Chưa có nhân sự', `Chưa có nhân sự nào được phân công làm việc tại ${deptName}.`);
   } else {
     // Phân nhóm nhân sự theo chức vụ để hiển thị dạng Grid
     const grouped = {};

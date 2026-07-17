@@ -82,4 +82,11 @@ let draws = [
 ];
 let logoImg=null, ovMain=null, ovSub1=null, ovSub2=null;
 
+/* Setter functions to safely update script-scoped variables from other scripts */
+function setUnits(arr) { units = arr || []; }
+function setWorks(arr) { works = arr || []; }
+function setPhotos(arr) { photos = arr || []; }
+function setDraws(arr) { draws = arr || []; }
+
 /* ---------- form builders ---------- */
+

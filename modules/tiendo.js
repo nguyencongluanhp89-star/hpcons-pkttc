@@ -131,8 +131,52 @@ async function renderTiendo(){
     }
   });
   if(document.getElementById("pg-kpi-total")) document.getElementById("pg-kpi-total").textContent = items.length;
+  const elTotalDesc = document.getElementById("pg-kpi-total-desc");
+  if(elTotalDesc) elTotalDesc.textContent = "Tất cả hạng mục của dự án";
+
   if(document.getElementById("pg-kpi-active")) document.getElementById("pg-kpi-active").textContent = activeCount;
+  const elActiveDesc = document.getElementById("pg-kpi-active-desc");
+  if(elActiveDesc) elActiveDesc.textContent = "Đang triển khai thực tế";
+
   if(document.getElementById("pg-kpi-late")) document.getElementById("pg-kpi-late").textContent = lateCount;
+  const elLateDesc = document.getElementById("pg-kpi-late-desc");
+  if(elLateDesc) elLateDesc.textContent = lateCount > 0 ? "Cần xử lý gấp" : "Tiến độ đạt yêu cầu";
+
+  // Lấy thông tin dự án hiện tại để lấy ngày bắt đầu và kết thúc
+  let proj = null;
+  let progressPct = 0;
+  try {
+    const projects = await DataService.listProjects();
+    proj = projects.find(p => p.id === CUR.project);
+    
+    // Tính tiến độ chung của toàn bộ dự án
+    let doneTasks = 0;
+    const workTasks = items.filter(it => levelOf(it.task) > 1);
+    let totalDuration = 0;
+    let completedDuration = 0;
+    workTasks.forEach(it => {
+      if(it.status === "done") doneTasks++;
+      const dur = Number(it.duration) || 0;
+      const pct = it.status === "done" ? 100 : (Number(it.completedPct) || 0);
+      if (dur > 0) {
+        totalDuration += dur;
+        completedDuration += (pct / 100) * dur;
+      }
+    });
+    if (totalDuration > 0) {
+      progressPct = Math.round((completedDuration / totalDuration) * 100);
+    } else if (workTasks.length > 0) {
+      progressPct = Math.round(doneTasks / workTasks.length * 100);
+    }
+  } catch (err) {
+    console.error("Lỗi lấy thông tin dự án để tính timeline:", err);
+  }
+
+  // Render Timeline
+  const timelineDiv = document.getElementById("tiendo-project-timeline");
+  if (timelineDiv && proj) {
+    timelineDiv.innerHTML = renderTimeline(proj.start_date, proj.end_date, progressPct, proj.status === "Đã bàn giao");
+  }
 
   // Render Warning Banner
   const banner = document.getElementById("td-warning-banner");
@@ -339,7 +383,7 @@ async function renderTiendo(){
                 <td style="text-align:center;">${statusPill}</td>
                 <td style="white-space:nowrap; text-align:center;">${actionsHtml}</td>
               </tr>`;
-    }).join("") : '<tr><td colspan="8" class="muted" style="text-align:center; padding:20px;">Không có công tác nào trong 3 tuần tới.</td></tr>';
+    }).join("") : '<tr><td colspan="8">' + renderEmptyState('📅', 'Không có công tác', 'Không ghi nhận hạng mục thi công nào trong khoảng thời gian này.') + '</td></tr>';
     
     if (totalCount > tiendoLimit) {
       html += `<tr><td colspan="8" style="text-align:center; padding:16px; background:rgba(255,255,255,0.02);"><button class="btn btn-mut" onclick="loadMoreTiendo()">🔄 Xem thêm (${totalCount - tiendoLimit} công tác khác)</button></td></tr>`;
@@ -385,7 +429,7 @@ window.openExtensionModal = async function(id) {
       }).join("");
       histDiv.innerHTML = histHtml;
     } else {
-      histDiv.innerHTML = `<p class="muted" style="font-size:12px; font-style:italic;">Chưa có lịch sử gia hạn.</p>`;
+      histDiv.innerHTML = renderEmptyState('⏳', 'Chưa có lịch sử gia hạn', 'Hạng mục này chưa từng thực hiện xin gia hạn tiến độ.');
     }
   }
   

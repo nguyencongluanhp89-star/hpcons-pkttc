@@ -18,14 +18,17 @@ const FirebaseSync = {
       window.fb && window.fb.db && window.fb.auth && window.fb.auth.currentUser;
   },
 
-  async pushAllDirty() {
+  async pushAllDirty(autoOnly = false) {
     if (!this.ready()) return;
     try {
       const db = window.fb.db;
       const dirtyMetaObj = await idbGet("meta", "meta_dirty_keys");
       const dirtyMetaKeys = dirtyMetaObj ? (dirtyMetaObj.value || []) : [];
+      const pushedKeys = [];
       for (const key of dirtyMetaKeys) {
         if (fbSkipKey(key)) continue;
+        // Auto-push BỎ QUA dữ liệu nền/danh mục (dự án, người dùng, nhà thầu...) — chỉ "Đẩy toàn bộ" mới đẩy.
+        if (autoOnly && typeof isManualPushOnlyKey === "function" && isManualPushOnlyKey(key)) continue;
         const valObj = await idbGet("meta", key);
         if (!valObj) continue;
         try {
@@ -33,6 +36,24 @@ const FirebaseSync = {
             await this._pushDailyReports(valObj.value || []);
           } else if (key === "lpb_requests") {
             await this._pushLpbRequests(valObj.value || []);
+          } else if (key === "projects") {
+            for (const p of (valObj.value || [])) {
+              if (!p.id) continue;
+              await db.collection("projects").doc(p.id).set({
+                name: p.name || "",
+                address: p.address || "",
+                scale: p.scale || "",
+                start_date: p.start_date || null,
+                end_date: p.end_date || null,
+                commander: p.commander || "",
+                investor: p.investor || "",
+                status: p.status || "",
+                contract_no: p.contract_no || "",
+                latitude: p.latitude || null,
+                longitude: p.longitude || null,
+                updated_at: new Date().toISOString()
+              }, { merge: true });
+            }
           } else if (key.includes(":")) {
             const [type, pid] = key.split(":");
             await db.collection("projects").doc(pid).collection("data").doc(type).set({
@@ -48,9 +69,18 @@ const FirebaseSync = {
               value: valObj.value, updated_at: new Date().toISOString()
             }, { merge: true });
           }
+          pushedKeys.push(key); // đẩy Firebase thành công
         } catch (e) {
           console.warn("FirebaseSync push lỗi cho key " + key + ":", e && e.message);
         }
+      }
+
+      // Supabase đã tắt (SUPABASE_ENABLED=false) -> Firebase TỰ dọn cờ dirty các key đã đẩy
+      // (trước đây do Supabase.pushAllDirty đảm nhiệm). Không dọn -> đẩy lặp vô hạn.
+      if (typeof SUPABASE_ENABLED !== "undefined" && !SUPABASE_ENABLED && pushedKeys.length) {
+        const cur = await idbGet("meta", "meta_dirty_keys");
+        const remain = ((cur && cur.value) || []).filter(k => !pushedKeys.includes(k));
+        await idbPut("meta", { key: "meta_dirty_keys", value: remain });
       }
     } catch (e) {
       console.warn("FirebaseSync.pushAllDirty lỗi:", e);
@@ -59,10 +89,66 @@ const FirebaseSync = {
 
   async _pushDailyReports(arr) {
     const db = window.fb.db;
+    const storage = window.fb.storage;
+    let localChanged = false;
+
+    // Tách 1 ảnh base64 -> Storage, trả URL (doc chỉ giữ URL để < 1MB)
+    const uploadImg = async (val, r, name) => {
+      if (!storage || !val || typeof val !== "string" || !val.startsWith("data:image/")) return val;
+      try {
+        const blob = await (await fetch(val)).blob();
+        const path = `reports/${r.project_id}/${r.date}/${name}_${Date.now()}_${Math.round(Math.random()*1e6)}.jpg`;
+        const ref = storage.ref().child(path);
+        const snap = await ref.put(blob);
+        return await snap.ref.getDownloadURL();
+      } catch (e) {
+        console.warn("[FirebaseSync] upload anh daily_report loi:", e && e.message);
+        return val; // giữ base64 nếu upload lỗi
+      }
+    };
+
     for (const r of (arr || [])) {
       if (!r || !r.project_id || !r.date) continue;
-      const id = [r.project_id, r.date, r.created_by || "x"].join("_").replace(/[^a-zA-Z0-9_.-]/g, "-");
+
+      // Tách ảnh base64 (photos/draws) lên Storage -> URL
+      if (Array.isArray(r.photos)) {
+        for (let i = 0; i < r.photos.length; i++) {
+          if (r.photos[i] && typeof r.photos[i].img === "string" && r.photos[i].img.startsWith("data:image/")) {
+            r.photos[i].img = await uploadImg(r.photos[i].img, r, "img" + i);
+            localChanged = true;
+          }
+        }
+      }
+      if (Array.isArray(r.draws)) {
+        for (let i = 0; i < r.draws.length; i++) {
+          if (r.draws[i] && typeof r.draws[i].img === "string" && r.draws[i].img.startsWith("data:image/")) {
+            r.draws[i].img = await uploadImg(r.draws[i].img, r, "draw" + i);
+            localChanged = true;
+          }
+        }
+      }
+      // Ảnh tổng quan 01 + logo (ảnh đơn) -> Storage
+      for (const f of ["ov_main", "ov_sub1", "ov_sub2", "logo_cdt", "logo_ntc"]) {
+        if (typeof r[f] === "string" && r[f].startsWith("data:image/")) {
+          r[f] = await uploadImg(r[f], r, f);
+          localChanged = true;
+        }
+      }
+
+      const rStr = JSON.stringify(r);
+      if (rStr.length > 900 * 1024) {
+        console.warn(`[FirebaseSync] Bo qua push daily_report lon (${Math.round(rStr.length/1024)}KB) de tranh loi payload size.`);
+        continue;
+      }
+
+      const id = [r.project_id, r.date].join("_").replace(/[^a-zA-Z0-9_.-]/g, "-");
       await db.collection("daily_reports").doc(id).set({ ...r, updated_at: new Date().toISOString() }, { merge: true });
+    }
+
+    // Cập nhật lại local (ảnh -> URL) để lần sau KHÔNG upload lại + app chính hiển thị bằng URL
+    if (localChanged) {
+      try { await idbPut("meta", { key: "daily_reports", value: arr }); }
+      catch (e) { console.warn("[FirebaseSync] cap nhat local daily_reports loi:", e && e.message); }
     }
   },
 
@@ -81,6 +167,9 @@ const FirebaseSync = {
 
       const configSnap = await db.collection("config").get();
       for (const doc of configSnap.docs) {
+        // "projects" quản lý per-document ở collection projects/{pid} (FIX-2);
+        // blob config/projects là bản đẩy nhầm chỗ cũ — kéo về sẽ ĐÈ hồ sơ dự án thật bằng dữ liệu cũ.
+        if (doc.id === "projects" || doc.id.startsWith("test_")) continue;
         await this._mergeLocal(doc.id, doc.data().value);
       }
 
@@ -96,7 +185,7 @@ const FirebaseSync = {
           const allDaily = await metaGet("daily_reports", []);
           drSnap.docs.forEach(doc => {
             const r = doc.data();
-            const idx = allDaily.findIndex(x => x.project_id === r.project_id && x.date === r.date && x.created_by === r.created_by);
+            const idx = allDaily.findIndex(x => x.project_id === r.project_id && x.date === r.date);
             if (idx >= 0) { if (!allDaily[idx].dirty) allDaily[idx] = r; }
             else allDaily.push(r);
           });
@@ -116,6 +205,39 @@ const FirebaseSync = {
       }
     } catch (e) {
       console.warn("FirebaseSync.pull lỗi:", e);
+    }
+  },
+
+  async pullDailyReports() {
+    if (!this.ready()) return;
+    try {
+      const db = window.fb.db;
+      const projectId = window.CUR ? window.CUR.project : null;
+      if (!projectId) return;
+
+      const drSnap = await db.collection("daily_reports").where("project_id", "==", projectId).get();
+      if (!drSnap.empty) {
+        const allDaily = await metaGet("daily_reports", []);
+        drSnap.docs.forEach(doc => {
+          const r = doc.data();
+          const idx = allDaily.findIndex(x => x.project_id === r.project_id && x.date === r.date);
+          if (idx >= 0) {
+            const localRep = allDaily[idx];
+            if (localRep.dirty) return; // không đè bản local đang dirty
+            
+            const localTime = new Date(localRep.updated_at || 0).getTime();
+            const remoteTime = new Date(r.updated_at || 0).getTime();
+            if (remoteTime > localTime) {
+              allDaily[idx] = r; // updated_at mới hơn thắng
+            }
+          } else {
+            allDaily.push(r);
+          }
+        });
+        await idbPut("meta", { key: "daily_reports", value: allDaily });
+      }
+    } catch (e) {
+      console.warn("FirebaseSync.pullDailyReports lỗi:", e);
     }
   },
 

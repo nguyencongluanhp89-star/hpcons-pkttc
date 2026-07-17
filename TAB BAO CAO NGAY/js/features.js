@@ -448,7 +448,22 @@ function workCN(vi){ const k=wkey(vi); if(!k)return ''; if(WORK_CN[k])return WOR
 
 function biTitle(t){ const c=workCN(t); return (t||'')+(c?(' <span style="font-weight:400;color:var(--grey)">/ '+c+'</span>'):''); }
 
-function biLineSplit(line){ let s=(line||'').replace(/^[•\-•\s]+/,'').trim(); let m=s.match(/^(.*?)[:：]\s*(.+)$/); if(m)return{n:m[1].trim(),q:m[2].trim()}; m=s.match(/^(.*?)(\s+\d[\d.,/]*\s*\S*)$/); if(m)return{n:m[1].trim(),q:m[2].trim()}; return{n:s,q:''}; }
+function biLineSplit(line){
+  let s=(line||'').replace(/^[•\-•\s]+/,'').trim();
+  let m=s.match(/^(.*?)[:：]\s*(.+)$/);
+  if(m) {
+    let n=m[1].trim(), q=m[2].trim();
+    if(/[&+\-/]$|(?:\s+v\u00e0|\s+va)$/i.test(n)) return {n:s, q:''};
+    return {n, q};
+  }
+  m=s.match(/^(.*?)(\s+\d[\d.,/]*\s*\S*)$/);
+  if(m) {
+    let n=m[1].trim(), q=m[2].trim();
+    if(/[&+\-/]$|(?:\s+v\u00e0|\s+va)$/i.test(n)) return {n:s, q:''};
+    return {n, q};
+  }
+  return {n:s, q:''};
+}
 
 function biDetail(d){ 
 
@@ -608,6 +623,60 @@ function toggleVoiceWorks(){
 
 function fileTime(file){ const dt=new Date(file.lastModified); return ('0'+dt.getHours()).slice(-2)+':'+('0'+dt.getMinutes()).slice(-2); }
 
+/* --- Nhận dạng ảnh TRÙNG NỘI DUNG (average hash 8x8) ---
+   Thu ảnh về 8x8 xám, mỗi ô sáng hơn mức trung bình = 1, tối hơn = 0 -> "vân tay" 64 bit của nội dung.
+   Hai ảnh cùng cảnh (dù khác dung lượng/giờ chụp/độ nét) sẽ có vân tay gần giống nhau.
+   Cách cũ so dung lượng file + giờ chụp là SAI: ảnh khác cảnh chụp liên tiếp bị coi là trùng,
+   còn ảnh trùng thật chụp cách xa nhau lại lọt lưới. */
+function imageHash(img){
+  const S = 8;
+  try {
+    const c = document.createElement('canvas'); c.width = S; c.height = S;
+    const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, S, S);
+    const d = ctx.getImageData(0, 0, S, S).data;
+    const g = new Float64Array(S*S); let sum = 0;
+    for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+      g[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      sum += g[p];
+    }
+    const mean = sum / (S*S);
+    const bits = new Uint8Array(S*S);
+    for (let p = 0; p < S*S; p++) bits[p] = g[p] > mean ? 1 : 0;
+    return bits;
+  } catch(_) { return null; }   // ảnh chéo miền (CORS) -> không băm được
+}
+// Số bit khác nhau giữa 2 vân tay (0 = giống hệt, càng lớn càng khác)
+function hashDistance(a, b){
+  if (!a || !b || a.length !== b.length) return 999;   // không băm được -> coi như KHÁC (không lọc nhầm)
+  let d = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) d++;
+  return d;
+}
+const DUP_BITS = 6;   // <= 6/64 bit khác nhau -> coi là cùng một nội dung
+
+/* Chạy các tác vụ bất đồng bộ theo LÔ NHỎ (giới hạn số ảnh giải mã đồng thời).
+   Trước đây dùng Promise.all -> giải mã TẤT CẢ ảnh full-res cùng lúc, mỗi ảnh
+   điện thoại ~12MP ngốn ~190MB RAM -> nhiều ảnh làm treo tab. Lô 3 ảnh/lượt
+   giảm mạnh bộ nhớ đỉnh, GIỮ NGUYÊN thuật toán chấm điểm/chọn ảnh. */
+function runImagePool(items, worker, concurrency, onProgress){
+  return new Promise(resolve=>{
+    const results=new Array(items.length);
+    let idx=0, done=0, active=0;
+    function pump(){
+      if(done===items.length){ resolve(results); return; }
+      while(active<concurrency && idx<items.length){
+        const cur=idx++; active++;
+        Promise.resolve(worker(items[cur],cur)).then(r=>{
+          results[cur]=r; active--; done++;
+          if(onProgress) try{ onProgress(done, items.length); }catch(e){}
+          pump();
+        });
+      }
+    }
+    pump();
+  });
+}
+
 function analyzeImage(file){
   return new Promise(resolve=>{
     const fr=new FileReader();
@@ -618,7 +687,7 @@ function analyzeImage(file){
         const c=document.createElement('canvas'); c.width=W; c.height=H;
         const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,W,H);
         let d; try{ d=ctx.getImageData(0,0,W,H).data; }
-        catch(err){ resolve({score:0,dataURL:e.target.result,vi:'',cn:'',time:fileTime(file),size:file.size,lastModified:file.lastModified,name:file.name}); return; }
+        catch(err){ resolve({score:0,dataURL:e.target.result,vi:'',cn:'',time:fileTime(file),size:file.size,lastModified:file.lastModified,name:file.name, hash:null}); return; }
         const gray=new Float64Array(W*H); let sum=0;
         for(let i=0,p=0;i<d.length;i+=4,p++){ const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; gray[p]=g; sum+=g; }
         const mean=sum/(W*H);
@@ -629,9 +698,9 @@ function analyzeImage(file){
         let expo=1; if(mean<40)expo=Math.max(0.1,mean/40); else if(mean>225)expo=Math.max(0.1,(255-mean)/30);
         const score=lvar*expo + (img.width*img.height)/1e7;
         const m=matchCongTac(file.name);
-        resolve({score, dataURL:e.target.result, vi:m>=0?CONGTAC[m].vi:'', cn:m>=0?CONGTAC[m].cn:'', time:fileTime(file),size:file.size,lastModified:file.lastModified,name:file.name});
+        resolve({score, dataURL:e.target.result, vi:m>=0?CONGTAC[m].vi:'', cn:m>=0?CONGTAC[m].cn:'', time:fileTime(file),size:file.size,lastModified:file.lastModified,name:file.name, hash:imageHash(img)});
       };
-      img.onerror=()=>resolve({score:0,dataURL:e.target.result,vi:'',cn:'',time:fileTime(file),size:file.size,lastModified:file.lastModified,name:file.name});
+      img.onerror=()=>resolve({score:0,dataURL:e.target.result,vi:'',cn:'',time:fileTime(file),size:file.size,lastModified:file.lastModified,name:file.name, hash:null});
       img.src=e.target.result;
     };
     fr.readAsDataURL(file);
@@ -642,45 +711,32 @@ function onBulkPhotos(input){
   const files=[...input.files]; if(!files.length) return;
   const N = files.length;
   el('bulkStatus').textContent='⏳ Đang phân tích '+files.length+' ảnh...';
-  Promise.all(files.map(analyzeImage)).then(list=>{
+  runImagePool(files, analyzeImage, 3, (d,t)=>{ const s=el('bulkStatus'); if(s) s.textContent='⏳ Đang phân tích '+d+'/'+t+' ảnh...'; }).then(list=>{
     // Sắp xếp theo score (độ sắc nét & chất lượng) từ cao xuống thấp
     list.sort((a,b)=>b.score-a.score);
     
-    // Lọc trùng lặp để giữ các ảnh có nội dung khác nhau
+    // LỌC ẢNH TRÙNG NỘI DUNG (so vân tay 8x8, không so dung lượng/giờ chụp như bản cũ).
+    // list đã sắp theo độ nét giảm dần -> ảnh giữ lại luôn là bản NÉT NHẤT của mỗi cảnh.
     const filteredList = [];
     for (const img of list) {
-      let isDuplicate = false;
-      for (const other of filteredList) {
-        const timeDiff = Math.abs(img.lastModified - other.lastModified);
-        const sizeDiff = Math.abs(img.size - other.size) / (other.size || 1);
-        if (timeDiff < 15000 || sizeDiff < 0.02) {
-          isDuplicate = true;
-          break;
-        }
-      }
-      if (!isDuplicate) {
-        filteredList.push(img);
-      }
+      const isDuplicate = filteredList.some(o => hashDistance(img.hash, o.hash) <= DUP_BITS);
+      if (!isDuplicate) filteredList.push(img);
     }
-    
-    // Fallback: Nếu lọc quá mức dẫn đến thiếu ảnh so với mong muốn tải, lấy lại các ảnh ban đầu
+    const dupCount = N - filteredList.length;
+
+    // Số ô lưới: 9 nếu có đủ 9 ảnh KHÁC NỘI DUNG, ngược lại 6.
+    const targetNum = filteredList.length >= 9 ? 9 : 6;
+
+    // Chỉ bù thêm khi KHÔNG đủ ảnh khác nội dung để lấp lưới (ưu tiên ảnh nét nhất trong số bị loại).
+    // Bản cũ bù tới Math.max(6, N) nên nhồi lại TOÀN BỘ ảnh trùng -> vô hiệu hoá việc lọc.
     const finalSelectionList = [...filteredList];
-    for (const img of list) {
-      if (finalSelectionList.length >= Math.max(6, N)) break;
-      if (!finalSelectionList.some(x => x.dataURL === img.dataURL)) {
-        finalSelectionList.push(img);
+    if (finalSelectionList.length < targetNum) {
+      for (const img of list) {
+        if (finalSelectionList.length >= targetNum) break;
+        if (!finalSelectionList.includes(img)) finalSelectionList.push(img);
       }
     }
     finalSelectionList.sort((a,b)=>b.score-a.score);
-    
-    // Xác định số lượng lưới hiển thị (luôn là 6 hoặc 9)
-    // Nếu người dùng chọn đúng 5 hình thì nhắc bổ sung
-    let targetNum = 6;
-    if (N >= 9) {
-      targetNum = 9;
-    } else {
-      targetNum = 6;
-    }
     
     // Reset mảng photos và đưa vào số lượng ảnh phù hợp
     photos = [];
@@ -699,12 +755,13 @@ function onBulkPhotos(input){
       }
     }
     
-    let statusText = `✓ Đã tự động chọn và bố trí ${top.length} ảnh nét nhất vào lưới ${targetNum} ảnh.`;
-    if (N === 5) {
-      statusText = `<span style="color:var(--red); font-weight:bold;">⚠ Anh đã chọn 5 ảnh. Số lượng ảnh chưa đủ bộ 6 ảnh. Vui lòng chọn thêm hoặc bớt ảnh!</span>`;
-      alert("Anh vừa chọn 5 hình, chưa đủ bộ 6 ảnh báo cáo. Vui lòng tải thêm hoặc bớt để đạt đúng 6 hoặc 9 ảnh!");
-    } else if (N > targetNum) {
-      statusText += ` (Đã lọc bỏ ${N - targetNum} ảnh trùng lặp/kém nét để đưa về đúng ${targetNum} ảnh).`;
+    const filledCount = photos.filter(p => p.img).length;
+    let statusText = `✓ Đã chọn ${filledCount} ảnh khác nội dung, nét nhất, vào lưới ${targetNum} ảnh.`;
+    if (dupCount > 0) {
+      statusText += ` (Đã loại ${dupCount} ảnh trùng nội dung — giữ lại bản nét nhất của mỗi cảnh.)`;
+    }
+    if (filteredList.length < targetNum) {
+      statusText += ` <span style="color:var(--red); font-weight:bold;">⚠ Chỉ có ${filteredList.length} ảnh khác nội dung, chưa đủ ${targetNum} ô. Hãy chụp thêm cảnh khác.</span>`;
     }
     
     el('bulkStatus').innerHTML = statusText;
@@ -1096,7 +1153,7 @@ window.translateDrawTitleDirect = async (i, val) => {
 
         <div style="font-weight:700; color:var(--green); font-size:13px; margin-bottom:6px">TẢI LÊN TỰ ĐỘNG (Nhiều ảnh bản vẽ)</div>
 
-        <div style="font-size:12px; color:#15803d; margin-bottom:10px">Chọn nhiều ảnh cùng lúc. Hệ thống sẽ tự phân tích và chọn 4 ảnh bản vẽ rõ nét nhất.</div>
+        <div style="font-size:12px; color:#15803d; margin-bottom:10px">Chọn nhiều ảnh cùng lúc — app chèn ngay 4 ảnh đầu vào 4 ô bản vẽ (theo thứ tự chọn).</div>
 
         <input type="file" multiple accept="image/*" onchange="handleDrawBulk(this.files)">
 
@@ -1132,25 +1189,32 @@ window.translateDrawTitleDirect = async (i, val) => {
 
     if(!files.length) return;
 
-    el('drawBulkStatus').textContent='⏳ Đang phân tích ảnh...';
+    // HIỆN NGAY (Sếp chốt): chỉ ĐỌC ảnh và chèn thẳng vào các ô theo thứ tự chọn — KHÔNG tự
+    // phân tích/lọc trùng/chọn 4 ảnh nét nhất (bước đó giải mã ảnh gốc 12MP -> treo tab).
+    // readAsDataURL chỉ đọc base64, không decode bitmap nên nhẹ & nhanh như trước đây.
+    const slots = Math.min(files.length, 4); // mục 05 tối đa 4 ảnh bản vẽ
 
-    Promise.all(files.map(analyzeImage)).then(list=>{
+    el('drawBulkStatus').textContent='⏳ Đang tải '+slots+' ảnh...';
 
-      list.sort((a,b)=>b.score-a.score);
-
-      for(let i=0; i<Math.min(4, list.length); i++){
-
-        draws[i].img = list[i].dataURL;
-
-      }
-
-      el('drawBulkStatus').textContent='✅ Đã chọn và chèn '+Math.min(4, list.length)+' ảnh tốt nhất!';
-
-      setTimeout(()=>{ if(el('drawBulkStatus')) el('drawBulkStatus').textContent=''; }, 3000);
-
-      draw();
-
-    });
+    let done=0;
+    for(let i=0;i<slots;i++){
+      (function(idx){
+        const r=new FileReader();
+        r.onload=e=>{
+          if(!draws[idx]) draws[idx]={t:'',img:''};
+          draws[idx].img=e.target.result;
+          done++;
+          const s=el('drawBulkStatus'); if(s) s.textContent='⏳ Đang tải '+done+'/'+slots+' ảnh...';
+          if(done===slots){
+            const st=el('drawBulkStatus');
+            if(st) st.textContent='✅ Đã chèn '+slots+' ảnh.';
+            setTimeout(()=>{ const x=el('drawBulkStatus'); if(x) x.textContent=''; }, 3000);
+            renderDrawForm(); draw();
+          }
+        };
+        r.readAsDataURL(files[idx]);
+      })(i);
+    }
 
   }
 
@@ -1695,49 +1759,44 @@ function updateActionButtons() {
 
   let html = '';
 
-  // 1. Badge hiển thị trạng thái hiện tại
-  html += `
-    <div style="min-height:38px; border-radius:8px; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 12px; border:1px solid rgba(0,0,0,0.05); text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.04); ${statusColors[status] || ''}">
-      ${statusLabels[status] || status}
-    </div>
-  `;
+  // 1. Badge trạng thái — CHỈ hiện khi đã nộp/duyệt/trả lại (bỏ nhãn "Nháp" cho gọn; nháp là mặc định).
+  if (status !== 'draft') {
+    html += `
+      <div style="min-height:38px; border-radius:8px; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 12px; border:1px solid rgba(0,0,0,0.05); text-align:center; box-shadow:0 2px 6px rgba(0,0,0,0.04); ${statusColors[status] || ''}">
+        ${statusLabels[status] || status}
+      </div>
+    `;
+  }
 
   // Kiểm tra quyền khóa sửa
   const isApprover = ['admin', 'director', 'pm', 'site_manager'].includes(role);
   const isLocked = (status === 'approved' || status === 'pending') && !isApprover;
   toggleFormLock(isLocked);
 
-  // 2. Các nút chức năng Lưu/Nộp duyệt/Duyệt/Trả lại
+  // 2. Nút Nộp duyệt / Duyệt / Trả lại. (Bỏ nút "Lưu" — app tự lưu nháp ngầm khi có nội dung.)
   if (role === 'engineer') {
-    // KỸ SƯ: chỉ được lưu/nộp khi trạng thái là draft hoặc rejected
+    // KỸ SƯ: chỉ được nộp khi trạng thái là draft hoặc rejected
     if (status === 'draft' || status === 'rejected') {
-      html += `<button class="act" type="button" style="background:#0284c7; box-shadow:0 4px 12px rgba(2,132,199,0.25)" onclick="saveReportData('draft')">💾 Lưu nháp</button>`;
-      html += `<button class="act" type="button" style="background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25)" onclick="submitReportForApproval()">🚀 Nộp duyệt</button>`;
+      html += `<button class="act" type="button" style="background:var(--hp-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="submitReportForApproval()">🚀 Nộp duyệt</button>`;
     }
   } else {
     // CHT / ADMIN / GIÁM ĐỐC / PM
-    // Vẫn cho phép CHT sửa và lưu cập nhật
-    html += `<button class="act" type="button" style="background:#0284c7; box-shadow:0 4px 12px rgba(2,132,199,0.25)" onclick="saveReportData('${status}')">💾 Lưu</button>`;
-    
     if (status === 'pending') {
-      html += `<button class="act" type="button" style="background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25)" onclick="approveReport()">✅ Duyệt báo cáo</button>`;
+      html += `<button class="act" type="button" style="background:var(--hp-success); box-shadow:0 4px 12px rgba(96,187,70,0.25)" onclick="approveReport()">✅ Duyệt báo cáo</button>`;
       html += `<button class="act" type="button" style="background:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.25)" onclick="rejectReport()">↩️ Trả lại</button>`;
     } else if (status === 'draft' || status === 'rejected') {
       // CHT tự lập -> bấm Nộp duyệt sẽ tự động chuyển thành approved (CHT tự duyệt)
-      html += `<button class="act" type="button" style="background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25)" onclick="submitReportForApproval()">🚀 Nộp & Duyệt</button>`;
+      html += `<button class="act" type="button" style="background:var(--hp-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="submitReportForApproval()">🚀 Nộp & Duyệt</button>`;
     }
   }
 
-  // 3. Các nút xuất ảnh và in ấn (luôn hiển thị)
-  html += `
-    <button class="act" type="button" style="background:#4b5563; box-shadow:0 4px 12px rgba(75,85,99,0.15)" onclick="exportPNG()">📸 Xuất Ảnh PNG</button>
-    <button class="act" type="button" style="background:#8b5cf6; box-shadow:0 4px 12px rgba(139,92,246,0.15)" onclick="exportPNG169()">📸 Xuất ảnh 16:9</button>
-    <button class="sec" type="button" style="background:#e5e7eb; color:#1f2937; border:1px solid #d1d5db;" onclick="window.print()">🖨️ In / Lưu PDF</button>
-  `;
-  
+  // 3. Nút "Mẫu hôm qua" — lấy lại nhân lực + hạng mục + kế hoạch mai từ báo cáo hôm qua (chỉ khi chưa khóa).
   if (!isLocked) {
-    html += `<button class="sec" type="button" style="background:#e5e7eb; color:#1f2937; border:1px solid #d1d5db;" onclick="copyYesterdayTemplate()" title="Sao chép từ ngày hôm qua">📋 Mẫu hôm qua</button>`;
+    html += `<button class="act" type="button" style="background:var(--hp-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="copyYesterdayTemplate()" title="Lấy lại nhân lực, hạng mục & kế hoạch từ báo cáo hôm qua">📋 Mẫu hôm qua</button>`;
   }
+
+  // 4. Nút xuất ảnh 16:9 (để gửi Zalo) — luôn hiển thị. (Bỏ Xuất PNG + In/Lưu PDF cho đồng bộ app báo cáo mới.)
+  html += `<button class="act" type="button" style="background:var(--hp-primary); box-shadow:0 4px 12px rgba(96,187,70,0.25)" onclick="exportPNG169()">📸 Xuất ảnh 16:9</button>`;
 
   bar.innerHTML = html;
 }
@@ -1773,6 +1832,12 @@ async function saveReportData(targetStatus) {
       works_full: (typeof works !== 'undefined' ? works : []),
       photos: (typeof photos !== 'undefined' ? photos : []),
       draws: (typeof draws !== 'undefined' ? draws : []),
+      // Ảnh tổng quan 01 + logo lưu kèm báo cáo để đồng bộ sang app khác (ảnh sẽ được tách lên Storage khi đẩy)
+      logo_cdt: (typeof logoImgCdt !== 'undefined' ? logoImgCdt : null),
+      logo_ntc: (typeof logoImg !== 'undefined' ? logoImg : null),
+      ov_main: (typeof ovMain !== 'undefined' ? ovMain : null),
+      ov_sub1: (typeof ovSub1 !== 'undefined' ? ovSub1 : null),
+      ov_sub2: (typeof ovSub2 !== 'undefined' ? ovSub2 : null),
       f_proj: el('f_proj') ? el('f_proj').value : '',
       f_contractor: el('f_contractor') ? el('f_contractor').value : '',
       f_prog: el('f_prog') ? el('f_prog').value : '',
@@ -1882,18 +1947,26 @@ function showToast(msg) {
   setTimeout(() => { t.remove(); }, 3000);
 }
 
+// Ngày dạng YYYY-MM-DD theo GIỜ ĐỊA PHƯƠNG (VN). KHÔNG dùng toISOString() cho việc lấy ngày:
+// nó đổi về UTC (VN = UTC+7) nên từ 0h00-6h59 sáng sẽ ra NGÀY HÔM TRƯỚC — lỗi lệch 1 ngày.
+function localISODate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 // Sao chép mẫu từ ngày hôm qua
 async function copyYesterdayTemplate() {
   const dateEl = el('f_date');
   if (!dateEl || !dateEl.value) { alert('Vui lòng chọn ngày báo cáo trước.'); return; }
   const cur = new Date(dateEl.value + 'T00:00:00');
   cur.setDate(cur.getDate() - 1);
-  const yest = cur.toISOString().split('T')[0];
+  const yest = localISODate(cur);
 
   try {
-    if (!window.parent || !window.parent.DataService) throw new Error('Không kết nối được hệ thống.');
-    const reports = await window.parent.DataService.listDailyReports();
-    const proj = window.parent.CUR ? window.parent.CUR.project : null;
+    // Lấy dữ liệu qua kênh postMessage chuẩn (requestParent). KHÔNG truy cập window.parent.DataService
+    // trực tiếp: bên app cha nó khai báo bằng const nên không nằm trên window -> luôn undefined.
+    const res = await requestParent('GET_DAILY_REPORTS');
+    const reports = (res && res.reports) || [];
+    const proj = res ? res.project : null;
     const report = reports.find(r => (!proj || r.project_id === proj) && r.date === yest);
 
     if (!report) {
@@ -1964,6 +2037,12 @@ async function saveToCloud() {
       works_full: (typeof works !== 'undefined' ? works : []),
       photos: (typeof photos !== 'undefined' ? photos : []),
       draws: (typeof draws !== 'undefined' ? draws : []),
+      // Ảnh tổng quan 01 + logo lưu kèm báo cáo để đồng bộ sang app khác (ảnh sẽ được tách lên Storage khi đẩy)
+      logo_cdt: (typeof logoImgCdt !== 'undefined' ? logoImgCdt : null),
+      logo_ntc: (typeof logoImg !== 'undefined' ? logoImg : null),
+      ov_main: (typeof ovMain !== 'undefined' ? ovMain : null),
+      ov_sub1: (typeof ovSub1 !== 'undefined' ? ovSub1 : null),
+      ov_sub2: (typeof ovSub2 !== 'undefined' ? ovSub2 : null),
       f_proj: el('f_proj') ? el('f_proj').value : '',
       f_contractor: el('f_contractor') ? el('f_contractor').value : '',
       f_prog: el('f_prog') ? el('f_prog').value : '',
@@ -1987,7 +2066,7 @@ async function saveToCloud() {
         btn.disabled = false;
       }, 3000);
     } catch(err) {
-      throw new Error("Không kết nối được với Hệ thống (CORS/Timeout)");
+      throw err;   // giữ nguyên thông báo chi tiết từ requestParent (đừng nuốt mất lý do thật)
     }
   } catch(e) {
     console.error("Lỗi lưu:", e);
@@ -2002,24 +2081,40 @@ async function saveToCloud() {
 }
 
 // Hàm giao tiếp iframe -> parent (vượt CORS)
-function requestParent(type, data = {}) {
+// timeoutMs mặc định 30s: lưu báo cáo phải ghi lại TOÀN BỘ mảng daily_reports (ảnh base64 nhiều MB)
+// nên 3s cũ quá ngắn -> báo lỗi giả trong khi dữ liệu thật đã lưu (khiến người dùng nộp lại nhiều lần).
+function requestParent(type, data = {}, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
+    // Trang mở đứng riêng (không nằm trong app chính) -> không có ai nhận lệnh, báo rõ thay vì chờ timeout
+    if (window.parent === window) {
+      reject(new Error("Trang Báo cáo ngày đang mở riêng lẻ. Hãy mở trong ứng dụng HP CONS (tab Báo cáo ngày) để lưu."));
+      return;
+    }
     const reqId = Date.now() + Math.random().toString();
+    let timer = null;
+    const cleanup = () => {
+      window.removeEventListener('message', handler);
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
     const handler = (e) => {
       if (!e.data || e.data.reqId !== reqId) return;
-      window.removeEventListener('message', handler);
       if (e.data.type.endsWith('_SUCCESS') || e.data.type === 'PROJECT_INFO_RESULT') {
+        cleanup();
         resolve(e.data.data);
       } else if (e.data.type.endsWith('_ERROR')) {
+        cleanup();
         reject(new Error(e.data.error));
       }
     };
     window.addEventListener('message', handler);
     window.parent.postMessage({ type, reqId, data }, '*');
-    setTimeout(() => {
-      window.removeEventListener('message', handler);
-      reject(new Error("Timeout kết nối với Hệ thống."));
-    }, 3000);
+    timer = setTimeout(() => {
+      cleanup();
+      reject(new Error(
+        "Hệ thống phản hồi quá chậm (quá " + Math.round(timeoutMs / 1000) + " giây). " +
+        "Báo cáo CÓ THỂ ĐÃ ĐƯỢC LƯU — hãy tải lại trang kiểm tra trước khi nộp lại, tránh lưu trùng."
+      ));
+    }, timeoutMs);
   });
 }
 
@@ -2062,8 +2157,13 @@ let _autoSaveTimer = null;
 async function _silentSave() {
   const date = el('f_date') ? el('f_date').value : '';
   if (!date) return;
+  // Chỉ auto-save khi form đang sửa một báo cáo ĐÃ NẠP hoặc ĐÃ LƯU tay ít nhất 1 lần.
+  // Thiếu chốt này, nội dung MẪU MẶC ĐỊNH của form tự đẻ thành bản nháp và đè lên
+  // báo cáo thật do nơi khác tạo cho cùng dự án/ngày (lỗi phát hiện khi nghiệm thu BCA-GD1).
+  if (!window.CURRENT_REPORT) return;
   try {
     const reportData = {
+      ...window.CURRENT_REPORT,
       date,
       rain_hours: parseFloat(el('f_rain_hours') ? el('f_rain_hours').value : 0) || 0,
       total_manpower: parseInt(el('f_total') ? el('f_total').value : 0) || 0,
@@ -2075,6 +2175,12 @@ async function _silentSave() {
       works_full: (typeof works !== 'undefined' ? works : []),
       photos: (typeof photos !== 'undefined' ? photos : []),
       draws: (typeof draws !== 'undefined' ? draws : []),
+      // Ảnh tổng quan 01 + logo lưu kèm báo cáo để đồng bộ sang app khác (ảnh sẽ được tách lên Storage khi đẩy)
+      logo_cdt: (typeof logoImgCdt !== 'undefined' ? logoImgCdt : null),
+      logo_ntc: (typeof logoImg !== 'undefined' ? logoImg : null),
+      ov_main: (typeof ovMain !== 'undefined' ? ovMain : null),
+      ov_sub1: (typeof ovSub1 !== 'undefined' ? ovSub1 : null),
+      ov_sub2: (typeof ovSub2 !== 'undefined' ? ovSub2 : null),
       f_proj: el('f_proj') ? el('f_proj').value : '',
       f_contractor: el('f_contractor') ? el('f_contractor').value : '',
       f_prog: el('f_prog') ? el('f_prog').value : '',
@@ -2103,7 +2209,7 @@ document.addEventListener('change', triggerAutoSave);
 
 // Initialize date to today
 if (el('f_date') && !el('f_date').getAttribute('data-init')) {
-  el('f_date').value = new Date().toISOString().split('T')[0];
+  el('f_date').value = localISODate(new Date()); // giờ VN — toISOString() cũ làm form tự điền NGÀY HÔM QUA nếu mở trước 7h sáng
   el('f_date').setAttribute('data-init', '1');
 }
 
@@ -2132,16 +2238,19 @@ window.addEventListener('message', async (e) => {
     if (dateEl && typeof loadReportForDate === 'function') {
       await loadReportForDate(dateEl.value);
     }
-    // Điền thông tin công trình theo hồ sơ dự án đang chọn (tên, địa điểm, quy mô, ngày bắt đầu/kết thúc)
-    const pi = e.data.projInfo || {};
-    const toDmy = (s)=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s||''); };
-    if (el('f_proj'))  el('f_proj').value  = pi.name || e.data.projName || '';
-    if (el('f_loc'))   el('f_loc').value   = pi.address || '';
-    if (el('f_scale')) el('f_scale').value = pi.scale || '';
-    if (el('f_start') && pi.start_date) el('f_start').value = toDmy(pi.start_date);
-    if (el('f_end')   && pi.end_date)   el('f_end').value   = toDmy(pi.end_date);
-    if (typeof recalcFromSched === 'function') recalcFromSched();
-    if (typeof draw === 'function') draw();
+    // Điền thông tin công trình theo hồ sơ dự án đang chọn — CHỈ khi có projInfo thật.
+    // (Tin nhắn thiếu projInfo mà vẫn điền sẽ xóa trắng tên/ngày — lỗi đã gặp khi có 2 nguồn gửi.)
+    if (e.data.projInfo) {
+      const pi = e.data.projInfo;
+      const toDmy = (s)=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s||''); };
+      if (el('f_proj'))  el('f_proj').value  = pi.name || e.data.projName || '';
+      if (el('f_loc'))   el('f_loc').value   = pi.address || '';
+      if (el('f_scale')) el('f_scale').value = pi.scale || '';
+      if (el('f_start') && pi.start_date) el('f_start').value = toDmy(pi.start_date);
+      if (el('f_end')   && pi.end_date)   el('f_end').value   = toDmy(pi.end_date);
+      if (typeof recalcFromSched === 'function') recalcFromSched();
+      if (typeof draw === 'function') draw();
+    }
     window.parent.postMessage({ type: 'REQUEST_KB_SYNC' }, '*');
   }
 });
@@ -2792,7 +2901,7 @@ function editBilingualField(id, label) {
       if (typeof draw === 'function') draw();
       
       statusDiv.innerHTML = '✅ Đã dịch thành công!';
-      statusDiv.style.color = '#16a34a';
+      statusDiv.style.color = '#2E6B22';
       setTimeout(closeBilingualEdit, 800);
     } catch (err) {
       console.warn("Google Translate dịch lỗi, chuyển sang Gemini AI làm fallback:", err);
@@ -2826,7 +2935,7 @@ Không kèm bất kỳ văn bản giải thích hay khối mã markdown nào ngo
           if (typeof draw === 'function') draw();
           
           statusDiv.innerHTML = '✅ Đã dịch thành công!';
-          statusDiv.style.color = '#16a34a';
+          statusDiv.style.color = '#2E6B22';
           setTimeout(closeBilingualEdit, 800);
         } else {
           throw new Error('Dữ liệu dịch Gemini không khớp số dòng.');
@@ -3277,7 +3386,7 @@ window.resolveUnrecognizedVoice = function(idx, originalName, qty) {
   const itemDiv = el(`unrecognized-item-${idx}`);
   if (itemDiv) {
     itemDiv.style.opacity = '0.5';
-    itemDiv.innerHTML = `<span style="color:#16a34a; font-size:12px; font-weight:600;">✓ Đã gán [${originalName}] cho [${selectedName}] (${qty} người)</span>`;
+    itemDiv.innerHTML = `<span style="color:#2E6B22; font-size:12px; font-weight:600;">✓ Đã gán [${originalName}] cho [${selectedName}] (${qty} người)</span>`;
   }
 };
 
