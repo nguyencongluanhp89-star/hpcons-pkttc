@@ -405,6 +405,7 @@
     <div style="display: flex; gap: 8px; align-items: center;">
       <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="background:transparent; border:none; font-size:18px; cursor:pointer; padding:6px; display:inline-flex; align-items:center; justify-content:center; color: var(--hp-text-primary);" title="Bật/Tắt chế độ Ban đêm">🌙</button>
       <button class="logout-btn-header" id="pwa-install-btn" style="background:var(--hp-primary,#096AA7); display:none;" onclick="handlePwaInstallClick()">📲 Tải app</button>
+      <button class="logout-btn-header" id="btn-project-members" style="background:var(--hp-primary,#096AA7); display:none;" onclick="openProjectMembersModal()">👥 Thành viên</button>
       <button class="logout-btn-header" style="background:#475569;" onclick="switchToProjectSelector()">Đổi dự án</button>
       <button class="logout-btn-header" onclick="handleLogoutClick()">Đăng xuất</button>
     </div>
@@ -611,7 +612,45 @@
   </div>
 </div>
 
-<script src="app-core.js?v=6"></script>
+<!-- ===== MODAL THÀNH VIÊN DỰ ÁN (FOR ADMIN) ===== -->
+<div id="project-members-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+  <div class="members-modal-card" style="background:var(--hp-card, #fff); color:var(--hp-text-primary, #1B2733); border-radius:var(--hp-radius-lg, 12px); width:100%; max-width:600px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 25px rgba(0,0,0,0.2); overflow:hidden; box-sizing:border-box;">
+    <!-- Header -->
+    <div style="padding:16px 20px; border-bottom:1px solid var(--hp-divider, rgba(15,25,35,.06)); display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+      <h3 style="margin:0; font-size:18px; font-weight:700; color:var(--hp-primary, #096AA7);">👥 THÀNH VIÊN DỰ ÁN</h3>
+      <button onclick="closeProjectMembersModal()" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:var(--hp-text-muted, #64707C); width:44px; height:44px; display:flex; align-items:center; justify-content:center;" title="Đóng">✕</button>
+    </div>
+    
+    <!-- Body -->
+    <div style="padding:20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px; min-height:0; box-sizing:border-box;">
+      
+      <!-- Project Selector -->
+      <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+        <label style="font-weight:700; font-size:13px; color:var(--hp-text-secondary, #46545F); margin: 0 0 3px;">CHỌN DỰ ÁN / 选择项目</label>
+        <select id="members-project-select" onchange="onMembersProjectChanged()" style="padding:10px; border-radius:var(--hp-radius-sm, 6px); border:1px solid var(--line, rgba(15,25,35,.10)); background:var(--hp-surface, #F8FAFC); color:var(--hp-text-primary, #1B2733); font-size:14px; height:44px; width:100%; box-sizing:border-box; cursor:pointer;"></select>
+      </div>
+      
+      <!-- Status Messages -->
+      <div id="members-status-bar" style="font-size:13px; font-weight:600; min-height:20px; display:none;"></div>
+      
+      <!-- Users List -->
+      <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-height:0;">
+        <label style="font-weight:700; font-size:13px; color:var(--hp-text-secondary, #46545F); margin: 0 0 3px;">DANH SÁCH NGƯỜI DÙNG / 用户列表</label>
+        <div id="members-users-list" style="border:1px solid var(--line, rgba(15,25,35,.10)); border-radius:var(--hp-radius-sm, 6px); background:var(--hp-surface, #F8FAFC); overflow-y:auto; flex:1; min-height:150px; box-sizing:border-box;">
+          <div style="padding: 20px; text-align: center; color: var(--hp-text-muted, #64707C);">Đang tải danh sách...</div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- Footer -->
+    <div style="padding:12px 20px; background:var(--hp-background, #F1F5F9); border-top:1px solid var(--hp-divider, rgba(15,25,35,.06)); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0;">
+      <button onclick="closeProjectMembersModal()" style="padding:10px 20px; border-radius:var(--hp-radius-sm, 6px); border:1px solid var(--line, rgba(15,25,35,.10)); background:var(--hp-card, #fff); color:var(--hp-text-secondary, #46545F); font-weight:600; cursor:pointer; min-height:44px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;">ĐÓNG</button>
+    </div>
+  </div>
+</div>
+
+<script src="app-core.js?v=7"></script>
 <script src="js/data.js"></script>
 <script src="js/utils.js?v=2"></script>
 <script src="js/features.js?v=1.2"></script>
@@ -629,6 +668,16 @@
     if (user) {
       // Đã đăng nhập
       loginOverlay.style.display = "none";
+      
+      // Hiển thị/Ẩn nút Thành viên dự án dựa trên vai trò
+      const btnMembers = document.getElementById("btn-project-members");
+      if (btnMembers) {
+        if (["admin", "director", "pm"].includes(user.role)) {
+          btnMembers.style.display = "inline-block";
+        } else {
+          btnMembers.style.display = "none";
+        }
+      }
       
       document.getElementById("project-welcome-msg").innerText = `Chào mừng Anh, ${user.full_name}!`;
       projectOverlay.style.display = "flex";
@@ -828,6 +877,200 @@
         : '<div style="margin-bottom:14px">Mở menu trình duyệt (⋮) và chọn <b>Thêm vào màn hình chính / Cài đặt ứng dụng</b>.</div>')
       + '<button onclick="document.getElementById(\'pwaGuideOverlay\').remove()" style="width:100%;min-height:46px;background:var(--hp-primary,#096AA7);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer">Đã hiểu</button></div>';
     document.body.appendChild(ov);
+  }
+
+  // ========== PROJECT MEMBERS CONTROL (PART B) ==========
+  function openProjectMembersModal() {
+    document.getElementById("project-members-overlay").style.display = "flex";
+    loadProjectMembersData();
+  }
+
+  function closeProjectMembersModal() {
+    document.getElementById("project-members-overlay").style.display = "none";
+  }
+
+  async function loadProjectMembersData() {
+    const listEl = document.getElementById("members-users-list");
+    listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--hp-text-muted, #64707C);">Đang tải danh sách...</div>';
+
+    const projSelect = document.getElementById("members-project-select");
+    projSelect.innerHTML = "";
+    
+    // Nạp dropdown dự án
+    AppCore.projectsList.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.text = p.name;
+      if (AppCore.currentProject && p.id === AppCore.currentProject.id) {
+        opt.selected = true;
+      }
+      projSelect.appendChild(opt);
+    });
+
+    try {
+      // Lấy toàn bộ người dùng từ collection users
+      const snap = await AppCore.db.collection("users").get();
+      window.MEMBERS_USERS = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+      renderMembersUsersList();
+    } catch (err) {
+      console.error("Lỗi lấy danh sách users:", err);
+      listEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--hp-danger, #ef4444); font-weight:600;">Lỗi tải người dùng: ${err.message}</div>`;
+    }
+  }
+
+  function renderMembersUsersList() {
+    const listEl = document.getElementById("members-users-list");
+    listEl.innerHTML = "";
+
+    const projSelect = document.getElementById("members-project-select");
+    const projId = projSelect.value;
+    const proj = AppCore.projectsList.find(p => p.id === projId);
+    const memberUids = (proj && Array.isArray(proj.member_uids)) ? proj.member_uids : [];
+
+    const users = window.MEMBERS_USERS || [];
+    if (users.length === 0) {
+      listEl.innerHTML = `
+        <div style="padding: 30px 15px; text-align: center; color: var(--hp-text-muted, #64707C); line-height: 1.6;">
+          Chưa có người dùng nào đăng nhập app — nhờ anh em đăng nhập 1 lần hoặc tạo tài khoản trong Firebase Console
+        </div>
+      `;
+      return;
+    }
+
+    const currentUserRole = AppCore.currentUser ? AppCore.currentUser.role : '';
+    const canChangeRole = ['admin', 'director'].includes(currentUserRole);
+
+    users.forEach(user => {
+      const isMember = memberUids.includes(user.uid);
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--hp-divider, rgba(15,25,35,.06)); gap:12px; box-sizing:border-box;";
+      
+      const leftCol = document.createElement("div");
+      leftCol.style.cssText = "display:flex; align-items:center; gap:12px; flex:1; min-width:0;";
+      
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.id = `chk-member-${user.uid}`;
+      chk.checked = isMember;
+      chk.style.cssText = "width:24px; height:24px; min-width:24px; min-height:24px; cursor:pointer;";
+      chk.onchange = (e) => toggleProjectMember(user.uid, e.target.checked);
+      
+      const label = document.createElement("label");
+      label.htmlFor = `chk-member-${user.uid}`;
+      label.style.cssText = "margin:0; font-size:14px; font-weight:600; cursor:pointer; display:flex; flex-direction:column; min-width:0; flex:1;";
+      
+      const nameSpan = document.createElement("span");
+      nameSpan.style.cssText = "color:var(--hp-text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;";
+      nameSpan.innerText = user.full_name || user.email.split("@")[0] || 'Người dùng';
+      
+      const emailSpan = document.createElement("span");
+      emailSpan.style.cssText = "color:var(--hp-text-muted); font-size:12px; font-weight:400; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;";
+      emailSpan.innerText = user.email;
+      
+      label.appendChild(nameSpan);
+      label.appendChild(emailSpan);
+      
+      leftCol.appendChild(chk);
+      leftCol.appendChild(label);
+
+      const rightCol = document.createElement("div");
+      rightCol.style.cssText = "flex-shrink:0;";
+
+      const sel = document.createElement("select");
+      sel.style.cssText = "padding:6px 10px; border-radius:var(--hp-radius-sm, 6px); border:1px solid var(--line, rgba(15,25,35,.10)); background:var(--hp-card, #fff); color:var(--hp-text-primary, #1B2733); font-size:13px; height:36px; cursor:pointer;";
+      sel.disabled = !canChangeRole;
+      sel.onchange = (e) => changeUserRole(user.uid, e.target.value);
+
+      const roles = [
+        { v: 'engineer', l: 'Kỹ sư (engineer)' },
+        { v: 'site_manager', l: 'CHT (site_manager)' },
+        { v: 'pm', l: 'PM' },
+        { v: 'director', l: 'Director' },
+        { v: 'admin', l: 'Admin' }
+      ];
+      roles.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.v;
+        opt.text = r.l;
+        if (user.role === r.v) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      rightCol.appendChild(sel);
+      
+      row.appendChild(leftCol);
+      row.appendChild(rightCol);
+      listEl.appendChild(row);
+    });
+  }
+
+  function onMembersProjectChanged() {
+    renderMembersUsersList();
+  }
+
+  function toggleProjectMember(uid, checked) {
+    const projSelect = document.getElementById("members-project-select");
+    const projId = projSelect.value;
+    if (!projId) return;
+
+    showMembersStatus("Đang lưu...", "green");
+
+    const updateOp = checked 
+      ? firebase.firestore.FieldValue.arrayUnion(uid)
+      : firebase.firestore.FieldValue.arrayRemove(uid);
+
+    AppCore.db.collection("projects").doc(projId).update({
+      member_uids: updateOp
+    }).then(() => {
+      // Cập nhật member_uids cục bộ trong AppCore.projectsList
+      const proj = AppCore.projectsList.find(p => p.id === projId);
+      if (proj) {
+        if (!proj.member_uids) proj.member_uids = [];
+        if (checked) {
+          if (!proj.member_uids.includes(uid)) proj.member_uids.push(uid);
+        } else {
+          proj.member_uids = proj.member_uids.filter(id => id !== uid);
+        }
+      }
+      showMembersStatus("Đã lưu ✓", "green");
+    }).catch(err => {
+      console.error("Lỗi cập nhật thành viên dự án:", err);
+      showMembersStatus("Lỗi lưu: " + err.message, "red");
+    });
+  }
+
+  function changeUserRole(uid, newRole) {
+    showMembersStatus("Đang lưu...", "green");
+
+    AppCore.db.collection("users").doc(uid).set({
+      role: newRole
+    }, { merge: true }).then(() => {
+      // Cập nhật role cục bộ trong MEMBERS_USERS
+      const user = window.MEMBERS_USERS.find(u => u.uid === uid);
+      if (user) {
+        user.role = newRole;
+      }
+      showMembersStatus("Đã lưu ✓", "green");
+    }).catch(err => {
+      console.error("Lỗi cập nhật vai trò người dùng:", err);
+      showMembersStatus("Lỗi lưu: " + err.message, "red");
+    });
+  }
+
+  function showMembersStatus(msg, color) {
+    const el = document.getElementById("members-status-bar");
+    if (!el) return;
+    el.innerText = msg;
+    el.style.display = "block";
+    el.style.color = color === "green" ? "var(--hp-success, #60BB46)" : "var(--hp-danger, #ef4444)";
+    
+    if (color === "green") {
+      if (window.membersStatusTimeout) clearTimeout(window.membersStatusTimeout);
+      window.membersStatusTimeout = setTimeout(() => {
+        el.innerText = "";
+        el.style.display = "none";
+      }, 3000);
+    }
   }
 
 </script>

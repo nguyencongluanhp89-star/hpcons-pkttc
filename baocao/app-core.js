@@ -59,23 +59,34 @@
           try {
             // Tải thông tin người dùng từ Firestore users/{uid}
             const userDoc = await db.collection("users").doc(user.uid).get();
-            if (userDoc.exists) {
-              const uData = userDoc.data();
-              AppCore.currentUser = {
-                uid: user.uid,
+            const uData = userDoc.exists ? userDoc.data() : {};
+            
+            AppCore.currentUser = {
+              uid: user.uid,
+              email: user.email,
+              full_name: uData.full_name || user.email.split("@")[0],
+              role: uData.role || "engineer",
+              app_user_id: uData.app_user_id || "x"
+            };
+            
+            // Tự ghi/cập nhật hồ sơ người dùng khi đăng nhập (upsert users/{uid})
+            try {
+              const writeData = {
                 email: user.email,
-                full_name: uData.full_name || user.email.split("@")[0],
-                role: uData.role || "engineer",
-                app_user_id: uData.app_user_id || "x"
+                last_login: new Date().toISOString()
               };
-            } else {
-              AppCore.currentUser = {
-                uid: user.uid,
-                email: user.email,
-                full_name: user.email.split("@")[0],
-                role: "engineer",
-                app_user_id: "x"
-              };
+              if (!uData.full_name) {
+                writeData.full_name = user.email.split("@")[0];
+              }
+              if (!uData.role) {
+                writeData.role = "engineer";
+              }
+              
+              db.collection("users").doc(user.uid).set(writeData, { merge: true }).catch(err => {
+                console.warn("Lỗi ghi profile user (Firebase rules có thể chặn):", err);
+              });
+            } catch (writeErr) {
+              console.warn("Lỗi chuẩn bị ghi profile user:", writeErr);
             }
             
             // Đặt biến global giống app chính
