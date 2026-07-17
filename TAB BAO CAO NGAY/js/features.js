@@ -2259,6 +2259,26 @@ if (localStorage.getItem('meta_dark_mode') === 'true') {
   document.body.classList.add('dark-mode');
 }
 
+// Tự đồng bộ HỒ SƠ DỰ ÁN cho phần 01 khi iframe khởi động — đọc thẳng app cha (cùng origin).
+// Che trường hợp tin PROJECT_CHANGED bắn TRƯỚC khi iframe kịp lắng nghe (mở thẳng thẻ Báo cáo
+// ngày sau F5) → phần 01 kẹt thông tin dự án cũ dù dropdown đã là dự án mới.
+setTimeout(async () => {
+  try {
+    if (!(window.parent && window.parent.DataService && window.parent.CUR)) return;
+    const list = await window.parent.DataService.listProjects();
+    const p = (list || []).find(x => x.id === window.parent.CUR.project);
+    if (!p) return;
+    const toDmy = (s)=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s||''); };
+    if (el('f_proj'))  el('f_proj').value  = p.name || '';
+    if (el('f_loc'))   el('f_loc').value   = p.address || '';
+    if (el('f_scale')) el('f_scale').value = p.scale || '';
+    if (el('f_start') && p.start_date) el('f_start').value = toDmy(p.start_date);
+    if (el('f_end')   && p.end_date)   el('f_end').value   = toDmy(p.end_date);
+    if (typeof recalcFromSched === 'function') recalcFromSched();
+    if (typeof draw === 'function') draw();
+  } catch (e) { /* app cha chưa sẵn sàng — PROJECT_CHANGED từ switchTab sẽ bù */ }
+}, 800);
+
 // =================== THƯ VIỆN HẠNG MỤC KB ===================
 let _kbLibSelected = new Set();
 

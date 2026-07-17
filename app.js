@@ -496,7 +496,7 @@ async function syncPushAll(){
     const keys = all.map(m=>m.key).filter(k=>!SYNC_SKIP_KEYS.includes(k));
     await idbPut("meta", { key:"meta_dirty_keys", value:keys });
 
-    let firebasePromise = Promise.resolve();
+    let firebasePromise = Promise.resolve({ ok: 0, failed: [] });
     if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
       firebasePromise = FirebaseSync.pushAllDirty();
     }
@@ -505,13 +505,24 @@ async function syncPushAll(){
       try { await SupabaseSync.pushAllDirty(); } catch(err){ console.warn("syncPushAll Supabase lỗi (bỏ qua):", err); }
     }
 
+    let fbResult = { ok: 0, failed: [] };
     try {
-      await firebasePromise;
+      fbResult = (await firebasePromise) || fbResult;
     } catch (err) {
       console.warn("syncPushAll FirebaseSync lỗi:", err);
+      fbResult = { ok: 0, failed: ["(toàn bộ) " + (err && err.message || err)] };
     }
 
-    alert("✅ Đã đẩy "+keys.length+" mục dữ liệu lên server. Giờ sang máy khác bấm 'Kéo toàn bộ về'.");
+    // Báo TRUNG THỰC: trước đây luôn hiện "✅ Đã đẩy X mục" kể cả khi có mục lỗi
+    // (lỗi chỉ nằm trong console) -> Sếp tưởng đẩy xong mà server vẫn bản cũ.
+    if (fbResult.failed && fbResult.failed.length) {
+      alert("⚠️ Đẩy xong " + fbResult.ok + " mục, nhưng " + fbResult.failed.length + " mục LỖI (server vẫn giữ bản cũ các mục này):\n\n- "
+        + fbResult.failed.slice(0, 8).join("\n- ")
+        + (fbResult.failed.length > 8 ? "\n… và " + (fbResult.failed.length - 8) + " mục khác" : "")
+        + "\n\nHãy chụp màn hình này gửi hỗ trợ.");
+    } else {
+      alert("✅ Đã đẩy thành công " + fbResult.ok + " mục dữ liệu lên server. Giờ sang máy khác bấm 'Kéo toàn bộ về'.");
+    }
   }catch(e){ alert("Lỗi đẩy dữ liệu: "+e); }
 }
 // MÁY ĐỒNG BỘ THEO: kéo TOÀN BỘ dữ liệu từ server về (ghi đè local).
@@ -1212,6 +1223,14 @@ function switchTab(tab){
   if(t==="tc-muctieu") renderTcGoals();
   if(t==="baocaongay-new"){
     if (typeof syncKBToIframe === "function") syncKBToIframe();
+    // Gửi hồ sơ dự án đang chọn cho iframe MỖI LẦN mở thẻ Báo cáo ngày.
+    // Che các luồng KHÔNG qua dropdown (xóa dự án / thêm-sửa dự án rồi quay lại thẻ):
+    // thiếu bước này iframe giữ nguyên thông tin phần 01 của dự án cũ (lỗi Sếp báo 17/07).
+    (async ()=>{ try{
+      const _p=(await DataService.listProjects()).find(x=>x.id===CUR.project);
+      const _f=document.querySelector('iframe');
+      if(_p && _f && _f.contentWindow) _f.contentWindow.postMessage({type:'PROJECT_CHANGED', projName:_p.name||'', projInfo:{name:_p.name||'', address:_p.address||'', scale:_p.scale||'', start_date:_p.start_date||'', end_date:_p.end_date||''}},'*');
+    }catch(_){}})();
   }
   // Kích hoạt vẽ vector icon Lucide
   setTimeout(() => {

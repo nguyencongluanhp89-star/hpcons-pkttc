@@ -209,6 +209,12 @@ async function addProject(){
     audit("Thêm công trình", name);
   }
   await metaSet("projects", list);
+  // Đồng bộ NGAY dự án vừa thêm/sửa lên Firebase — app báo cáo thấy tức thì,
+  // không phải chờ "Đẩy toàn bộ lên". (Xóa đã tự lan qua window.deleteProject.)
+  const justSaved = idStr ? list.find(p=>p.id===idStr) : list[list.length-1];
+  if (typeof FirebaseSync !== "undefined" && FirebaseSync.pushProjectDoc) {
+    FirebaseSync.pushProjectDoc(justSaved);
+  }
   resetProjectForm();
   await populateProjects(); renderExecutive(); renderProjectList();
   alert(idStr ? "Đã cập nhật dự án" : "Đã thêm công trình: "+name);

@@ -18,6 +18,34 @@ const FirebaseSync = {
       window.fb && window.fb.db && window.fb.auth && window.fb.auth.currentUser;
   },
 
+  // Đẩy NGAY 1 dự án lên bảng projects/{pid} — gọi khi thêm/sửa dự án ở app chính,
+  // để app báo cáo thấy tức thì (không phải chờ bấm "Đẩy toàn bộ lên").
+  // merge:true nên KHÔNG đụng member_uids (danh sách thành viên đã gán được giữ nguyên).
+  // Chiều XÓA đã có sẵn trong window.deleteProject (app.js) — xóa cascade trên Firebase.
+  async pushProjectDoc(p) {
+    if (!this.ready() || !p || !p.id) return false;
+    try {
+      await window.fb.db.collection("projects").doc(p.id).set({
+        name: p.name || "",
+        address: p.address || "",
+        scale: p.scale || "",
+        start_date: p.start_date || null,
+        end_date: p.end_date || null,
+        commander: p.commander || "",
+        investor: p.investor || "",
+        status: p.status || "",
+        contract_no: p.contract_no || "",
+        latitude: p.latitude || null,
+        longitude: p.longitude || null,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+      return true;
+    } catch (e) {
+      console.warn("FirebaseSync.pushProjectDoc lỗi:", e && e.message);
+      return false;
+    }
+  },
+
   async pushAllDirty(autoOnly = false) {
     if (!this.ready()) return;
     try {
@@ -25,6 +53,7 @@ const FirebaseSync = {
       const dirtyMetaObj = await idbGet("meta", "meta_dirty_keys");
       const dirtyMetaKeys = dirtyMetaObj ? (dirtyMetaObj.value || []) : [];
       const pushedKeys = [];
+      const failedKeys = []; // key đẩy LỖI — trả về cho nút "Đẩy toàn bộ" báo trung thực
       for (const key of dirtyMetaKeys) {
         if (fbSkipKey(key)) continue;
         // Auto-push BỎ QUA dữ liệu nền/danh mục (dự án, người dùng, nhà thầu...) — chỉ "Đẩy toàn bộ" mới đẩy.
@@ -72,6 +101,7 @@ const FirebaseSync = {
           pushedKeys.push(key); // đẩy Firebase thành công
         } catch (e) {
           console.warn("FirebaseSync push lỗi cho key " + key + ":", e && e.message);
+          failedKeys.push(key + " (" + ((e && e.message) || "lỗi không rõ").slice(0, 80) + ")");
         }
       }
 
@@ -82,8 +112,10 @@ const FirebaseSync = {
         const remain = ((cur && cur.value) || []).filter(k => !pushedKeys.includes(k));
         await idbPut("meta", { key: "meta_dirty_keys", value: remain });
       }
+      return { ok: pushedKeys.length, failed: failedKeys };
     } catch (e) {
       console.warn("FirebaseSync.pushAllDirty lỗi:", e);
+      return { ok: 0, failed: ["(toàn bộ) " + ((e && e.message) || e)] };
     }
   },
 
