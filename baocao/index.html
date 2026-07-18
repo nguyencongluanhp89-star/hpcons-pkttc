@@ -364,10 +364,14 @@
     <h2>BÁO CÁO NGÀY</h2>
     <p>Đăng nhập hệ thống HPCONS</p>
     
-    <div class="input-group">
-      <label for="login-email">Tên đăng nhập hoặc Họ tên</label>
-      <input type="text" id="login-email" placeholder="Chọn tên hoặc gõ @username..." list="users-list" required autocomplete="off">
-      <datalist id="users-list"></datalist>
+    <div class="input-group" style="position:relative">
+      <label for="login-email">Chọn tên nhân sự</label>
+      <input type="text" id="login-email" placeholder="Bấm để chọn tên của bạn..." required autocomplete="off"
+             onfocus="showUserDropdown()" oninput="showUserDropdown()">
+      <!-- Danh sách xổ tự vẽ (datalist bị Safari iOS bỏ qua nên không dùng) -->
+      <div id="users-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:50;
+           max-height:230px; overflow-y:auto; background:var(--hp-card); border:1.5px solid var(--hp-border);
+           border-radius:8px; margin-top:4px; box-shadow:0 10px 24px rgba(0,0,0,0.35); text-align:left;"></div>
     </div>
     <div class="input-group">
       <label for="login-password">Mật khẩu</label>
@@ -674,12 +678,6 @@
       if (!res.ok) throw new Error("API error");
       const data = await res.json();
       directoryUsers = data.users || [];
-      const datalist = document.getElementById("users-list");
-      if (datalist) {
-        datalist.innerHTML = directoryUsers.map(u => 
-          `<option value="${u.full_name} (@${u.username})">${u.full_name}</option>`
-        ).join("");
-      }
     } catch (err) {
       console.warn("Lỗi nạp danh bạ nhân sự:", err);
     }
@@ -687,6 +685,38 @@
 
   // Khởi chạy nạp danh bạ khi mở app
   loadDirectory();
+
+  // ===== DANH SÁCH TÊN XỔ XUỐNG (tự vẽ — chạy đều iOS/Android/PC, thay cho datalist) =====
+  function _vnorm(s){ return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").toLowerCase().trim(); }
+  function showUserDropdown() {
+    const inp = document.getElementById("login-email");
+    const box = document.getElementById("users-dropdown");
+    if (!inp || !box) return;
+    if (!directoryUsers.length) { box.style.display = "none"; loadDirectory(); return; }
+    const q = _vnorm(inp.value.replace(/\(@[^)]*\)?/g, ""));
+    const hits = directoryUsers.filter(u => !q || _vnorm(u.full_name).includes(q) || _vnorm(u.username).includes(q)).slice(0, 60);
+    if (!hits.length) { box.style.display = "none"; return; }
+    box.innerHTML = hits.map(u =>
+      `<div onmousedown="pickUser('${String(u.username).replace(/'/g,"\\'")}')" style="padding:13px 16px; border-bottom:1px solid var(--hp-border); cursor:pointer; font-size:15px; color:var(--hp-text-primary); min-height:44px; box-sizing:border-box;">
+         ${u.full_name} <span style="color:var(--hp-text-muted); font-size:12px;">@${u.username}${u.has_pw ? "" : " · lần đầu"}</span>
+       </div>`
+    ).join("");
+    box.style.display = "block";
+  }
+  function pickUser(username) {
+    const u = directoryUsers.find(x => x.username === username);
+    const inp = document.getElementById("login-email");
+    const box = document.getElementById("users-dropdown");
+    if (u && inp) inp.value = `${u.full_name} (@${u.username})`;
+    if (box) box.style.display = "none";
+    const pw = document.getElementById("login-password");
+    if (pw) pw.focus();
+  }
+  document.addEventListener("click", (e) => {
+    const box = document.getElementById("users-dropdown");
+    const inp = document.getElementById("login-email");
+    if (box && e.target !== inp && !box.contains(e.target)) box.style.display = "none";
+  });
 
   // Hàm resolve thông tin user từ input
   function resolveUser(inputVal) {
