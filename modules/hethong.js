@@ -327,81 +327,90 @@ const DEPT_LIST = Object.keys(DEPARTMENT_ROLES);
 
 
 let LOGIN_USERS = [];
+window.LOGIN_SOURCE = "local";
+window.SERVER_USERS = [];
+window.SERVER_ROLES = [];
 
 async function initLoginFlow(){
-
   LOGIN_USERS = await ensureUsers();
+  try {
+    const [resDir, resRoles] = await Promise.all([
+      fetch("https://us-central1-hpcons-pkttc.cloudfunctions.net/bcaAuth?action=directory"),
+      fetch("https://us-central1-hpcons-pkttc.cloudfunctions.net/bcaAuth?action=roles")
+    ]);
+    if (resDir.ok && resRoles.ok) {
+      const dataDir = await resDir.json();
+      const dataRoles = await resRoles.json();
+      window.SERVER_USERS = dataDir.users || [];
+      window.SERVER_ROLES = dataRoles.roles || [];
+      window.LOGIN_SOURCE = "server";
+      console.log("Màn login: Đã tải danh bạ và chức vụ từ server.");
+    } else {
+      throw new Error("Server response status error");
+    }
+  } catch (e) {
+    window.LOGIN_SOURCE = "local";
+    console.warn("Lỗi nạp thông tin từ server, fallback về local:", e);
+  }
 
   renderLoginDepts();
-
 }
-
-
 
 function renderLoginDepts(){
-
   const sel = $("login-dept");
-
   if(!sel) return;
-
-  // Luôn luôn hiển thị tất cả các bộ phận
-
   const depts = Object.keys(DEPARTMENT_ROLES);
-
   sel.innerHTML = depts.map(d => `<option value="${d}">${d}</option>`).join("");
-
   renderLoginRoles();
-
 }
 
-
-
 function renderLoginRoles(){
-
   const d = $("login-dept").value;
-
   const sel = $("login-role");
-
   if(!sel) return;
-
-  // Luôn luôn hiển thị tất cả chức vụ của bộ phận đó
 
   const allowedRoles = (DEPARTMENT_ROLES[d] || []).slice();
 
-  // Vai trò tùy chỉnh hiển thị theo đúng bộ phận admin đã chọn khi tạo
-  Object.keys(ROLES).forEach(k=>{
-    if(ROLES[k] && ROLES[k].custom && ROLES[k].dept === d && !allowedRoles.includes(k)) allowedRoles.push(k);
-  });
-
-  
+  if (window.LOGIN_SOURCE === "server") {
+    (window.SERVER_ROLES || []).forEach(r => {
+      if (r.dept === d && !allowedRoles.includes(r.key)) {
+        allowedRoles.push(r.key);
+      }
+    });
+  } else {
+    Object.keys(ROLES).forEach(k=>{
+      if(ROLES[k] && ROLES[k].custom && ROLES[k].dept === d && !allowedRoles.includes(k)) allowedRoles.push(k);
+    });
+  }
 
   sel.innerHTML = allowedRoles.map(r => {
-
-    const label = (ROLES[r] || {}).label || r;
-
+    let label = r;
+    if (window.LOGIN_SOURCE === "server") {
+      const sRole = (window.SERVER_ROLES || []).find(x => x.key === r);
+      label = sRole ? sRole.name : ((ROLES[r] || {}).label || r);
+    } else {
+      label = (ROLES[r] || {}).label || r;
+    }
     return `<option value="${r}">${label}</option>`;
-
   }).join("");
 
-  
-
   renderLoginUsers();
-
 }
-
-
 
 window._currentLoginUsers = [];
 
 function renderLoginUsers(){
-
+  const d = $("login-dept").value;
   const r = $("login-role").value;
-
   const sel = $("login-user");
-
   if(!sel) return;
 
-  const users = LOGIN_USERS.filter(u => u.role === r);
+  let users = [];
+  if (window.LOGIN_SOURCE === "server") {
+    users = (window.SERVER_USERS || []).filter(u => u.dept === d && (u.position === r || u.role === r));
+  } else {
+    users = LOGIN_USERS.filter(u => u.role === r);
+  }
   window._currentLoginUsers = users;
 
   sel.innerHTML = users.map(u => `<option value="${u.id}">${u.full_name}</option>`).join("");
@@ -416,7 +425,6 @@ function renderLoginUsers(){
   }
 
   renderLoginUserDropdownList(users);
-
 }
 
 function renderLoginUserDropdownList(list) {
@@ -522,44 +530,137 @@ async function firebaseAuthSync(user, plainPassword) {
 }
 
 async function doLogin(){
+  const uid = $("login-user").value, pw = $("login-pw").value;
+  const wrap = $("login-pw2-wrap");
 
-  const uid=$("login-user").value, pw=$("login-pw").value;
+  // Tìm found tương ứng theo chế độ
+  let found = null;
+  if (window.LOGIN_SOURCE === "server") {
+    found = (window.SERVER_USERS || []).find(x => x.id === uid);
+  } else {
+    const users = await ensureUsers();
+    found = users.find(x => x.id === uid);
+  }
 
-  const users=await ensureUsers();
+  if (!found) {
+    $("login-msg").textContent = "Vui lòng chọn nhân sự.";
+    return;
+  }
 
-  const found=users.find(x=>x.id===uid);
+  // Chế độ ONLINE (Server-truth)
+  if (window.LOGIN_SOURCE === "server") {
+    let isFirstSet = !found.has_pw;
 
-  if(!found){ $("login-msg").textContent="Vui lòng chọn nhân sự."; return; }
+    if (isFirstSet) {
+      if (wrap.classList.contains("hide")) {
+        wrap.classList.remove("hide");
+        $("login-msg").textContent = "Lần đầu đăng nhập: hãy đặt mật khẩu mới và xác nhận.";
+        return;
+      }
+      const pw2 = $("login-pw2").value;
+      if (pw.length < 4) {
+        $("login-msg").textContent = "Mật khẩu tối thiểu 4 ký tự.";
+        return;
+      }
+      if (pw !== pw2) {
+        $("login-msg").textContent = "Xác nhận mật khẩu không khớp.";
+        return;
+      }
+    }
 
-  const wrap=$("login-pw2-wrap");
+    $("login-msg").textContent = "Đang xác thực với máy chủ...";
+    let authSuccess = false;
+    let fallbackToLocal = false;
 
-  if(!found.pw){ // lần đầu đăng nhập: đặt mật khẩu mới + xác nhận
+    try {
+      const res = await fetch("https://us-central1-hpcons-pkttc.cloudfunctions.net/bcaAuth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "login",
+          username: found.username,
+          password: pw
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        authSuccess = true;
+      } else {
+        if (data.error === "wrong_password") {
+          $("login-msg").textContent = "Sai mật khẩu.";
+          audit("Đăng nhập thất bại", `Tài khoản: ${found.full_name} (@${found.username || ''}) — Nhập sai mật khẩu trên server`);
+          return;
+        } else if (data.error === "user_not_found") {
+          // Thử local fallback phòng khi user chỉ tồn tại local
+          fallbackToLocal = true;
+        } else {
+          $("login-msg").textContent = "Lỗi xác thực: " + (data.error || "Không rõ nguyên nhân");
+          return;
+        }
+      }
+    } catch (err) {
+      // Lỗi mạng hoặc máy chủ -> Fallback local
+      console.warn("Lỗi gọi bcaAuth, chuyển sang kiểm tra local:", err);
+      fallbackToLocal = true;
+    }
 
-    if(wrap.classList.contains("hide")){ wrap.classList.remove("hide"); $("login-msg").textContent="Lần đầu đăng nhập: hãy đặt mật khẩu mới và xác nhận."; return; }
+    if (authSuccess) {
+      wrap.classList.add("hide");
+      $("login-pw2").value = "";
 
-    const pw2=$("login-pw2").value;
+      // Đồng bộ mật khẩu local qua idbPut trực tiếp (TUYỆT ĐỐI không dùng metaSet để tránh đè server)
+      const localUsers = await ensureUsers();
+      const localUser = localUsers.find(x => x.id === found.id);
+      if (localUser) {
+        localUser.pw = hashPw(pw);
+        await idbPut("meta", { key: "users", value: localUsers });
+        console.log(`[idbPut] Đã đồng bộ mật khẩu local cho ${found.full_name}.`);
+      }
 
-    if(pw.length<4){ $("login-msg").textContent="Mật khẩu tối thiểu 4 ký tự."; return; }
-
-    if(pw!==pw2){ $("login-msg").textContent="Xác nhận mật khẩu không khớp."; return; }
-
-    found.pw=hashPw(pw); await metaSet("users", users);
-
-  } else { // đăng nhập thường
-
-    const hashedInput = hashPw(pw);
-    const legacyHashedInput = legacyHashPw(pw);
-
-    if(found.pw!==hashedInput && found.pw!==legacyHashedInput){
-      $("login-msg").textContent="Sai mật khẩu.";
-      audit("Đăng nhập thất bại", `Tài khoản: ${found.full_name} (@${found.username || ''}) — Nhập sai mật khẩu`);
+      firebaseAuthSync(found, pw);
+      await metaSet("session_user", found.id);
+      await startSession(found);
       return;
     }
-    
+
+    if (!fallbackToLocal) return;
+  }
+
+  // Chế độ OFFLINE (hoặc fallback từ online)
+  const localUsers = await ensureUsers();
+  const localFound = localUsers.find(x => x.id === found.id);
+  if (!localFound) {
+    $("login-msg").textContent = "Không tìm thấy nhân sự này trong danh sách cục bộ.";
+    return;
+  }
+
+  if (!localFound.pw) {
+    if (wrap.classList.contains("hide")) {
+      wrap.classList.remove("hide");
+      $("login-msg").textContent = "Lần đầu đăng nhập: hãy đặt mật khẩu mới và xác nhận.";
+      return;
+    }
+    const pw2 = $("login-pw2").value;
+    if (pw.length < 4) {
+      $("login-msg").textContent = "Mật khẩu tối thiểu 4 ký tự.";
+      return;
+    }
+    if (pw !== pw2) {
+      $("login-msg").textContent = "Xác nhận mật khẩu không khớp.";
+      return;
+    }
+    localFound.pw = hashPw(pw);
+    // idbPut trực tiếp (KHÔNG metaSet): tránh đánh dấu dirty -> admin offline xong online
+    // sẽ auto-push nguyên bản users local cũ đè server (thảm họa 123456 hồi sinh).
+    await idbPut("meta", { key: "users", value: localUsers });
+  } else {
+    const hashedInput = hashPw(pw);
+    const legacyHashedInput = legacyHashPw(pw);
     // Tự động nâng cấp thuật toán băm lên SHA-256 nếu đang dùng mã FNV-1a cũ
     if (found.pw === legacyHashedInput) {
       found.pw = hashedInput;
-      await metaSet("users", users);
+      // idbPut trực tiếp (KHÔNG metaSet) — cùng lý do chống auto-push đè server ở trên.
+      await idbPut("meta", { key: "users", value: users });
       console.log(`Đã nâng cấp mật khẩu của ${found.full_name} lên SHA-256.`);
     }
 
