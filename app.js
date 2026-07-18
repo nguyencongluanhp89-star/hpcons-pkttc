@@ -4474,7 +4474,7 @@ setTimeout(async () => {
                     full_name: u.name,
                     username: finalUsername,
                     role: u.role,
-                    pw: hashPw("123456")
+                    pw: "" // FIX 18/07: khong cap mat khau mac dinh — lan dau dang nhap tu dat
                 });
                 countAdded++;
             }
@@ -5147,7 +5147,7 @@ setTimeout(async () => {
                 existing.full_name = u.name;
                 existing.username = finalUsername;
                 existing.role = u.role;
-                if(!existing.pw) existing.pw = hashPw("123456");
+                // FIX 18/07: khong tu dien mat khau mac dinh — pw rong de nguoi dung tu dat lan dau
             } else {
                 // Create new
                 globalUsers.push({
@@ -5155,7 +5155,7 @@ setTimeout(async () => {
                     full_name: u.name,
                     username: finalUsername,
                     role: u.role,
-                    pw: hashPw("123456")
+                    pw: "" // FIX 18/07: khong cap mat khau mac dinh — lan dau dang nhap tu dat
                 });
             }
         });
@@ -5828,7 +5828,7 @@ setTimeout(async () => {
                 full_name: u.name,
                 username: finalUsername,
                 role: u.role,
-                pw: existing ? existing.pw : hashPw("123456")
+                pw: existing ? existing.pw : "" // FIX 18/07: het mat khau mac dinh 123456
             });
         });
 

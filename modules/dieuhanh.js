@@ -55,7 +55,7 @@ async function syncDeptUsers(){
   const depts=await metaGet("departments", {}); const users=await ensureUsers(); let changed=false;
   Object.keys(depts).forEach(key=>{ (depts[key]||[]).forEach(p=>{
     if(p.name && !users.some(u=>(u.full_name||"").toLowerCase()===p.name.toLowerCase())){
-      users.push({id:uuid(), full_name:p.name, username:p.name, role:roleFromPosition(p.position), pw:hashPw("123456"), dept:key, position:p.position}); changed=true;
+      users.push({id:uuid(), full_name:p.name, username:p.name, role:roleFromPosition(p.position), pw:"" /* FIX 18/07: het mat khau mac dinh */, dept:key, position:p.position}); changed=true;
     }
   }); });
   if(changed) await metaSet("users", users);
