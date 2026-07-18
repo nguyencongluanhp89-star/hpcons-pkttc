@@ -648,7 +648,8 @@ async function callGeminiPdfDirect(b64, filename) {
     "LỌC BỎ mọi ký tự tiếng Trung, Nhật, Hàn (CJK) lẫn trong câu; chỉ giữ tiếng Việt, số và ngày.\n" +
     "Trình bày dạng bảng gọn, mỗi dòng theo đúng định dạng: Công tác | DD/MM/YYYY | DD/MM/YYYY.\n" +
     "Sau bảng, nêu ngắn gọn các hạng mục đang/sắp tới hạn và cảnh báo (nếu có).\n" +
-    "Chỉ dựa trên nội dung file, không bịa.";
+    "Chỉ dựa trên nội dung file, không bịa.\n" +
+    "TUYỆT ĐỐI KHÔNG viết code (Python/JS hay bất kỳ ngôn ngữ nào), KHÔNG dùng ``` , KHÔNG giải thích cách làm — TỰ trích xuất và TRẢ THẲNG kết quả.";
 
   // Gemini 1.5 đã bị Google khai tử (~2025) — gọi vào là 404 dù key đúng. Ưu tiên 2.5,
   // kèm alias -latest (tự trỏ bản flash mới nhất) và 2.0 làm dự phòng cuối.
@@ -671,7 +672,8 @@ async function callGeminiPdfDirect(b64, filename) {
               text: prompt
             }
           ]
-        }]
+        }],
+        generationConfig: { temperature: 0 } // bám sát nội dung file, không "sáng tạo" viết code
       };
       
       const response = await fetch(url, {
@@ -860,7 +862,8 @@ Thi công móng xưởng 1 | 05/04/2026 | 25/04/2026
 Lắp đặt kết cấu thép | 26/04/2026 | 15/05/2026
 
 2. Lọc bỏ các thông tin thừa, nhãn biểu đồ Gantt, hoặc ghi chú.
-3. Không trả về bất cứ văn bản giải thích nào khác ngoài các dòng định dạng trên.`;
+3. Không trả về bất cứ văn bản giải thích nào khác ngoài các dòng định dạng trên.
+4. TUYỆT ĐỐI KHÔNG viết code (Python/JS hay bất kỳ ngôn ngữ nào), KHÔNG dùng dấu \`\`\`, KHÔNG mô tả cách xử lý — TỰ trích xuất và trả thẳng các dòng kết quả.`;
 
   // Gemini 1.5 đã bị Google khai tử (~2025) — gọi vào là 404 dù key đúng. Ưu tiên 2.5,
   // kèm alias -latest (tự trỏ bản flash mới nhất) và 2.0 làm dự phòng cuối.
@@ -877,7 +880,8 @@ Lắp đặt kết cấu thép | 26/04/2026 | 15/05/2026
               text: prompt
             }
           ]
-        }]
+        }],
+        generationConfig: { temperature: 0 } // bám sát nội dung, không "sáng tạo" viết code
       };
       
       const response = await fetch(url, {
@@ -985,11 +989,20 @@ async function importProgressFile(file){
       if (localKey) {
         box.innerHTML = "⏳ Đang phân tích nội dung PDF bằng Gemini (Trực tiếp từ trình duyệt)...";
         try {
-          guidanceText = await callGeminiPdfDirectText(extractedText, file.name);
+          // Ưu tiên gửi NGUYÊN FILE PDF (Gemini đọc được bố cục bảng thật) — chính xác hơn nhiều
+          // so với gửi text đã trích bằng pdf.js (thứ tự chữ bị xáo trộn với PDF dạng Gantt).
+          const b64pdf = await fileToBase64(file);
+          guidanceText = await callGeminiPdfDirect(b64pdf, file.name);
           parsedByAI = true;
         } catch (geminiError) {
-          console.warn("Direct Gemini call failed:", geminiError);
-          geminiErrMsg = (geminiError && geminiError.message) || String(geminiError);
+          console.warn("Gemini đọc PDF trực tiếp lỗi, thử lại bằng text:", geminiError);
+          try {
+            guidanceText = await callGeminiPdfDirectText(extractedText, file.name);
+            parsedByAI = true;
+          } catch (geminiError2) {
+            console.warn("Direct Gemini call failed:", geminiError2);
+            geminiErrMsg = (geminiError2 && geminiError2.message) || String(geminiError2);
+          }
         }
       }
 
@@ -1017,7 +1030,9 @@ async function importProgressFile(file){
       
       // 3. Hiển thị kết quả AI hoặc Fallback offline
       if (guidanceText) {
-        const cleanedText = stripCJK(guidanceText);
+        // Gỡ khối code ``` nếu AI lỡ bọc kết quả (đã cấm trong prompt, chặn thêm cho chắc)
+        const noFence = String(guidanceText).replace(/```[a-zA-Z]*\n?/g, "").replace(/```/g, "");
+        const cleanedText = stripCJK(noFence);
         box.innerHTML = `<div style="white-space:pre-wrap; font-family:monospace; font-size:13px; line-height:1.6; background:var(--bg); border:1px solid var(--border); padding:12px; border-radius:6px; margin-bottom:12px; max-height:300px; overflow-y:auto;">📄 AI phân tích file:\n${cleanedText}</div>`;
         parsedItems = parseTasksFromText(cleanedText);
       } else {
