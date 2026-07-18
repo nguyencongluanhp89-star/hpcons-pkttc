@@ -909,6 +909,32 @@ Lắp đặt kết cấu thép | 26/04/2026 | 15/05/2026
 }
 
 // Local offline regex parser helper
+// BỘ ĐỌC CHUYÊN ĐỊNH DẠNG MS PROJECT xuất PDF (tiến độ chuẩn của phòng) — offline, không cần AI.
+// Cấu trúc mỗi công tác: ID | TÊN CÔNG VIỆC (có chữ Trung chèn GIỮA từ Việt) | N days
+//                        | Thứ(EN) DD/MM/YY | Thứ(EN) DD/MM/YY
+// Cách đọc: bỏ CJK -> ép toàn bộ về 1 dòng -> bắt mẫu lặp. Đã kiểm chứng file thật HOWELL: 80/80.
+function parseTasksMSProject(text) {
+  if (!text) return [];
+  // 1. Bỏ chữ Trung/Nhật/Hàn (kể cả dấu câu CJK) — chúng bị chèn giữa từ tiếng Việt
+  let t = String(text).replace(/[一-鿿　-〿＀-￯]/g, "");
+  // 2. Ép về 1 dòng, chuẩn hóa khoảng trắng (ngày/thứ trong PDF bị bẻ dòng tự do)
+  t = t.replace(/\s+/g, " ");
+  // 3. Bắt mẫu: ID  TÊN  <N> days  <Thứ> DD/MM/YY  <Thứ> DD/MM/YY
+  const re = /(\d{1,3})\s+(.+?)\s+(\d{1,3})\s*days?\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{2}\/\d{2}\/\d{2,4})\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{2}\/\d{2}\/\d{2,4})/g;
+  const items = []; let m;
+  while ((m = re.exec(t)) !== null) {
+    let name = m[2].replace(/\s{2,}/g, " ").trim();
+    // Cắt rác đầu bảng lỡ dính vào tên (tiêu đề "ID TÊN CÔNG VIỆC ... KẾT THÚC" + số ID lặp ở đầu trang)
+    if (/KẾT THÚC/i.test(name)) name = name.replace(/^[\s\S]*KẾT THÚC\s*/i, "").replace(/^\d{1,3}\s+/, "");
+    // Vá từ bị tách đôi do CJK chèn giữa: "đ ịnh"->"định", "CHU ẨN"->"CHUẨN"
+    name = name.replace(/([A-Za-zÀ-ỹĐđ]) (?=[ịỊẩẨộỘậẬặẶệỆợỢựỰửỬữỮổỔỗỖễỄểỂẫẪầẦấẤ])/g, "$1");
+    if (!name || name.length < 3) continue;
+    const fixY = d => { const p = d.split("/"); if (p[2] && p[2].length === 2) p[2] = "20" + p[2]; return p.join("/"); };
+    items.push({ task: name, start: fixY(m[4]), end: fixY(m[5]) });
+  }
+  return items;
+}
+
 function parseTasksLocally(text) {
   const lines = text.split('\n');
   const items = [];
@@ -983,10 +1009,23 @@ async function importProgressFile(file){
       let parsedItems = [];
       let parsedByAI = false;
       
+      // 0. BỘ ĐỌC CHUYÊN MS PROJECT (offline, miễn phí, tức thì) — định dạng tiến độ chuẩn
+      // của phòng: mỗi dòng "ID | TÊN CÔNG VIỆC | N days | Thứ DD/MM/YY | Thứ DD/MM/YY",
+      // chữ Trung chèn giữa từ Việt. Đã kiểm chứng trên file thật HOWELL: 80/80 hạng mục.
+      // Bắt được >=5 hạng mục coi như trúng định dạng -> dùng luôn, KHỎI gọi AI.
+      try {
+        const msItems = parseTasksMSProject(extractedText);
+        if (msItems.length >= 5) {
+          parsedItems = msItems;
+          parsedByAI = true; // đã có kết quả — bỏ qua AI + fallback bên dưới
+          box.innerHTML = `<div style="white-space:pre-wrap; font-family:monospace; font-size:13px; line-height:1.6; background:var(--bg); border:1px solid var(--border); padding:12px; border-radius:6px; margin-bottom:12px; max-height:300px; overflow-y:auto;">📄 Bộ đọc MS Project (không cần AI): nhận diện ${msItems.length} hạng mục\n\n${msItems.slice(0,15).map(x=>`- ${x.task}: ${x.start} → ${x.end}`).join('\n')}${msItems.length>15?`\n… và ${msItems.length-15} hạng mục nữa`:''}</div>`;
+        }
+      } catch(e) { console.warn('parseTasksMSProject lỗi:', e); }
+
       // 1. Thử gọi trực tiếp qua API Gemini (nếu có key cài đặt cục bộ)
       const localKey = (localStorage.getItem('sys_gemini_key') || "").trim();
       let geminiErrMsg = ""; // giữ lỗi THẬT của Gemini để báo ra ngoài (trước đây bị nuốt vào console)
-      if (localKey) {
+      if (!parsedItems.length && localKey) {
         box.innerHTML = "⏳ Đang phân tích nội dung PDF bằng Gemini (Trực tiếp từ trình duyệt)...";
         try {
           // Ưu tiên gửi NGUYÊN FILE PDF (Gemini đọc được bố cục bảng thật) — chính xác hơn nhiều
@@ -1035,7 +1074,7 @@ async function importProgressFile(file){
         const cleanedText = stripCJK(noFence);
         box.innerHTML = `<div style="white-space:pre-wrap; font-family:monospace; font-size:13px; line-height:1.6; background:var(--bg); border:1px solid var(--border); padding:12px; border-radius:6px; margin-bottom:12px; max-height:300px; overflow-y:auto;">📄 AI phân tích file:\n${cleanedText}</div>`;
         parsedItems = parseTasksFromText(cleanedText);
-      } else {
+      } else if (!parsedItems.length) { // bộ đọc MS Project đã có kết quả thì KHÔNG chạy đè
         // Fallback hoàn toàn offline: sử dụng bộ regex cục bộ để bóc tách từ văn bản PDF trích xuất
         box.innerHTML = "⏳ Chưa cấu hình AI hoặc lỗi mạng. Đang tự động quét mốc ngày cục bộ...";
         parsedItems = parseTasksLocally(extractedText);
