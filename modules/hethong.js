@@ -267,39 +267,35 @@ let CUR_USER=null;
 
 async function ensureUsers(){
 
-  const SEED_V=2; // tăng số này khi muốn nạp lại bộ tài khoản mẫu
-
   let users=await metaGet("users", null);
 
-  const v=await metaGet("users_seed_v", 0);
-
-  if(!users || !users.length || !users[0].role || v<SEED_V){
-
-    // 6 tài khoản test theo 6 vai trò — mật khẩu chung: 123456
+  // CHỈ gieo tài khoản mẫu khi máy TRẮNG HOÀN TOÀN (chưa từng có danh sách nào).
+  // FIX 18/07: bản cũ dựa cờ users_seed_v (cờ này KHÔNG đồng bộ giữa các máy) nên máy/browser
+  // mới mở app là XÓA TRẮNG danh sách nhân sự thật, thay bằng 6 tài khoản test pw 123456,
+  // rồi auto-push phá danh sách cả phòng — gây "thành viên hồi sinh" + "kỹ sư mới vào thẳng
+  // bằng 123456". Nay: (1) chỉ gieo khi rỗng; (2) gieo với pw RỖNG -> lần đầu đăng nhập
+  // bắt buộc tự đặt mật khẩu (đúng luồng maker của app).
+  if(!users || !users.length){
 
     users=[
 
-      {id:"u_admin", full_name:"Quản trị (Admin)",            username:"admin",    role:"admin",        pw:hashPw("123456")},
+      {id:"u_admin", full_name:"Quản trị (Admin)",            username:"admin",    role:"admin",        pw:""},
 
-      {id:"u_dir",   full_name:"Giám đốc (Director)",         username:"director", role:"director",     pw:hashPw("123456")},
+      {id:"u_dir",   full_name:"Giám đốc (Director)",         username:"director", role:"director",     pw:""},
 
-      {id:"u_pm",    full_name:"Quản lý dự án (PM)",          username:"pm",       role:"pm",           pw:hashPw("123456")},
+      {id:"u_pm",    full_name:"Quản lý dự án (PM)",          username:"pm",       role:"pm",           pw:""},
 
-      {id:"u_sm",    full_name:"Chỉ huy trưởng (Site Manager)",username:"sm",      role:"site_manager", pw:hashPw("123456")},
+      {id:"u_sm",    full_name:"Chỉ huy trưởng (Site Manager)",username:"sm",      role:"site_manager", pw:""},
 
-      {id:"u_eng",   full_name:"Kỹ sư (Engineer)",            username:"eng",      role:"engineer",     pw:hashPw("123456")},
+      {id:"u_eng",   full_name:"Kỹ sư (Engineer)",            username:"eng",      role:"engineer",     pw:""},
 
-      {id:"u_view",  full_name:"Người xem (Viewer)",          username:"viewer",   role:"viewer",       pw:hashPw("123456")},
+      {id:"u_view",  full_name:"Người xem (Viewer)",          username:"viewer",   role:"viewer",       pw:""},
 
     ];
 
     await metaSet("users", users);
 
-    await metaSet("users_seed_v", SEED_V);
-
-    // gán Site Manager + Engineer vào công trình p1 để có dữ liệu kiểm tra
-
-    await metaSet("members:p1", ["u_sm","u_eng","u_view"]);
+    await metaSet("users_seed_v", 2);
 
   }
 
