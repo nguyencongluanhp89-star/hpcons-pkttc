@@ -929,8 +929,18 @@ function parseTasksMSProject(text) {
     // Vá từ bị tách đôi do CJK chèn giữa: "đ ịnh"->"định", "CHU ẨN"->"CHUẨN"
     name = name.replace(/([A-Za-zÀ-ỹĐđ]) (?=[ịỊẩẨộỘậẬặẶệỆợỢựỰửỬữỮổỔỗỖễỄểỂẫẪầẦấẤ])/g, "$1");
     if (!name || name.length < 3) continue;
-    const fixY = d => { const p = d.split("/"); if (p[2] && p[2].length === 2) p[2] = "20" + p[2]; return p.join("/"); };
-    items.push({ task: name, start: fixY(m[4]), end: fixY(m[5]) });
+    // Chuẩn ngày của app là ISO YYYY-MM-DD (giống parseTasksFromText) — trả DD/MM/YYYY
+    // là bảng hiện "undefined/undefined/..." vì renderer split('-').
+    const toISO = d => {
+      const p = d.split("/");
+      const y = p[2].length === 2 ? "20" + p[2] : p[2];
+      return `${y}-${p[1].padStart(2, "0")}-${p[0].padStart(2, "0")}`;
+    };
+    const start = toISO(m[4]), end = toISO(m[5]);
+    const dur = parseInt(m[3], 10);
+    items.push({ id: (typeof uuid === "function" ? uuid() : String(Date.now()) + "_" + items.length),
+                 task: name, start: start, end: end,
+                 duration: (!isNaN(dur) && dur > 0) ? dur : null });
   }
   return items;
 }
