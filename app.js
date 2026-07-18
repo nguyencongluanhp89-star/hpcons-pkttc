@@ -1311,7 +1311,7 @@ window.addEventListener("load", async ()=>{
   }
   // Kéo dữ liệu LUÔN chạy (SyncEngine.pull tự lo Firebase + Supabase-nếu-bật + làm mới form) —
   // KHÔNG gate theo Supabase, để tắt Supabase thì Firebase vẫn kéo về lúc khởi động.
-  SyncEngine.pull().then(()=>SyncEngine.setPill()).catch(()=>{});
+  SyncEngine.pull().then(()=>{ SyncEngine.setPill(); if (typeof adoptSharedGeminiKey==='function') adoptSharedGeminiKey(); }).catch(()=>{});
   SyncEngine.setPill();
   if(typeof renderProjectList === "function") renderProjectList();
   // Cổng đăng nhập (RBAC) — bật/tắt bằng LOGIN_ENABLED
@@ -1932,14 +1932,38 @@ function saveGeminiKey() {
   localStorage.setItem('sys_gemini_key', key);
   document.getElementById('gemini-msg').style.color = 'var(--success)';
   document.getElementById('gemini-msg').innerText = '✅ Đã lưu API Key thành công!';
-  
+
+  // ADMIN/GIÁM ĐỐC lưu key -> chia sẻ cho CẢ PHÒNG qua kho đồng bộ (tự đẩy Firebase).
+  // Máy khác mở app/F5 là tự nhận key (adoptSharedGeminiKey) — đọc PDF tiến độ không phải nhập gì.
+  if (typeof catalogAutoPushAllowed === 'function' && catalogAutoPushAllowed()) {
+    metaSet('sys_ai_gemini_key', key);
+    document.getElementById('gemini-msg').innerText = '✅ Đã lưu + chia sẻ key cho cả phòng (máy khác F5 là dùng được)!';
+  }
+
   // Truyền sang iframe nếu đang mở
   const iframe = document.querySelector('iframe');
   if (iframe && iframe.contentWindow) {
     iframe.contentWindow.postMessage({ type: 'SET_GEMINI_KEY', key: key }, '*');
   }
-  
+
   setTimeout(() => { document.getElementById('gemini-msg').innerText = ''; }, 3000);
+}
+
+// Mọi máy: sau khi kéo dữ liệu về, tự nhận API Key Gemini dùng chung (Sếp nhập 1 lần trên web).
+// Key nằm trong kho đồng bộ meta 'sys_ai_gemini_key' -> chép vào localStorage cho các module
+// (tiến độ PDF, AI dịch, AI Center) dùng như cũ — không ai phải nhập key thủ công.
+async function adoptSharedGeminiKey() {
+  try {
+    const shared = await metaGet('sys_ai_gemini_key', '');
+    if (shared && localStorage.getItem('sys_gemini_key') !== shared) {
+      localStorage.setItem('sys_gemini_key', shared);
+      const iframe = document.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'SET_GEMINI_KEY', key: shared }, '*');
+      }
+      console.log('Đã nhận API Key Gemini dùng chung từ hệ thống.');
+    }
+  } catch (e) { /* chưa có key chung — bỏ qua */ }
 }
 document.addEventListener('DOMContentLoaded', () => {
   const savedKey = localStorage.getItem('sys_gemini_key');
