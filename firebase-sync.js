@@ -56,8 +56,10 @@ const FirebaseSync = {
       const failedKeys = []; // key đẩy LỖI — trả về cho nút "Đẩy toàn bộ" báo trung thực
       for (const key of dirtyMetaKeys) {
         if (fbSkipKey(key)) continue;
-        // Auto-push BỎ QUA dữ liệu nền/danh mục (dự án, người dùng, nhà thầu...) — chỉ "Đẩy toàn bộ" mới đẩy.
-        if (autoOnly && typeof isManualPushOnlyKey === "function" && isManualPushOnlyKey(key)) continue;
+        // Auto-push BỎ QUA dữ liệu nền/danh mục (người dùng, nhà thầu...) — TRỪ khi người đang
+        // đăng nhập là ADMIN/GIÁM ĐỐC (Sếp chốt 17/07: admin sửa là tự đồng bộ, khỏi bấm Đẩy).
+        if (autoOnly && typeof isManualPushOnlyKey === "function" && isManualPushOnlyKey(key)
+            && !(typeof window.catalogAutoPushAllowed === "function" && window.catalogAutoPushAllowed())) continue;
         const valObj = await idbGet("meta", key);
         if (!valObj) continue;
         try {

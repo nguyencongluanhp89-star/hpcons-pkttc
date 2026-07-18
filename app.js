@@ -485,6 +485,14 @@ function isManualPushOnlyKey(key){
   return key.startsWith("members:") || key.startsWith("team:") || key.startsWith("org_chart_");
 }
 window.isManualPushOnlyKey = isManualPushOnlyKey;
+// Sếp chốt 17/07: tài khoản ADMIN/GIÁM ĐỐC sửa danh mục (người dùng, chức vụ, nhà thầu, vai trò...)
+// thì TỰ đồng bộ lên hệ thống luôn — khỏi bấm "Đẩy toàn bộ lên". Kỹ sư/CHT hoặc máy chưa đăng nhập
+// Firebase vẫn bị chặn như cũ (an toàn: không ai ghi đè danh mục ngoài quản trị).
+function catalogAutoPushAllowed(){
+  try { return typeof CUR_USER !== "undefined" && !!CUR_USER && ["admin","director"].includes(CUR_USER.role); }
+  catch(e){ return false; }
+}
+window.catalogAutoPushAllowed = catalogAutoPushAllowed;
 // MÁY NGUỒN CHUẨN: đẩy TOÀN BỘ dữ liệu local lên server (ghi đè server). Dùng cho lần thiết lập đầu.
 async function syncPushAll(){
   const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
