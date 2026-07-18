@@ -1354,8 +1354,8 @@ async function pickGeminiModels(key){
     const flashAny=ms.filter(n=>/flash/.test(n) && !flashStable.includes(n));
     const rest=ms.filter(n=>!/flash/.test(n));
     AI_MODELS=[...flashStable, ...flashAny, ...rest];
-    if(!AI_MODELS.length) AI_MODELS=["gemini-2.0-flash","gemini-flash-latest"];
-  }catch(_){ AI_MODELS=["gemini-2.0-flash","gemini-1.5-flash-latest"]; }
+    if(!AI_MODELS.length) AI_MODELS=["gemini-2.5-flash","gemini-flash-latest"];
+  }catch(_){ AI_MODELS=["gemini-2.5-flash","gemini-flash-latest","gemini-2.0-flash"]; } // 1.5 đã bị Google khai tử
   return AI_MODELS;
 }
 function aiVoiceSupported(){ return ('webkitSpeechRecognition' in window)||('SpeechRecognition' in window); }

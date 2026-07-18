@@ -650,7 +650,9 @@ async function callGeminiPdfDirect(b64, filename) {
     "Sau bảng, nêu ngắn gọn các hạng mục đang/sắp tới hạn và cảnh báo (nếu có).\n" +
     "Chỉ dựa trên nội dung file, không bịa.";
 
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  // Gemini 1.5 đã bị Google khai tử (~2025) — gọi vào là 404 dù key đúng. Ưu tiên 2.5,
+  // kèm alias -latest (tự trỏ bản flash mới nhất) và 2.0 làm dự phòng cuối.
+  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
   let errors = [];
   
   for (const model of models) {
@@ -860,7 +862,9 @@ Lắp đặt kết cấu thép | 26/04/2026 | 15/05/2026
 2. Lọc bỏ các thông tin thừa, nhãn biểu đồ Gantt, hoặc ghi chú.
 3. Không trả về bất cứ văn bản giải thích nào khác ngoài các dòng định dạng trên.`;
 
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  // Gemini 1.5 đã bị Google khai tử (~2025) — gọi vào là 404 dù key đúng. Ưu tiên 2.5,
+  // kèm alias -latest (tự trỏ bản flash mới nhất) và 2.0 làm dự phòng cuối.
+  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
   let errors = [];
   
   for (const model of models) {
@@ -977,6 +981,7 @@ async function importProgressFile(file){
       
       // 1. Thử gọi trực tiếp qua API Gemini (nếu có key cài đặt cục bộ)
       const localKey = (localStorage.getItem('sys_gemini_key') || "").trim();
+      let geminiErrMsg = ""; // giữ lỗi THẬT của Gemini để báo ra ngoài (trước đây bị nuốt vào console)
       if (localKey) {
         box.innerHTML = "⏳ Đang phân tích nội dung PDF bằng Gemini (Trực tiếp từ trình duyệt)...";
         try {
@@ -984,11 +989,13 @@ async function importProgressFile(file){
           parsedByAI = true;
         } catch (geminiError) {
           console.warn("Direct Gemini call failed:", geminiError);
+          geminiErrMsg = (geminiError && geminiError.message) || String(geminiError);
         }
       }
-      
+
       // 2. Nếu thất bại hoặc không có key cục bộ, thử gọi qua Edge Function của Supabase (dùng base64)
-      if (!guidanceText && SUPABASE_CONFIG.functionUrl) {
+      // (Supabase đã TẮT — SUPABASE_ENABLED=false — nên bỏ qua bước này, khỏi chờ endpoint chết)
+      if (!guidanceText && (typeof SUPABASE_ENABLED === "undefined" || SUPABASE_ENABLED) && SUPABASE_CONFIG.functionUrl) {
         box.innerHTML = "⏳ Đang gửi tệp PDF lên Edge Function để phân tích...";
         try {
           const b64 = await fileToBase64(file);
@@ -1051,7 +1058,12 @@ async function importProgressFile(file){
           }
         }, 100);
       } else if (!parsedByAI) {
-        throw new Error("Không thể kết nối dịch vụ AI và bộ lọc cục bộ không tìm thấy hạng mục nào. Vui lòng nhập API Key trong Tab Hệ Thống để trợ lý AI hỗ trợ đọc file.");
+        // Báo ĐÚNG bệnh: có key mà Gemini lỗi thì hiện lỗi thật (key sai/model/quota);
+        // chưa có key mới nhắc nhập key.
+        if (localKey && geminiErrMsg) {
+          throw new Error("Gemini báo lỗi: " + geminiErrMsg + " — kiểm tra key (Hệ thống → Cấu hình AI) hoặc chụp màn hình này gửi hỗ trợ.");
+        }
+        throw new Error("Chưa có API Key Gemini và bộ lọc cục bộ không tìm thấy hạng mục nào. Vui lòng nhập API Key trong Tab Hệ Thống để trợ lý AI hỗ trợ đọc file.");
       }
       
     } catch(e) {
