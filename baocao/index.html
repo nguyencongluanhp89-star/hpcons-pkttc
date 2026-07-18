@@ -365,12 +365,17 @@
     <p>Đăng nhập hệ thống HPCONS</p>
     
     <div class="input-group">
-      <label for="login-email">Tên đăng nhập hoặc Email</label>
-      <input type="text" id="login-email" placeholder="Ví dụ: eng hoặc eng@hpcons.local" required>
+      <label for="login-email">Tên đăng nhập hoặc Họ tên</label>
+      <input type="text" id="login-email" placeholder="Chọn tên hoặc gõ @username..." list="users-list" required autocomplete="off">
+      <datalist id="users-list"></datalist>
     </div>
     <div class="input-group">
       <label for="login-password">Mật khẩu</label>
       <input type="password" id="login-password" placeholder="Mật khẩu" required>
+    </div>
+    <div class="input-group" id="confirm-password-group" style="display: none;">
+      <label for="login-confirm-password">Xác nhận mật khẩu mới</label>
+      <input type="password" id="login-confirm-password" placeholder="Nhập lại mật khẩu mới">
     </div>
     
     <div id="login-error" style="color: #ef4444; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-align: left; display: none;"></div>
@@ -650,14 +655,93 @@
   </div>
 </div>
 
-<script src="app-core.js?v=7"></script>
-<script src="js/data.js"></script>
+<script src="app-core.js?v=8"></script>
+<script src="js/data.js?v=2"></script>
 <script src="js/utils.js?v=2"></script>
 <script src="js/features.js?v=1.2"></script>
 <script src="js/render.js?v=1.3"></script>
 
 <script>
+  const FIREBASE_FUNCTIONS_BASE = "https://us-central1-hpcons-pkttc.cloudfunctions.net";
   let selectedProjId = "";
+  let directoryUsers = [];
+
+  // Tải danh bạ nhân sự từ bcaAuth
+  async function loadDirectory() {
+    const url = `${FIREBASE_FUNCTIONS_BASE}/bcaAuth?action=directory`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      directoryUsers = data.users || [];
+      const datalist = document.getElementById("users-list");
+      if (datalist) {
+        datalist.innerHTML = directoryUsers.map(u => 
+          `<option value="${u.full_name} (@${u.username})">${u.full_name}</option>`
+        ).join("");
+      }
+    } catch (err) {
+      console.warn("Lỗi nạp danh bạ nhân sự:", err);
+    }
+  }
+
+  // Khởi chạy nạp danh bạ khi mở app
+  loadDirectory();
+
+  // Hàm resolve thông tin user từ input
+  function resolveUser(inputVal) {
+    const val = inputVal.trim();
+    if (!val) return null;
+
+    if (directoryUsers.length === 0) {
+      return { username: val, has_pw: true };
+    }
+
+    let matchUname = val;
+    if (val.startsWith("@")) {
+      matchUname = val.slice(1);
+    } else {
+      const m = val.match(/\(@([^)]+)\)/);
+      if (m) {
+        matchUname = m[1];
+      }
+    }
+
+    // So khớp theo username
+    let found = directoryUsers.find(u => (u.username || "").toLowerCase() === matchUname.toLowerCase());
+    if (found) return found;
+
+    // So khớp theo full_name
+    const normalizeName = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const normalizedInput = normalizeName(val);
+    found = directoryUsers.find(u => normalizeName(u.full_name) === normalizedInput);
+    if (found) return found;
+
+    return null;
+  }
+
+  // Lắng nghe thay đổi trên ô nhập tên
+  (function() {
+    const emailInput = document.getElementById("login-email");
+    if (emailInput) {
+      emailInput.addEventListener("input", (e) => {
+        const resolved = resolveUser(e.target.value);
+        const confirmGroup = document.getElementById("confirm-password-group");
+        const errorEl = document.getElementById("login-error");
+        if (confirmGroup) {
+          if (!resolved || resolved.has_pw !== false) {
+            confirmGroup.style.display = "none";
+            const confirmPassInput = document.getElementById("login-confirm-password");
+            if (confirmPassInput) confirmPassInput.value = "";
+            if (errorEl && errorEl.getAttribute("data-type") === "info") {
+              errorEl.style.display = "none";
+              errorEl.removeAttribute("data-type");
+            }
+          }
+        }
+      });
+    }
+  })();
 
   // Lắng nghe trạng thái đăng nhập từ AppCore
   AppCore.onAuthStateChanged(async (user) => {
@@ -704,28 +788,112 @@
     const passInput = document.getElementById("login-password");
     const errorEl = document.getElementById("login-error");
     const btn = document.getElementById("btn-login-submit");
+    const confirmGroup = document.getElementById("confirm-password-group");
 
-    const email = emailInput.value.trim();
+    const emailVal = emailInput.value.trim();
     const pass = passInput.value.trim();
 
-    if (!email || !pass) {
+    if (!emailVal || !pass) {
       errorEl.innerText = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.";
       errorEl.style.display = "block";
+      errorEl.style.color = "#ef4444";
+      errorEl.removeAttribute("data-type");
       return;
     }
 
+    const resolved = resolveUser(emailVal);
+    if (!resolved) {
+      errorEl.innerText = "Vui lòng chọn đúng tên trong danh sách.";
+      errorEl.style.display = "block";
+      errorEl.style.color = "#ef4444";
+      errorEl.removeAttribute("data-type");
+      return;
+    }
+
+    const username = resolved.username;
+
+    // Đăng nhập lần đầu: thiết lập mật khẩu
+    if (resolved.has_pw === false) {
+      if (confirmGroup && confirmGroup.style.display === "none") {
+        confirmGroup.style.display = "block";
+        errorEl.innerText = "Lần đầu đăng nhập: hãy đặt mật khẩu mới (tối thiểu 4 ký tự) và xác nhận.";
+        errorEl.style.display = "block";
+        errorEl.style.color = "#16a34a";
+        errorEl.setAttribute("data-type", "info");
+        return;
+      }
+
+      const confirmPassInput = document.getElementById("login-confirm-password");
+      const confirmPass = confirmPassInput ? confirmPassInput.value.trim() : "";
+
+      if (pass.length < 4) {
+        errorEl.innerText = "Mật khẩu phải tối thiểu 4 ký tự.";
+        errorEl.style.display = "block";
+        errorEl.style.color = "#ef4444";
+        errorEl.removeAttribute("data-type");
+        return;
+      }
+
+      if (pass !== confirmPass) {
+        errorEl.innerText = "Mật khẩu xác nhận không khớp.";
+        errorEl.style.display = "block";
+        errorEl.style.color = "#ef4444";
+        errorEl.removeAttribute("data-type");
+        return;
+      }
+    }
+
     errorEl.style.display = "none";
+    errorEl.removeAttribute("data-type");
     btn.disabled = true;
     btn.innerText = "ĐANG ĐĂNG NHẬP...";
 
     try {
-      await AppCore.login(email, pass);
+      // 1. Gọi API bcaAuth để cập nhật/đồng bộ
+      const res = await fetch(`${FIREBASE_FUNCTIONS_BASE}/bcaAuth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "login",
+          username: username,
+          password: pass
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.error === "wrong_password") {
+          throw new Error("wrong_password");
+        } else if (data.error === "user_not_found") {
+          throw new Error("user_not_found");
+        } else {
+          throw new Error(data.error || "unknown_error");
+        }
+      }
+
+      // 2. Đăng nhập thật vào Firebase Auth
+      await AppCore.login(username, pass);
+
+      resolved.has_pw = true;
+      if (confirmGroup) confirmGroup.style.display = "none";
+
     } catch (err) {
       console.error("Login error:", err);
-      let errMsg = "Sai tài khoản hoặc mật khẩu.";
-      if (err.code === "auth/network-request-failed") errMsg = "Không có kết nối mạng.";
+      let errMsg = "Đăng nhập thất bại. Vui lòng thử lại.";
+      if (err.message === "wrong_password") {
+        errMsg = "Sai mật khẩu.";
+      } else if (err.message === "user_not_found") {
+        errMsg = "Không có tên này trong danh sách nhân sự — nhờ Admin thêm ở app chính (Hệ thống → Quản lý người dùng).";
+      } else if (err.code === "auth/network-request-failed" || err.message === "TypeError: Failed to fetch") {
+        errMsg = "Không có kết nối mạng.";
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      
       errorEl.innerText = errMsg;
       errorEl.style.display = "block";
+      errorEl.style.color = "#ef4444";
+      errorEl.removeAttribute("data-type");
       btn.disabled = false;
       btn.innerText = "ĐĂNG NHẬP";
     }
@@ -737,6 +905,10 @@
       document.getElementById("btn-select-project").disabled = true;
       document.getElementById("login-email").value = "";
       document.getElementById("login-password").value = "";
+      const confirmGroup = document.getElementById("confirm-password-group");
+      if (confirmGroup) confirmGroup.style.display = "none";
+      const confirmPassInput = document.getElementById("login-confirm-password");
+      if (confirmPassInput) confirmPassInput.value = "";
       document.getElementById("login-error").style.display = "none";
       document.getElementById("btn-login-submit").disabled = false;
       document.getElementById("btn-login-submit").innerText = "ĐĂNG NHẬP";
