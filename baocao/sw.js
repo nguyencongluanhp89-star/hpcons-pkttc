@@ -1,7 +1,7 @@
 // Service worker App Báo Cáo Ngày — chiến lược MẠNG TRƯỚC (network-first):
 // khi có mạng luôn lấy bản mới nhất từ server (không kẹt bản cũ);
 // bản trong cache chỉ dùng làm dự phòng khi offline.
-const CACHE_NAME = 'hpcons-baocao-v1';
+const CACHE_NAME = 'hpcons-baocao-v2'; // v2: icon rieng P.KTTC + "Bao cao ngay"
 
 const urlsToCache = [
   './',
