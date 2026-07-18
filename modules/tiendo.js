@@ -291,8 +291,9 @@ async function renderTiendo(){
     else if (lvl === 2) { cLvl2 = rawTask; }
     
     const effectiveEnd = getEffectiveEnd(it) || it.end;
-    const inWindow = (!it.start||it.start<=endW) && (!effectiveEnd||effectiveEnd>=startW) && (it.start||effectiveEnd);
-    if (inWindow && (it.start || effectiveEnd)) {
+    // Sếp chốt 18/07: bảng DANH SÁCH CHI TIẾT hiển thị TOÀN BỘ công tác của tiến độ
+    // (không giới hạn cửa sổ 3 tuần — cửa sổ chỉ dành cho bảng mini-Gantt phía trên).
+    if (it.start || effectiveEnd) {
       let area = "";
       if (lvl === 1) area = "TỔNG THỂ";
       else if (lvl === 2) area = cLvl1 || "CHUNG";
