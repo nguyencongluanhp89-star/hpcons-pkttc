@@ -29,7 +29,7 @@ async function renderDashboard() {
 
     dashHero.innerHTML = `
       <div class="score">
-        <div class="ring"><b id="dash-health">--</b><span>SỨC KHỎE</span></div>
+        <div class="ring"><b id="dash-health">--</b><span id="dash-health-desc">SỨC KHỎE</span></div>
       </div>
       <div class="hsep"></div>
       <div class="htext" style="flex:1;min-width:200px">
@@ -48,6 +48,7 @@ async function renderDashboard() {
   // 2. Calculate Progress & Health
   let progressPct = 0;
   let healthScore = "--";
+  let healthStatus = "";
   let healthColor = "var(--text-strong)";
   let delayedTasks = [];
   let doneTasksCount = 0;
@@ -81,43 +82,12 @@ async function renderDashboard() {
         if (stObj.label !== "Sắp tới") active++;
       });
 
-      // 2.1 Điểm trừ Báo cáo ngày (phạt tối đa 50đ)
-      let reportRate = 100;
       const projects = await DataService.listProjects();
       const proj = projects.find(p => p.id === CUR.project);
-      const subs = (await DataService.listSubmissions()).filter(s => s.project_id === CUR.project);
-      if (proj) {
-        const start = proj.start_date ? new Date(proj.start_date) : null;
-        const end = proj.end_date ? new Date(proj.end_date) : null;
-        const off = new Set(proj.off_weekdays || [0]);
-        const days = [...new Set(subs.map(s => s.log_date))];
-        let workDays = 0, reported = 0;
-        if (start && end) {
-          // Tạo bản sao đối tượng ngày bắt đầu để duyệt tránh làm sai lệch ngày gốc
-          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            if (off.has(d.getDay())) continue;
-            workDays++;
-            const isoStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-            if (days.includes(isoStr)) reported++;
-          }
-        }
-        if (workDays > 0) reportRate = Math.round(reported / workDays * 100);
-      }
-      const penReport = Math.round((100 - reportRate) * 0.5);
-
-      // 2.2 Điểm trừ Trễ tiến độ thi công (phạt tối đa 50đ)
-      const penProgress = active > 0 ? Math.round((lateOrDelayed / active) * 50) : 0;
-
-      // 2.3 Điểm trừ Sự cố kỹ thuật (mỗi sự cố nghiêm trọng trừ 5đ, phạt tối đa 25đ)
-      const highIssues = subs.flatMap(s => s.issues || []).filter(i => i.severity === "high").length;
-      const penIssues = Math.min(25, highIssues * 5);
-
-      // Tổng điểm sức khỏe dự án
-      healthScore = Math.max(0, 100 - penReport - penProgress - penIssues);
-
-      if (healthScore >= 80) healthColor = "var(--success)";
-      else if (healthScore >= 50) healthColor = "var(--warning)";
-      else healthColor = "var(--danger)";
+      const H = await computeProjectHealth(proj);
+      healthScore = H.healthScore;
+      healthStatus = H.healthStatus;
+      healthColor = "var(" + H.healthColorToken + ")";
 
       // Weighted progress calculation: sum of (completedPct * duration) / sum of duration
       let totalDuration = 0;
@@ -161,9 +131,12 @@ async function renderDashboard() {
   
   const elHealth = document.getElementById("dash-health");
   if(elHealth) {
-    elHealth.textContent = healthScore;
+    elHealth.textContent = fmtHealth(healthScore) + "đ";
     elHealth.style.color = healthColor;
-    if (healthScore !== "--") elHealth.textContent += "đ"; // đ = điểm
+  }
+  const elHealthDesc = document.getElementById("dash-health-desc");
+  if(elHealthDesc && healthStatus) {
+    elHealthDesc.textContent = "SỨC KHỎE · " + healthStatus.toUpperCase();
   }
   
   // 3. Calculate Finance

@@ -407,7 +407,11 @@ function renderLoginUsers(){
 
   let users = [];
   if (window.LOGIN_SOURCE === "server") {
-    users = (window.SERVER_USERS || []).filter(u => u.dept === d && (u.position === r || u.role === r));
+    // FIX 18/07: KHÔNG bắt buộc khớp dept — dropdown là TÊN HIỂN THỊ ("Quản lý") còn u.dept
+    // là MÃ nội bộ ("thicong"...) hoặc RỖNG (67/75 nhân sự nhập Excel) -> bắt buộc dept là
+    // "Không tìm thấy nhân sự" toàn hệ (Sếp không đăng nhập được). Lọc theo CHỨC VỤ như bản
+    // local xưa nay; Bộ phận chỉ dùng để nhóm danh sách chức vụ.
+    users = (window.SERVER_USERS || []).filter(u => (u.role === r || u.position === r));
   } else {
     users = LOGIN_USERS.filter(u => u.role === r);
   }

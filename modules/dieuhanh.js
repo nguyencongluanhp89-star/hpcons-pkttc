@@ -19,18 +19,17 @@ async function projectStats(id){
   const highIssues=subs.flatMap(s=>s.issues||[]).filter(i=>i.severity==="high").length;
   let overdueConds=0, readyDots=0;
   cdt.forEach(d=>{ if(d.conditions && d.conditions.length>0 && d.conditions.every(c=>c.done)) readyDots++; if(d.conditions) d.conditions.forEach(c=>{ if(!c.done && c.due && t>c.due) overdueConds++; }); });
-  const penIssues=Math.min(25,highIssues*5), penPay=Math.min(20,overdueConds*5), penComp=Math.round((100-rate)*0.5);
-  const health=Math.max(0,Math.min(100,100-penComp-penIssues-penPay));
+  const H = await computeProjectHealth(proj);
   const totalManpower=subs.reduce((a,s)=>a+(s.manpower||[]).reduce((x,m)=>x+(m.headcount||0),0),0);
   const manpowerToday=subs.filter(s=>s.log_date===t).reduce((a,s)=>a+(s.manpower||[]).reduce((x,m)=>x+(m.headcount||0),0),0);
   // Tiến độ kế hoạch theo thời gian (nhất quán với tab Tiến độ) + số hạng mục quá ngày kết thúc KH
   let schedulePct=0;
   if(start && end && end>start){ const pas=new Date(t)-start; schedulePct=Math.max(0,Math.min(100,Math.round(pas/(end-start)*100))); }
   const overdueTasks=(progress||[]).filter(it=>it.end && t>it.end).length;
-  return {proj, rate, highIssues, overdueConds, readyDots, dotCount:cdt.length, health, totalManpower, manpowerToday, schedulePct, overdueTasks, logDays:days.length};
+  return {proj, rate, highIssues, overdueConds, readyDots, dotCount:cdt.length, health: H.healthScore, healthStatus: H.healthStatus, healthColorToken: H.healthColorToken, totalManpower, manpowerToday, schedulePct, overdueTasks, logDays:days.length};
 }
 
-function healthColor(h){ return h>=80?"var(--hp-brand-primary)":h>=60?"var(--hp-brand-accent)":h>=40?"var(--hp-warning)":"var(--hp-danger)"; }
+function healthColor(h){ return "var(" + healthTier(h).token + ")"; }
 
 const DEPARTMENTS=[
   {key:"banql",       name:"Quản lý",              positions:["P. TGĐ","TP. KTTC"]},
@@ -271,10 +270,10 @@ async function renderExecutive(){
   const totChi=totSubcon+totExp;
 
   // Hero
-  const avg= total? Math.round(stats.reduce((a,s)=>a+s.health,0)/total):0;
+  const avg = total ? healthRound1(stats.reduce((a,s)=>a+s.health,0)/total) : 0;
   if($("exec-health")){
-    $("exec-health").textContent = avg + "đ";
-    $("exec-health").style.color = avg>=80?"var(--success)":avg>=50?"var(--warning)":"var(--danger)";
+    $("exec-health").textContent = fmtHealth(avg) + "đ";
+    $("exec-health").style.color = "var(" + healthTier(avg).token + ")";
   }
   if($("exec-date")){ try{ $("exec-date").textContent = new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ $("exec-date").textContent=tToday; } }
 
@@ -322,8 +321,8 @@ async function renderExecutive(){
                 <div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(s.proj.commander||'-')} · ${esc(s.proj.status||'Đang thi công')}</div>
               </div>
               <div style="text-align:center;flex-shrink:0;min-width:54px">
-                <div style="font-weight:800;font-size:24px;color:${hc};line-height:1">${s.health}</div>
-                <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">sức khỏe</div>
+                <div style="font-weight:800;font-size:24px;color:${hc};line-height:1">${fmtHealth(s.health)}</div>
+                <div style="font-size:10px;color:${hc};text-transform:uppercase;letter-spacing:.3px">${esc(s.healthStatus)}</div>
               </div>
             </div>
             <div style="margin-top:10px"><span style="display:inline-block;font-size:11px;font-weight:700;color:${stLabel.c};background:var(--surface-2);border:1px solid var(--border);padding:3px 10px;border-radius:var(--r-pill)">${stLabel.t}</span></div>
