@@ -3,7 +3,7 @@ async function getPaymentAssignees() { return await metaGet("payment_assignees:"
 async function setPaymentAssignees(arr) { return await metaSet("payment_assignees:" + CUR.project, arr); }
 
 async function getPaymentRoles() {
-  const isManager = CUR_USER && ["admin", "director", "pm", "site_manager"].includes(CUR_USER.role);
+  const isManager = CUR_USER && (isAdminLikeRole(CUR_USER.role) || ["pm", "site_manager"].includes(CUR_USER.role));
   const assignees = await getPaymentAssignees();
   const isAssignee = CUR_USER && assignees.includes(CUR_USER.id);
   const canEdit = isManager || isAssignee;
@@ -41,7 +41,7 @@ async function openPaymentAssignModal() {
   const container = document.getElementById("payment-assign-checkboxes");
   
   // Lọc lấy các kỹ sư thi công, kế toán (hoặc lấy tất cả team)
-  const candidates = team.filter(m => m.status !== "finished" && !["admin", "director", "pm", "site_manager"].includes(m.role));
+  const candidates = team.filter(m => m.status !== "finished" && !(isAdminLikeRole(m.role) || ["pm", "site_manager"].includes(m.role)));
   
   if(!candidates.length) {
     container.innerHTML = '<p class="muted">Không có nhân sự nào để giao quyền (trừ các Manager).</p>';

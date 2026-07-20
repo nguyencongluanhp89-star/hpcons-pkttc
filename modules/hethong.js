@@ -259,9 +259,17 @@ function hashPw(s) {
   return "sha256_" + hash;
 }
 
-function roleTabs(role){ const r=ROLES[role]||ROLES.viewer; return r.tabs==="*"?ALL_TABS.slice():r.tabs.slice(); }
+function roleTabs(role){ const r=ROLES[isAdminLikeRole(role)?"admin":role]||ROLES.viewer; return r.tabs==="*"?ALL_TABS.slice():r.tabs.slice(); }
 
 function can(tab){ return CUR_USER ? roleTabs(CUR_USER.role).indexOf(tab)>=0 : false; }
+
+function isAdminLikeRole(role){
+  if (!role) return false;
+  if (role === "admin" || role === "director") return true;
+  const r = (typeof ROLES !== "undefined") ? ROLES[role] : null;
+  return !!(r && r.dept === "Quản lý");
+}
+window.isAdminLikeRole = isAdminLikeRole;
 
 let CUR_USER=null;
 
@@ -810,7 +818,7 @@ async function renderDeptPersonnel(elementId, deptKey, deptName) {
 
   const d = DEPARTMENTS.find(x => x.key === deptKey);
 
-  const editable = !CUR_USER || ["admin","director","pm","site_manager"].includes(CUR_USER.role);
+  const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || ["pm","site_manager"].includes(CUR_USER.role);
 
 
 
@@ -1194,7 +1202,7 @@ async function accessibleProjects(){
 
   const all=await DataService.listProjects();
 
-  if(!CUR_USER || ["admin","director","pm"].indexOf(CUR_USER.role)>=0) return all;
+  if(!CUR_USER || isAdminLikeRole(CUR_USER.role) || CUR_USER.role === "pm") return all;
 
   const myName=(CUR_USER.full_name||"").toLowerCase();
 
@@ -1285,7 +1293,7 @@ async function renderTeam() {
 
   const chart = await getOrgChart(pid);
   const users = await ensureUsers();
-  const editable = !CUR_USER || ["admin","director","pm","site_manager"].includes(CUR_USER.role);
+  const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || ["pm","site_manager"].includes(CUR_USER.role);
 
   const hint = document.getElementById("team-hint");
   if (hint) hint.textContent = editable ? "Bạn có quyền quản lý sơ đồ tổ chức." : "Chỉ xem sơ đồ tổ chức.";

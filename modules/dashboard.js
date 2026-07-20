@@ -548,7 +548,7 @@ async function renderDashboard() {
   const listWaitingApprove = document.getElementById("dash-waiting-approve-list");
   if (elWaitingApprove && listWaitingApprove) {
     try {
-      const isApprover = typeof CUR_USER !== 'undefined' && CUR_USER && ["admin", "director", "pm", "site_manager"].includes(CUR_USER.role);
+      const isApprover = typeof CUR_USER !== 'undefined' && CUR_USER && (isAdminLikeRole(CUR_USER.role) || ["pm", "site_manager"].includes(CUR_USER.role));
       if (!isApprover) {
         elWaitingApprove.classList.add("hide");
       } else {

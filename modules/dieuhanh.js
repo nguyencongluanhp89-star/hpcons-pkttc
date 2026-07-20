@@ -77,7 +77,7 @@ function closeDeptModal(){ $("dept-modal").classList.add("hide"); }
 async function renderDeptModal(){
   const key=DEPT_CUR; const d=DEPARTMENTS.find(x=>x.key===key); if(!d) return;
   const data=await metaGet("departments", {}); const members=data[key]||[];
-  const editable = !CUR_USER || ["admin","director","pm"].indexOf(CUR_USER.role)>=0;
+  const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || CUR_USER.role === "pm";
   $("dept-modal-title").textContent=d.name+" ("+members.length+" người)";
   $("dept-modal-list").innerHTML = members.length ? members.map((m,i)=>`<div class="it"><span><b>${esc(m.name)}</b> · ${esc(m.position)}</span>${editable?'<button class="btn btn-dan btn-sm" onclick="deptDel(\''+key+'\','+i+')">Xóa</button>':''}</div>`).join("") : '<p class="muted">Chưa có thành viên.</p>';
   $("dept-modal-add").innerHTML = editable ? `<div class="row" style="align-items:flex-end"><div><label>Họ tên</label><input id="dep-name-${key}" placeholder="Họ tên"></div><div style="flex:0;min-width:170px"><label>Chức vụ</label><select id="dep-pos-${key}">${d.positions.map(p=>'<option>'+esc(p)+'</option>').join("")}</select></div><div style="flex:0"><button class="btn btn-ok" onclick="deptAdd('${key}')">+ Thêm</button></div></div>` : '';
@@ -138,7 +138,7 @@ async function renderProjectList() {
   if(!pl) return;
   
   const list = await accessibleProjects(); // Phân quyền
-  const editable = !CUR_USER || ["admin","director","pm","site_manager"].includes(CUR_USER.role);
+  const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || ["pm","site_manager"].includes(CUR_USER.role);
 
   if(list.length === 0){
     pl.innerHTML = renderEmptyState('🏢', 'Chưa có dự án phân quyền', 'Vui lòng liên hệ Admin để được cấp quyền quản lý dự án.');

@@ -489,7 +489,7 @@ window.isManualPushOnlyKey = isManualPushOnlyKey;
 // thì TỰ đồng bộ lên hệ thống luôn — khỏi bấm "Đẩy toàn bộ lên". Kỹ sư/CHT hoặc máy chưa đăng nhập
 // Firebase vẫn bị chặn như cũ (an toàn: không ai ghi đè danh mục ngoài quản trị).
 function catalogAutoPushAllowed(){
-  try { return typeof CUR_USER !== "undefined" && !!CUR_USER && ["admin","director"].includes(CUR_USER.role); }
+  try { return typeof CUR_USER !== "undefined" && !!CUR_USER && isAdminLikeRole(CUR_USER.role); }
   catch(e){ return false; }
 }
 window.catalogAutoPushAllowed = catalogAutoPushAllowed;
@@ -7041,8 +7041,8 @@ window.filterTcProjectList = function() {
     return (nameMatch || commMatch || invMatch) && statusMatch;
   });
 
-  const editable = !CUR_USER || ["admin","director","pm","site_manager"].includes(CUR_USER.role);
-  const deletable = !CUR_USER || ["admin","director"].includes(CUR_USER.role);
+  const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || ["pm","site_manager"].includes(CUR_USER.role);
+  const deletable = !CUR_USER || isAdminLikeRole(CUR_USER.role);
 
   if (filtered.length === 0) {
     pl.innerHTML = '<p class="muted" style="text-align:center; padding:40px 0;">Không tìm thấy dự án nào khớp với bộ lọc.</p>';

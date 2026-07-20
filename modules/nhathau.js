@@ -223,7 +223,7 @@ async function renderContractors() {
     return;
   }
 
-  const editable = !CUR_USER || ["admin","director","pm","site_manager","engineer"].includes(CUR_USER.role);
+  const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || ["pm","site_manager","engineer"].includes(CUR_USER.role);
 
   tbody.innerHTML = filtered.map((c, idx) => {
     let type = c.type || "contractor";
