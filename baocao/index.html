@@ -659,7 +659,7 @@
   </div>
 </div>
 
-<script src="app-core.js?v=8"></script>
+<script src="app-core.js?v=9"></script>
 <script src="js/data.js?v=2"></script>
 <script src="js/utils.js?v=2"></script>
 <script src="js/features.js?v=1.2"></script>
@@ -786,7 +786,7 @@
       // Hiển thị/Ẩn nút Thành viên dự án dựa trên vai trò
       const btnMembers = document.getElementById("btn-project-members");
       if (btnMembers) {
-        if (["admin", "director", "pm"].includes(user.role)) {
+        if (["admin", "director", "pm"].includes(user.role) || user.admin_like) {
           btnMembers.style.display = "inline-block";
         } else {
           btnMembers.style.display = "none";
@@ -1140,7 +1140,7 @@
     }
 
     const currentUserRole = AppCore.currentUser ? AppCore.currentUser.role : '';
-    const canChangeRole = ['admin', 'director'].includes(currentUserRole);
+    const canChangeRole = ['admin', 'director'].includes(currentUserRole) || (AppCore.currentUser && AppCore.currentUser.admin_like);
 
     users.forEach(user => {
       const isMember = memberUids.includes(user.uid);

@@ -66,7 +66,8 @@
               email: user.email,
               full_name: uData.full_name || user.email.split("@")[0],
               role: uData.role || "engineer",
-              app_user_id: uData.app_user_id || "x"
+              app_user_id: uData.app_user_id || "x",
+              admin_like: !!uData.admin_like
             };
             
             // Tự ghi/cập nhật hồ sơ người dùng khi đăng nhập (upsert users/{uid})
@@ -125,7 +126,7 @@
         const uid = AppCore.currentUser.uid;
         let snap;
         
-        if (role === "admin" || role === "director" || role === "pm") {
+        if (role === "admin" || role === "director" || role === "pm" || AppCore.currentUser.admin_like) {
           // Admin/Director/PM thấy toàn bộ dự án
           snap = await db.collection("projects").get();
         } else {
