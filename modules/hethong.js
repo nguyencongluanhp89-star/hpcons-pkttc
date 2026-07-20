@@ -1208,7 +1208,9 @@ async function accessibleProjects(){
 
     const inTeam=team.some(t=>(t.name||"").toLowerCase()===myName);
 
-    if(m.indexOf(CUR_USER.id)>=0 || inTeam) out.push(p);
+    const isCommander = (p.commander||"").trim().toLowerCase() === myName.trim();
+
+    if(m.indexOf(CUR_USER.id)>=0 || inTeam || isCommander) out.push(p);
 
   }
 
