@@ -1539,8 +1539,12 @@ async function buildCompanySnapshot(){
 async function pushAiSnapshot(){
   try{
     if(!navigator.onLine) return;
-    const client = SupabaseSync.init();
-    if(!client) return;
+    // FIX 18/07: bot Telegram đọc ai_snapshot/_company trên FIREBASE (Admin SDK), nhưng hàm này
+    // trước chỉ ghi Supabase — Supabase tắt là thoát sớm -> Firebase KHÔNG BAO GIỜ có snapshot
+    // -> bot đói dữ liệu, Gemini tự bịa (Vinhomes/Ecopark...). Nay ghi Firebase là chính.
+    const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
+    const client = SupabaseSync.init(); // null khi SUPABASE_ENABLED=false
+    if(!fbReady && !client) return;
     const ctx=await buildCompanySnapshot();
     // KHÓA AN TOÀN: không đẩy snapshot "nghèo dữ liệu" đè lên bản tốt trên server.
     // (VD: điện thoại vừa đăng nhập, chưa kéo dữ liệu về xong -> daily_reports còn rỗng.)
@@ -1550,13 +1554,25 @@ async function pushAiSnapshot(){
       console.warn("Bỏ đẩy snapshot: chưa có dự án/báo cáo (có thể chưa đồng bộ xong) — tránh đè bản tốt.");
       return;
     }
-    const { error } = await client.from("ai_snapshot").upsert({
-      project_id: '_company',
-      data: ctx,
-      updated_at: new Date().toISOString()
-    }, { onConflict: "project_id" });
-    if(error) {
-      console.warn("Lỗi push snapshot lên ai_snapshot:", error.message);
+    // FIREBASE — nguồn chính bot Telegram đọc (rules đã mở sẵn: allow write if isSignedIn)
+    if (fbReady) {
+      try {
+        await window.fb.db.collection("ai_snapshot").doc("_company").set({
+          data: ctx,
+          updated_at: new Date().toISOString()
+        }, { merge: true });
+      } catch (e) { console.warn("Lỗi push snapshot Firebase:", e && e.message); }
+    }
+    // Supabase — chỉ khi còn bật (giữ tương thích giai đoạn chuyển tiếp)
+    if (client) {
+      const { error } = await client.from("ai_snapshot").upsert({
+        project_id: '_company',
+        data: ctx,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "project_id" });
+      if(error) {
+        console.warn("Lỗi push snapshot lên ai_snapshot:", error.message);
+      }
     }
   }catch(e){
     console.warn("Lỗi gọi pushAiSnapshot:", e);
