@@ -1333,18 +1333,9 @@ function recalcOverallProgress() {
 }
 
 function recalcFromSched(force){
-  // GĐ2.3: Nếu không force, và đã có tiến độ lấy từ app chính, ưu tiên giữ nguyên
-  if (!force && el('f_prog') && el('f_prog').value !== '' && window.AppCore && window.AppCore.currentProject && window.AppCore.currentProject.hasProgress) {
-    const pct = window.AppCore.currentProject.progressPct;
-    el('f_prog').value = pct;
-    const noteEl = el('prog_note');
-    if (noteEl) {
-      noteEl.textContent = '✓ % tiến độ tổng thể tự động lấy từ app chính = ' + pct + '% (tính theo số hạng mục hoàn thành)';
-    }
-    if (typeof draw === 'function') draw();
-    return;
-  }
-
+  // Sếp chốt 20/07: TIẾN ĐỘ TỔNG THỂ = % THỜI GIAN đã trôi (tính theo ngày Bắt đầu/Kết thúc,
+  // đồng bộ Dashboard app chính). Bỏ nhánh "theo số hạng mục hoàn thành" cũ — nó gây 0% khi
+  // hạng mục PDF chưa được tick, khiến báo cáo ban hành hiện 0% dù dự án đang chạy.
   const pct = recalcOverallProgress();
   if (pct !== null) {
     el('f_prog').value = pct;

@@ -1637,7 +1637,8 @@ async function loadReportForDate(date) {
         if (el('f_weather_m')) el('f_weather_m').value = report.weather_m || 'sunny';
         if (el('f_weather_a')) el('f_weather_a').value = report.weather_a || 'sunny';
         if (el('f_weather_note')) el('f_weather_note').value = report.weather_note || '';
-        if (el('f_prog') && report.f_prog) el('f_prog').value = report.f_prog;
+        // TIẾN ĐỘ TỔNG THỂ: KHÔNG nạp từ report — luôn tự tính % THỜI GIAN theo ngày báo cáo (Sếp chốt 20/07).
+        if (typeof recalcFromSched === 'function') recalcFromSched(true);
         if (el('f_plan') && report.f_plan) el('f_plan').value = report.f_plan;
 
         // Ảnh tổng quan 01 + logo: nạp từ CHÍNH báo cáo này (đồng bộ giống hệt app chính)
@@ -1723,44 +1724,9 @@ window.loadReportForDate = loadReportForDate;
 
 // GĐ2.3: Tự động đồng bộ tiến độ dự án từ app chính
 async function syncProgressFromMain() {
-  if (!window.AppCore || !window.AppCore.currentProject) return;
-  const target = el('f_prog');
-  if (!target) return;
-  if (target.value !== '') return; // Chỉ điền khi ô đang trống
-
-  const pid = window.AppCore.currentProject.id;
-  if (window.AppCore.currentProject.hasProgress === true) {
-    const pct = window.AppCore.currentProject.progressPct;
-    target.value = pct;
-    const noteEl = el('prog_note');
-    if (noteEl) {
-      noteEl.textContent = '✓ % tiến độ tổng thể tự động lấy từ app chính = ' + pct + '% (tính theo số hạng mục hoàn thành)';
-    }
-    if (typeof draw === 'function') draw();
-    return;
-  } else if (window.AppCore.currentProject.hasProgress === false) {
-    if (typeof recalcFromSched === 'function') recalcFromSched();
-    return;
-  }
-
-  const items = await window.AppCore.loadProjectProgress(pid);
-  if (!items || !items.length) {
-    window.AppCore.currentProject.hasProgress = false;
-    if (typeof recalcFromSched === 'function') recalcFromSched();
-    return;
-  }
-
-  const done = items.filter(it => it && it.status === 'done').length;
-  const pct = Math.round((done / items.length) * 100);
-  window.AppCore.currentProject.hasProgress = true;
-  window.AppCore.currentProject.progressPct = pct;
-
-  target.value = pct;
-  const noteEl = el('prog_note');
-  if (noteEl) {
-    noteEl.textContent = '✓ % tiến độ tổng thể tự động lấy từ app chính = ' + pct + '% (tính theo số hạng mục hoàn thành)';
-  }
-  if (typeof draw === 'function') draw();
+  // Sếp chốt 20/07: TIẾN ĐỘ TỔNG THỂ = % THỜI GIAN đã trôi tới ngày báo cáo (tính theo ngày
+  // Bắt đầu/Kết thúc dự án), đồng bộ Dashboard app chính — KHÔNG theo số hạng mục hoàn thành.
+  if (typeof recalcFromSched === 'function') recalcFromSched(true);
 }
 window.syncProgressFromMain = syncProgressFromMain;
 
