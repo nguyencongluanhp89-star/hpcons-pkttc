@@ -66,7 +66,7 @@ window.addEventListener('resize', adjustReportScale);
 function draw(){
   const dt=fmtDate(el('f_date').value);
   const prog=el('f_prog').value||0;
-  const logoHtml=logoImg?`<img src="${logoImg}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để đổi logo nhà thầu">`:`<div style="cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để tải logo nhà thầu"><div class="lg">HP<span class="c2">CONS</span></div><div class="slogan">BEYOND - Expectation</div><div class="slogan-cn">超越期望</div></div>`;
+  const logoHtml=`<img src="${logoImg||window.HPCONS_REPORT_LOGO||''}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để đổi logo nhà thầu">`;
   const logoCdtHtml=logoImgCdt?`<img src="${logoImgCdt}" style="max-height:80px;cursor:pointer" onclick="el('f_logo_cdt').click()" title="Nhấn để đổi logo chủ đầu tư">`:'<div style="cursor:pointer;border:1.5px dashed #cbd5e1;border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94a3b8;min-width:140px;background:#f8fafc" onclick="el(\'f_logo_cdt\').click()" title="Nhấn để tải logo chủ đầu tư"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><div style="font-size:11px;font-weight:700">LOGO CHỦ ĐẦU TƯ</div><div style="font-size:10px;font-weight:400">(Nhấn để tải lên)</div></div>';
 
   const weatherIcons = {
@@ -424,9 +424,7 @@ async function exportPNG169() {
     // Xây dựng logo nhà thầu
     // Logo: chiều cao được ÉP BẰNG chiều cao cột giữa (đo bằng JS sau khi render — xem #temp-head-center).
     // KHÔNG dùng align-self:stretch: trong flexbox ảnh vẫn góp chiều cao tự nhiên -> header phình theo ảnh gốc.
-    const logoHtml = logoImg
-      ? `<img src="${logoImg}" class="hdr-logo" style="width:auto; max-width:100%; object-fit:contain; display:block;">`
-      : `<div style="text-align:center;"><div style="font-size:${FS.pageSub}px;font-weight: 400;color:#2E6B22;letter-spacing:1px;line-height:1">HP<span style="color:#60BB46">CONS</span></div><div style="font-size:${FS.tiny}px;color:#60BB46;font-style:italic;margin-top:2px;text-transform:uppercase;letter-spacing:0.5px">BEYOND - Expectation</div><div style="font-size:${FS.tiny}px;color:#2E6B22;margin-top:1px">超越期望</div></div>`;
+    const logoHtml = `<img src="${logoImg||window.HPCONS_REPORT_LOGO||''}" class="hdr-logo" style="width:auto; max-width:100%; object-fit:contain; display:block;">`;
     
     // Xây dựng logo chủ đầu tư
     const logoCdtHtml = logoImgCdt
