@@ -407,7 +407,7 @@
   </div>
 </div>
 
-<!-- CẤU TRÚC SHELL CỦA APP BÁO CÁO -->
+  <!-- CẤU TRÚC SHELL CỦA APP BÁO CÁO -->
 <div id="app-shell" style="display: none;">
   <div class="app-header">
     <div class="app-header-title" id="app-header-info">Dự án: Howell</div>
@@ -415,8 +415,8 @@
       <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="background:transparent; border:none; font-size:18px; cursor:pointer; padding:6px; display:inline-flex; align-items:center; justify-content:center; color: var(--hp-text-primary);" title="Bật/Tắt chế độ Ban đêm">🌙</button>
       <button class="logout-btn-header" id="pwa-install-btn" style="background:var(--hp-primary,#096AA7); display:none;" onclick="handlePwaInstallClick()">📲 Tải app</button>
       <button class="logout-btn-header" id="btn-project-members" style="background:var(--hp-primary,#096AA7); display:none;" onclick="openProjectMembersModal()">👥 Thành viên</button>
-      <button class="logout-btn-header" style="background:#475569;" onclick="switchToProjectSelector()">Đổi dự án</button>
-      <button class="logout-btn-header" onclick="handleLogoutClick()">Đăng xuất</button>
+      <button class="logout-btn-header" id="btn-switch-project" style="background:#475569;" onclick="switchToProjectSelector()">Đổi dự án</button>
+      <button class="logout-btn-header" id="btn-logout-header" onclick="handleLogoutClick()">Đăng xuất</button>
     </div>
   </div>
 
@@ -659,14 +659,131 @@
   </div>
 </div>
 
-<script src="app-core.js?v=9"></script>
+<script src="app-core.js?v=10"></script>
 <script src="js/data.js?v=2"></script>
 <script src="js/utils.js?v=2"></script>
-<script src="js/features.js?v=1.3"></script>
+<script src="js/features.js?v=1.4"></script>
 <script src="hpcons-logo.js?v=1"></script>
 <script src="js/render.js?v=1.6"></script>
 
 <script>
+  // 1. EMBED MODE DETECTION & MANAGEMENT
+  const EMBED = new URLSearchParams(location.search).has('embed') || window.parent !== window;
+  window.IS_EMBED = EMBED;
+
+  // Khi EMBED, ẩn ngay login-overlay và project-overlay
+  if (EMBED) {
+    document.addEventListener("DOMContentLoaded", () => {
+      const loginOverlay = document.getElementById("login-overlay");
+      const projectOverlay = document.getElementById("project-overlay");
+      const btnSwitchProj = document.getElementById("btn-switch-project");
+      const btnLogoutHeader = document.getElementById("btn-logout-header");
+      if (loginOverlay) loginOverlay.style.display = "none";
+      if (projectOverlay) projectOverlay.style.display = "none";
+      if (btnSwitchProj) btnSwitchProj.style.display = "none";
+      if (btnLogoutHeader) btnLogoutHeader.style.display = "none";
+    });
+
+    // Sau 6s nếu chưa có auth (persistence chưa share kịp) -> hiện thông báo nhẹ (KHÔNG bắt đăng nhập lại)
+    setTimeout(() => {
+      if (!AppCore.currentUser) {
+        showEmbedToast("Đang kết nối tài khoản…");
+      }
+    }, 6000);
+  }
+
+  function showEmbedToast(msg) {
+    let t = document.getElementById("embed-toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "embed-toast";
+      t.style.cssText = "position:fixed;top:12px;right:12px;z-index:99999;background:rgba(15,23,42,0.85);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;backdrop-filter:blur(6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;";
+      document.body.appendChild(t);
+    }
+    t.innerText = msg;
+    t.style.display = "block";
+    setTimeout(() => { if (t) t.style.display = "none"; }, 4000);
+  }
+
+  // Hàm chọn dự án theo ID (dùng cho cả embed postMessage lẫn chọn dự án thủ công)
+  window.selectProjectById = async function(projectId, projName, projInfo) {
+    if (EMBED) {
+      window.PENDING_EMBED_PROJECT = { projectId, projName, projInfo };
+      const loginOverlay = document.getElementById("login-overlay");
+      const projectOverlay = document.getElementById("project-overlay");
+      if (loginOverlay) loginOverlay.style.display = "none";
+      if (projectOverlay) projectOverlay.style.display = "none";
+    }
+
+    // Nạp danh sách dự án nếu chưa có
+    if ((!AppCore.projectsList || AppCore.projectsList.length === 0) && AppCore.currentUser) {
+      try { await AppCore.loadProjects(); } catch (_) {}
+    }
+
+    let proj = null;
+    if (projectId && AppCore.projectsList && AppCore.projectsList.length) {
+      proj = AppCore.projectsList.find(p => p.id === projectId);
+    }
+    if (!proj && projName && AppCore.projectsList && AppCore.projectsList.length) {
+      const normName = (projName || "").trim().toLowerCase();
+      proj = AppCore.projectsList.find(p => (p.name || "").trim().toLowerCase() === normName);
+    }
+
+    if (proj) {
+      selectedProjId = proj.id;
+      AppCore.currentProject = proj;
+    } else if (projectId || projName || projInfo) {
+      selectedProjId = projectId || "p_temp";
+      AppCore.currentProject = {
+        id: selectedProjId,
+        name: (projInfo && projInfo.name) || projName || projectId || "",
+        address: (projInfo && projInfo.address) || "",
+        scale: (projInfo && projInfo.scale) || "",
+        start_date: (projInfo && projInfo.start_date) || "",
+        end_date: (projInfo && projInfo.end_date) || "",
+        commander: ""
+      };
+    }
+
+    if (AppCore.currentProject) {
+      const appHeaderInfo = document.getElementById("app-header-info");
+      if (appHeaderInfo) appHeaderInfo.innerText = `Dự án: ${AppCore.currentProject.name}`;
+      window.CURRENT_COMMANDER = AppCore.currentProject.commander || "Chỉ huy trưởng";
+
+      const toDmy = (s) => {
+        const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? (m[3] + '/' + m[2] + '/' + m[1]) : (s || '');
+      };
+
+      if (el('f_proj')) el('f_proj').value = AppCore.currentProject.name || '';
+      if (el('f_loc')) el('f_loc').value = AppCore.currentProject.address || '';
+      if (el('f_scale')) el('f_scale').value = AppCore.currentProject.scale || '';
+      if (el('f_start') && AppCore.currentProject.start_date) el('f_start').value = toDmy(AppCore.currentProject.start_date);
+      if (el('f_end') && AppCore.currentProject.end_date) el('f_end').value = toDmy(AppCore.currentProject.end_date);
+      if (el('f_contractor')) el('f_contractor').value = AppCore.currentProject.address || '';
+
+      const projOverlay = document.getElementById("project-overlay");
+      const logOverlay = document.getElementById("login-overlay");
+      const appShell = document.getElementById("app-shell");
+      if (projOverlay) projOverlay.style.display = "none";
+      if (logOverlay) logOverlay.style.display = "none";
+      if (appShell) appShell.style.display = "block";
+
+      const dateEl = el('f_date');
+      if (dateEl && !dateEl.value) {
+        const d = new Date();
+        dateEl.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+
+      if (dateEl && typeof loadReportForDate === 'function') {
+        await loadReportForDate(dateEl.value);
+      }
+      if (typeof recalcFromSched === 'function') recalcFromSched();
+      if (typeof draw === 'function') draw();
+      AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });
+    }
+  };
+
   const FIREBASE_FUNCTIONS_BASE = "https://us-central1-hpcons-pkttc.cloudfunctions.net";
   let selectedProjId = "";
   let directoryUsers = [];
@@ -793,24 +910,47 @@
           btnMembers.style.display = "none";
         }
       }
+
+      const btnSwitchProj = document.getElementById("btn-switch-project");
+      const btnLogoutHeader = document.getElementById("btn-logout-header");
+      if (EMBED) {
+        if (btnSwitchProj) btnSwitchProj.style.display = "none";
+        if (btnLogoutHeader) btnLogoutHeader.style.display = "none";
+      }
       
       document.getElementById("project-welcome-msg").innerText = `Chào mừng Anh, ${user.full_name}!`;
-      projectOverlay.style.display = "flex";
-      appShell.style.display = "none";
       
+      if (!EMBED) {
+        projectOverlay.style.display = "flex";
+        appShell.style.display = "none";
+      }
+
       // Tải danh sách dự án
       try {
         const projects = await AppCore.loadProjects();
-        renderProjects(projects);
+        if (!EMBED) {
+          renderProjects(projects);
+        } else if (window.PENDING_EMBED_PROJECT) {
+          const p = window.PENDING_EMBED_PROJECT;
+          await selectProjectById(p.projectId, p.projName, p.projInfo);
+        }
       } catch (err) {
-        document.getElementById("project-error").innerText = "Lỗi khi tải danh sách dự án: " + err.message;
-        document.getElementById("project-error").style.display = "block";
+        if (!EMBED) {
+          document.getElementById("project-error").innerText = "Lỗi khi tải danh sách dự án: " + err.message;
+          document.getElementById("project-error").style.display = "block";
+        }
       }
     } else {
       // Chưa đăng nhập
-      loginOverlay.style.display = "flex";
-      projectOverlay.style.display = "none";
-      appShell.style.display = "none";
+      if (EMBED) {
+        loginOverlay.style.display = "none";
+        projectOverlay.style.display = "none";
+        appShell.style.display = "none";
+      } else {
+        loginOverlay.style.display = "flex";
+        projectOverlay.style.display = "none";
+        appShell.style.display = "none";
+      }
     }
   });
 

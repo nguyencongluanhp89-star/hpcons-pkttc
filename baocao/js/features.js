@@ -2231,8 +2231,14 @@ if (el('f_date') && !el('f_date').getAttribute('data-init')) {
 window.addEventListener('message', async (e) => {
   if (!e.data) return;
   if (e.data.type === 'TOGGLE_DARK_MODE') {
-    if (e.data.isDark) document.body.classList.add('dark-mode');
-    else document.body.classList.remove('dark-mode');
+    if (typeof e.data.isDark === 'boolean') {
+      if (e.data.isDark) document.body.classList.add('dark-mode');
+      else document.body.classList.remove('dark-mode');
+      localStorage.setItem('meta_dark_mode', e.data.isDark);
+      if (typeof updateDarkModeBtn === 'function') updateDarkModeBtn();
+    } else {
+      if (typeof toggleDarkMode === 'function') toggleDarkMode();
+    }
   } else if (e.data.type === 'NAVIGATE_TO_REPORT') {
     const { date, sectionId } = e.data;
     const dateEl = el('f_date');
@@ -2247,22 +2253,26 @@ window.addEventListener('message', async (e) => {
         openModal(sectionId);
       }, 300);
     }
-  } else if (e.data.type === 'PROJECT_CHANGED') {
-    const dateEl = el('f_date');
-    if (dateEl && typeof loadReportForDate === 'function') {
-      await loadReportForDate(dateEl.value);
+  } else if (e.data.type === 'PROJECT_CHANGED' || e.data.type === 'EMBED_SET_PROJECT') {
+    const { projectId, projName, projInfo } = e.data;
+    if (typeof window.selectProjectById === 'function') {
+      await window.selectProjectById(projectId, projName, projInfo);
+    } else {
+      const dateEl = el('f_date');
+      if (dateEl && typeof loadReportForDate === 'function') {
+        await loadReportForDate(dateEl.value);
+      }
+      const pi = projInfo || {};
+      const toDmy = (s)=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s||''); };
+      if (el('f_proj'))  el('f_proj').value  = pi.name || projName || '';
+      if (el('f_loc'))   el('f_loc').value   = pi.address || '';
+      if (el('f_scale')) el('f_scale').value = pi.scale || '';
+      if (el('f_start') && pi.start_date) el('f_start').value = toDmy(pi.start_date);
+      if (el('f_end')   && pi.end_date)   el('f_end').value   = toDmy(pi.end_date);
+      if (typeof recalcFromSched === 'function') recalcFromSched();
+      if (typeof draw === 'function') draw();
+      if (window.AppCore) window.AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });
     }
-    // Điền thông tin công trình theo hồ sơ dự án đang chọn (tên, địa điểm, quy mô, ngày bắt đầu/kết thúc)
-    const pi = e.data.projInfo || {};
-    const toDmy = (s)=>{ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : (s||''); };
-    if (el('f_proj'))  el('f_proj').value  = pi.name || e.data.projName || '';
-    if (el('f_loc'))   el('f_loc').value   = pi.address || '';
-    if (el('f_scale')) el('f_scale').value = pi.scale || '';
-    if (el('f_start') && pi.start_date) el('f_start').value = toDmy(pi.start_date);
-    if (el('f_end')   && pi.end_date)   el('f_end').value   = toDmy(pi.end_date);
-    if (typeof recalcFromSched === 'function') recalcFromSched();
-    if (typeof draw === 'function') draw();
-    if (window.AppCore) window.AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });
   }
 });
 // Khởi tạo Dark Mode nếu đã lưu
