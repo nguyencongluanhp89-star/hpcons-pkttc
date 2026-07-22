@@ -1609,7 +1609,9 @@ async function loadReportForDate(date) {
         if (el('f_weather_m')) el('f_weather_m').value = report.weather_m || 'sunny';
         if (el('f_weather_a')) el('f_weather_a').value = report.weather_a || 'sunny';
         if (el('f_weather_note')) el('f_weather_note').value = report.weather_note || '';
-        if (el('f_prog') && report.f_prog) el('f_prog').value = report.f_prog;
+        // TIẾN ĐỘ TỔNG THỂ: KHÔNG nạp giá trị cũ từ report — luôn tự tính lại % THỜI GIAN theo
+        // ngày báo cáo (Sếp chốt 20/07, đồng bộ với app báo cáo). Báo cáo cũ lỡ lưu 0% sẽ được sửa.
+        if (typeof recalcFromSched === 'function') recalcFromSched();
         if (el('f_plan') && report.f_plan) el('f_plan').value = report.f_plan;
 
         // Phục hồi nhân lực (units)
