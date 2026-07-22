@@ -153,9 +153,8 @@
   .two{display:flex;gap:14px}
   /* overview */
   .ov-imgs{width:48%}
-  .ov-main{width:100%;height:180px;background:#dde3ea;border-radius:6px;object-fit:cover;display:block}
-  .ov-sub{display:flex;gap:8px;margin-top:8px}
-  .ov-sub img,.ov-sub .ph{flex:1;height:80px;background:#dde3ea;border-radius:6px;object-fit:cover}
+  .ov-main{width:100%;height:268px;background:#dde3ea;border-radius:6px;object-fit:cover;display:block}
+  .ov-sub{display:none}
   .ov-info{flex:1;font-size:var(--fs-body)}
   .ov-info .line{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}
   .ov-info .ic{color:var(--navy2);font-weight:800;width:18px}

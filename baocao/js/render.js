@@ -270,7 +270,6 @@ function draw(){
   <div class="pad two">
     <div class="ov-imgs">
       ${imgOrPh(ovMain,'ov-main','Ảnh tổng quan dự án', 'f_ovmain')}
-      <div class="ov-sub">${imgOrPh(ovSub1,'','Ảnh phụ', 'f_ovsub1')}${imgOrPh(ovSub2,'','Ảnh phụ', 'f_ovsub2')}</div>
     </div>
     <div class="ov-info">
       <div class="line" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="let v=prompt('CÔNG TRÌNH / 工程:', el('f_proj').value); if(v!==null){el('f_proj').value=v;draw()}" title="Nhấn để sửa"><span class="ic">🏗️</span><span class="k">CÔNG TRÌNH / 工程</span><span class="v">${el('f_proj').value}</span></div>
@@ -526,8 +525,6 @@ async function exportPNG169() {
 
     // --- Khối 01: Tổng quan ---
     const activeOvMain = (typeof ovMain !== 'undefined') ? ovMain : null;
-    const activeOvSub1 = (typeof ovSub1 !== 'undefined') ? ovSub1 : null;
-    const activeOvSub2 = (typeof ovSub2 !== 'undefined') ? ovSub2 : null;
     
     // Lưới ảnh tổng quan (chiều cao co lại 240px và 120px để nhường chỗ cho khối 02):
     // ảnh chính full-width bên trên, 2 ảnh phụ chia đôi bên dưới; chiều cao do applyLayout
@@ -1523,8 +1520,6 @@ function closeModal() {
 el('f_logo').onchange=function(){loadImg(this,d=>{logoImg=d;draw()})};
 el('f_logo_cdt').onchange=function(){loadImg(this,d=>{logoImgCdt=d;draw()})};
 el('f_ovmain').onchange=function(){loadImg(this,d=>{ovMain=d;draw()})};
-el('f_ovsub1').onchange=function(){loadImg(this,d=>{ovSub1=d;draw()})};
-el('f_ovsub2').onchange=function(){loadImg(this,d=>{ovSub2=d;draw()})};
 ['f_proj','f_contractor','f_date','f_loc','f_scale','f_start','f_end','f_prog',
  'f_total','f_bch','f_safe','f_qual','f_sched','f_plan','f_note','f_rec']
  .forEach(id=>el(id).addEventListener('input',draw));
@@ -1598,8 +1593,6 @@ async function applyProjectDefaults() {
     if (prev.logo_cdt && !logoImgCdt) logoImgCdt = prev.logo_cdt;
     if (prev.logo_ntc && !logoImg) logoImg = prev.logo_ntc;
     if (prev.ov_main && !ovMain) ovMain = prev.ov_main;
-    if (prev.ov_sub1 && !ovSub1) ovSub1 = prev.ov_sub1;
-    if (prev.ov_sub2 && !ovSub2) ovSub2 = prev.ov_sub2;
     if (Array.isArray(prev.draws) && prev.draws.length && (!draws || draws.length === 0)) {
       draws = prev.draws.map(d => ({ ...d }));
     }
@@ -1649,8 +1642,6 @@ async function loadReportForDate(date) {
         if (report.logo_cdt) logoImgCdt = report.logo_cdt;
         if (report.logo_ntc) logoImg = report.logo_ntc;
         if (report.ov_main) ovMain = report.ov_main;
-        if (report.ov_sub1) ovSub1 = report.ov_sub1;
-        if (report.ov_sub2) ovSub2 = report.ov_sub2;
 
         // Phục hồi nhân lực (units)
         if (report.units && Array.isArray(report.units)) {
