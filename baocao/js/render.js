@@ -1597,6 +1597,13 @@ async function applyProjectDefaults() {
       draws = prev.draws.map(d => ({ ...d }));
     }
 
+    // Sếp chốt 22/07: HẠNG MỤC 03 tự lặp lại từ hôm trước — GIỮ TÊN, XÓA chi tiết cũ (nhập mới mỗi
+    // ngày, giống nút "Mẫu hôm qua"). Chỉ khi hạng mục đang trống -> không đè dữ liệu đang nhập.
+    if (Array.isArray(prev.works_full) && prev.works_full.length && (typeof works !== 'undefined') && (!works || works.length === 0)) {
+      works = prev.works_full.map(w => ({ ...w, d: '' }));
+      if (typeof renderWorkForm === 'function') renderWorkForm();
+    }
+
     if (prev.f_note && el('f_note') && !el('f_note').value) el('f_note').value = prev.f_note;
     if (prev.f_rec && el('f_rec') && !el('f_rec').value) el('f_rec').value = prev.f_rec;
     if (prev.f_safe && el('f_safe') && !el('f_safe').value) el('f_safe').value = prev.f_safe;
