@@ -642,8 +642,14 @@ async function exportPNG169() {
       const chartH = hPx - padTop - padBottom;
 
       const validVals = weekData.filter(d => d.val !== null).map(d => d.val);
-      const maxVal = Math.max(3, ...validVals);
-      const step = Math.ceil(maxVal / 3);
+      // Sếp chốt 20/07: đỉnh trục Y cao hơn giá trị max một chút (cột KHÔNG chạm nóc, cao ~67-88%)
+      // và mốc trục luôn TRÒN đẹp. Chọn "nice step" (bội 1/1.5/2/2.5/3/5/10 × 10^k) rồi yLimit = step×3.
+      const rawMax = Math.max(3, ...validVals);
+      const roughStep = (rawMax / 0.9) / 3; // cột cao nhất ~90% khi rawMax chạm mốc chia
+      const _pow = Math.pow(10, Math.floor(Math.log10(roughStep)));
+      const _n = roughStep / _pow;
+      const _nice = _n <= 1 ? 1 : _n <= 1.5 ? 1.5 : _n <= 2 ? 2 : _n <= 2.5 ? 2.5 : _n <= 3 ? 3 : _n <= 5 ? 5 : 10;
+      const step = _nice * _pow;
       const yLimit = step * 3;
 
       const activePoints = [];
