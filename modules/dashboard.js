@@ -133,6 +133,18 @@ async function renderDashboard() {
   if(elHealth) {
     elHealth.textContent = fmtHealth(healthScore) + "đ";
     elHealth.style.color = healthColor;
+    if (typeof H !== 'undefined' && H) {
+      const schedText = H.scheduleScore != null ? fmtHealth(H.scheduleScore) + "đ" : "N/A";
+      const repText = H.reportScore != null ? fmtHealth(H.reportScore) + "đ" : "N/A";
+      const extText = H.extensionScore != null ? fmtHealth(H.extensionScore) + "đ" : "N/A";
+      const ttText = `Điểm sức khỏe V3: ${fmtHealth(H.healthScore)}đ (${H.healthStatus})\n` +
+        `• Tiến độ: ${schedText}\n` +
+        `• Báo cáo ngày: ${repText}\n` +
+        `• Gia hạn: ${extText}\n` +
+        `• Đang trễ: ${H.activeOverdueTasks || 0} · Hoàn thành trễ: ${H.completedLateTasks || 0} · Phạt trễ: ${(H.totalDelayPenalty || 0).toFixed(2)}`;
+      const container = elHealth.closest(".score") || elHealth.parentElement;
+      if (container) container.title = ttText;
+    }
   }
   const elHealthDesc = document.getElementById("dash-health-desc");
   if(elHealthDesc && healthStatus) {

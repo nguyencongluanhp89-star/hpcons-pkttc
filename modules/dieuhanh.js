@@ -30,7 +30,7 @@ async function projectStats(id){
     ((typeof levelOf==='function')?levelOf(it.task)>1:true) &&
     ((typeof healthIsOverdue==='function') ? healthIsOverdue(it,t) : (it.status!=='done' && it.end && t>it.end))
   ).length;
-  return {proj, rate, highIssues, overdueConds, readyDots, dotCount:cdt.length, health: H.healthScore, healthStatus: H.healthStatus, healthColorToken: H.healthColorToken, totalManpower, manpowerToday, schedulePct, overdueTasks, logDays:days.length};
+  return {proj, rate, highIssues, overdueConds, readyDots, dotCount:cdt.length, health: H.healthScore, healthStatus: H.healthStatus, healthColorToken: H.healthColorToken, totalManpower, manpowerToday, schedulePct, overdueTasks, logDays:days.length, healthObj: H};
 }
 
 function healthColor(h){ return "var(" + healthTier(h).token + ")"; }
@@ -317,8 +317,18 @@ async function renderExecutive(){
           const hasLog=reportedToday.has(s.proj.id);
           const pct=s.schedulePct||0;
           const todayBadge= !active ? '<span style="color:var(--muted);font-weight:700">—</span>' : (hasLog? '<span style="color:var(--success);font-weight:700">✓ Đã ghi</span>' : '<span style="color:var(--danger);font-weight:700">✗ Thiếu</span>');
-          const overdue= s.overdueTasks>0 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ ${s.overdueTasks} hạng mục quá hạn</div>` : '';
-          return `<div onclick="openProject('${s.proj.id}')" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--surface);border-top:3px solid ${hc}">
+          const hObj = s.healthObj || {};
+          const schedStr = hObj.scheduleScore != null ? fmtHealth(hObj.scheduleScore) + 'đ' : 'N/A';
+          const repStr = hObj.reportScore != null ? fmtHealth(hObj.reportScore) + 'đ' : 'N/A';
+          const extStr = hObj.extensionScore != null ? fmtHealth(hObj.extensionScore) + 'đ' : 'N/A';
+          const activeLateText = s.overdueTasks > 0 ? `<span style="color:var(--danger);font-weight:700">Đang trễ: ${s.overdueTasks}</span>` : `<span style="color:var(--success)">Đang trễ: 0</span>`;
+          const doneLateText = (hObj.completedLateTasks || 0) > 0 ? `<span style="color:#d97706;font-weight:600">Hoàn thành trễ: ${hObj.completedLateTasks}</span>` : `Hoàn thành trễ: 0`;
+          const breakdownHtml = `<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4" title="Tổng phạt trễ: ${(hObj.totalDelayPenalty || 0).toFixed(2)}">
+            <div>3 trụ: TĐ ${schedStr} · BC ${repStr} · GH ${extStr}</div>
+            <div>${activeLateText} · ${doneLateText}</div>
+          </div>`;
+          const cardTitle = `Điểm sức khỏe V3: ${fmtHealth(s.health)}đ (${s.healthStatus})\n• Tiến độ: ${schedStr}\n• Báo cáo: ${repStr}\n• Gia hạn: ${extStr}\n• Đang trễ: ${s.overdueTasks} · Hoàn thành trễ: ${hObj.completedLateTasks || 0} · Phạt: ${(hObj.totalDelayPenalty || 0).toFixed(2)}`;
+          return `<div onclick="openProject('${s.proj.id}')" title="${esc(cardTitle)}" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--surface);border-top:3px solid ${hc}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
               <div style="min-width:0;flex:1">
                 <div style="font-weight:800;font-size:15px;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis">${esc(s.proj.name)}</div>
@@ -332,7 +342,7 @@ async function renderExecutive(){
             <div style="margin-top:10px"><span style="display:inline-block;font-size:11px;font-weight:700;color:${stLabel.c};background:var(--surface-2);border:1px solid var(--border);padding:3px 10px;border-radius:var(--r-pill)">${stLabel.t}</span></div>
             <div style="margin-top:12px">
               ${renderTimeline(s.proj.start_date || s.proj.startDate, s.proj.end_date || s.proj.endDate, pct, s.proj.status === "Đã bàn giao")}
-              ${overdue}
+              ${breakdownHtml}
             </div>
             <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
               <div style="font-size:12px"><span style="color:var(--muted)">Báo cáo hôm nay: </span>${todayBadge}</div>
