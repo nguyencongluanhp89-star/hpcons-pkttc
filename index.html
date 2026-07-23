@@ -866,12 +866,148 @@
       margin-bottom: 16px;
     }
     
+    /* Responsive Breakpoints & Polish for #tab-dieuhanh */
+    #tab-dieuhanh #exec-kpi {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    #tab-dieuhanh #exec-todo-list {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #tab-dieuhanh .dash-action-table {
+      min-width: 580px;
+    }
+
+    @media (max-width: 1600px) {
+      #tab-dieuhanh #exec-kpi {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 1100px) {
+      #tab-dieuhanh #exec-progress-table .exec-proj-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    @media (max-width: 992px) {
+      #tab-dieuhanh #exec-kpi {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      #tab-dieuhanh .row {
+        flex-direction: column !important;
+      }
+      #tab-dieuhanh .row > .card {
+        width: 100% !important;
+        margin-bottom: 24px !important;
+      }
+    }
+
     @media (max-width: 768px) {
       .tc-grid-2-1-1, .tc-grid-1-1-1, .tc-grid-3-1 {
         grid-template-columns: 1fr !important;
       }
       #tab-tc-themduan button {
         width: 100% !important;
+      }
+      #tab-dieuhanh {
+        padding: 4px 0;
+      }
+      #tab-dieuhanh .exec-dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      #tab-dieuhanh .exec-dashboard-title {
+        font-size: 22px;
+      }
+      #tab-dieuhanh #exec-payment-summary > div:last-child {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      #tab-dieuhanh .kpi-card {
+        padding: 12px 8px;
+      }
+      #tab-dieuhanh .kpi-card .kpi-value {
+        font-size: 26px !important;
+      }
+      #tab-dieuhanh .btn,
+      #tab-dieuhanh button {
+        min-height: 38px;
+      }
+    }
+
+    #tab-dieuhanh .exec-chart-container {
+      position: relative;
+      width: 100%;
+      height: 300px;
+    }
+    #tab-dieuhanh .exec-chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    #tab-dieuhanh .exec-donut-container {
+      position: relative;
+      width: 100%;
+      height: 220px;
+    }
+    #tab-dieuhanh .exec-donut-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .tc-grid-2-1-1, .tc-grid-1-1-1, .tc-grid-3-1 {
+        grid-template-columns: 1fr !important;
+      }
+      #tab-tc-themduan button {
+        width: 100% !important;
+      }
+      #tab-dieuhanh {
+        padding: 4px 0;
+      }
+      #tab-dieuhanh .exec-dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+      #tab-dieuhanh .exec-dashboard-title {
+        font-size: 22px;
+      }
+      #tab-dieuhanh #exec-payment-summary > div:last-child {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      #tab-dieuhanh .kpi-card {
+        padding: 12px 8px;
+      }
+      #tab-dieuhanh .kpi-card .kpi-value {
+        font-size: 26px !important;
+      }
+      #tab-dieuhanh .btn,
+      #tab-dieuhanh button {
+        min-height: 38px;
+      }
+      #tab-dieuhanh .exec-chart-container {
+        height: 240px !important;
+      }
+    }
+
+    @media (max-width: 560px) {
+      #tab-dieuhanh #exec-kpi {
+        grid-template-columns: 1fr !important;
+      }
+      #tab-dieuhanh #exec-payment-summary > div:last-child {
+        grid-template-columns: 1fr !important;
       }
     }
   </style>
@@ -885,7 +1021,7 @@
   </div>
 
   <!-- KPI tổng quan -->
-  <div id="exec-kpi" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px"></div>
+  <div id="exec-kpi"></div>
 
   <!-- Khối Việc cần xử lý hôm nay -->
   <div id="exec-todo" class="card hide" style="border-left:6px solid var(--primary); background:rgba(0,96,168,0.04); padding:16px 20px; margin-bottom:24px;">
@@ -928,14 +1064,14 @@
     <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg> Chi phí &amp; thanh toán</h2>
     <div id="exec-payment-summary" style="margin-bottom:16px"></div>
     <h3 style="margin:0 0 10px;font-size:14px;color:var(--hp-text-primary)">Thu – Chi theo dự án</h3>
-    <div style="position:relative;height:280px"><canvas id="exec-finance-chart"></canvas></div>
+    <div class="exec-chart-container"><canvas id="exec-finance-chart"></canvas></div>
   </div>
 
   <!-- Cơ cấu sức khỏe + Khối chuyên môn -->
   <div class="row" style="margin-bottom:24px">
     <div class="card" style="flex:1;min-width:240px;margin-bottom:0">
       <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Cơ cấu sức khỏe dự án</h2>
-      <div style="position:relative;height:220px"><canvas id="exec-status-chart"></canvas></div>
+      <div class="exec-donut-container"><canvas id="exec-status-chart"></canvas></div>
     </div>
     <div class="card" style="flex:2;min-width:320px;margin-bottom:0">
       <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="6" x2="9.01" y2="6"></line><line x1="15" y1="6" x2="15.01" y2="6"></line><line x1="9" y1="10" x2="9.01" y2="10"></line><line x1="15" y1="10" x2="15.01" y2="10"></line><line x1="9" y1="14" x2="9.01" y2="14"></line><line x1="15" y1="14" x2="15.01" y2="14"></line><line x1="9" y1="18" x2="15" y2="18"></line></svg> Khối chuyên môn</h2>
@@ -2530,7 +2666,7 @@ updateHeaderDate();
 <script src="modules/nhathau.js?v=1"></script>
 <script src="modules/tiendo.js?v=6"></script>
 <script src="modules/thanhtoan.js?v=1"></script>
-<script src="modules/dieuhanh.js?v=7"></script>
+<script src="modules/dieuhanh.js?v=9"></script>
 <script src="modules/hethong.js?v=7"></script>
 <script src="modules/lpb.js"></script>
 <script src="app.js?v=1.9"></script>

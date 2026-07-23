@@ -1,3 +1,4 @@
+/** modules/dieuhanh.js v9 — GĐ2C fix: chart tai chinh lap day khung + KPI mobile 1 cot */
 async function projectStats(id){
   const proj = (await DataService.listProjects()).find(p=>p.id===id);
   if(!proj) return null;
@@ -333,7 +334,7 @@ async function renderExecutive(){
     if(!stats.length){
       $("exec-progress-table").innerHTML = renderEmptyState(getDashSvg('building', 40, 'var(--hp-text-secondary)'), 'Chưa có dự án nào', 'Hệ thống chưa khởi tạo dự án nào trên hệ thống điều hành.');
     } else {
-      $("exec-progress-table").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
+      $("exec-progress-table").innerHTML='<div class="exec-proj-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
        + stats.map(s=>{
           const hc=healthColor(s.health);
           const stLabel = s.overdueTasks>0 ? {t:"Chậm tiến độ",c:"var(--danger)"}
@@ -623,6 +624,13 @@ async function renderExecutive(){
       });
     }
   }
+
+  setTimeout(() => {
+    try {
+      if (window._financeChart) window._financeChart.resize();
+      if (window._execChart) window._execChart.resize();
+    } catch(e) {}
+  }, 60);
 
   // Đồng bộ sang Dashboard Bộ phận Thi công (dùng chung dữ liệu)
   if($("tc-kpi")) $("tc-kpi").innerHTML=[["Tổng dự án",total],["Đang thi công",stCounts["Đang thi công"]],["Hoàn thành",stCounts["Đã bàn giao"]],["Cảnh báo rủi ro",risky]]
