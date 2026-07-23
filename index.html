@@ -928,13 +928,13 @@
     <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg> Chi phí &amp; thanh toán</h2>
     <div id="exec-payment-summary" style="margin-bottom:16px"></div>
     <h3 style="margin:0 0 10px;font-size:14px;color:var(--hp-text-primary)">Thu – Chi theo dự án</h3>
-    <div style="position:relative;height:320px"><canvas id="exec-finance-chart"></canvas></div>
+    <div style="position:relative;height:280px"><canvas id="exec-finance-chart"></canvas></div>
   </div>
 
-  <!-- Cơ cấu trạng thái + Khối chuyên môn -->
+  <!-- Cơ cấu sức khỏe + Khối chuyên môn -->
   <div class="row" style="margin-bottom:24px">
     <div class="card" style="flex:1;min-width:240px;margin-bottom:0">
-      <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Cơ cấu trạng thái dự án</h2>
+      <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Cơ cấu sức khỏe dự án</h2>
       <div style="position:relative;height:220px"><canvas id="exec-status-chart"></canvas></div>
     </div>
     <div class="card" style="flex:2;min-width:320px;margin-bottom:0">
@@ -2530,7 +2530,7 @@ updateHeaderDate();
 <script src="modules/nhathau.js?v=1"></script>
 <script src="modules/tiendo.js?v=6"></script>
 <script src="modules/thanhtoan.js?v=1"></script>
-<script src="modules/dieuhanh.js?v=6"></script>
+<script src="modules/dieuhanh.js?v=7"></script>
 <script src="modules/hethong.js?v=7"></script>
 <script src="modules/lpb.js"></script>
 <script src="app.js?v=1.9"></script>
@@ -2677,44 +2677,69 @@ updateHeaderDate();
             }
           }
 
+          const hasReports = (subs && subs.length > 0) || (dailyReports && dailyReports.length > 0);
+          
           const cm = [
             {
               n: "QA-QC",
-              i: window.getDashSvg ? window.getDashSvg('check-circle', 24, 'var(--hp-success)') : "✓",
+              sub: "Kiểm soát chất lượng",
+              i: window.getDashSvg ? window.getDashSvg('check-circle', 20, qaqcIssues.length > 0 ? 'var(--hp-warning)' : 'var(--hp-success)') : "✓",
               t: "qaqc",
-              desc: qaqcIssues.length > 0 ? `${qaqcIssues.length} vấn đề chất lượng` : "0 vấn đề chất lượng",
-              color: qaqcIssues.length > 0 ? "var(--warning)" : "var(--success)"
+              desc: !hasReports ? "Chưa có dữ liệu" : (qaqcIssues.length > 0 ? `${qaqcIssues.length} vấn đề chất lượng` : "0 vấn đề chất lượng"),
+              statusBadge: !hasReports ? "⚪ Chưa có dữ liệu" : (qaqcIssues.length > 0 ? "🔴 Cần xử lý" : "🟢 Tốt"),
+              color: !hasReports ? "var(--muted)" : (qaqcIssues.length > 0 ? "var(--hp-warning)" : "var(--hp-success)"),
+              bg: !hasReports ? "rgba(148,163,184,0.12)" : (qaqcIssues.length > 0 ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.12)")
             },
             {
               n: "HSE",
-              i: window.getDashSvg ? window.getDashSvg('shield', 24, 'var(--hp-primary)') : "🛡",
+              sub: "An toàn lao động",
+              i: window.getDashSvg ? window.getDashSvg('shield', 20, hseIssues.length > 0 ? 'var(--hp-danger)' : 'var(--hp-primary)') : "🛡",
               t: "hse",
-              desc: hseIssues.length > 0 ? `${hseIssues.length} cảnh báo an toàn` : "An toàn: Tốt (0 cảnh báo)",
-              color: hseIssues.length > 0 ? "var(--danger)" : "var(--success)"
+              desc: !hasReports ? "Chưa có dữ liệu" : (hseIssues.length > 0 ? `${hseIssues.length} cảnh báo an toàn` : "An toàn: Tốt (0 cảnh báo)"),
+              statusBadge: !hasReports ? "⚪ Chưa có dữ liệu" : (hseIssues.length > 0 ? "🔴 Cảnh báo" : "🟢 An toàn"),
+              color: !hasReports ? "var(--muted)" : (hseIssues.length > 0 ? "var(--hp-danger)" : "var(--hp-success)"),
+              bg: !hasReports ? "rgba(148,163,184,0.12)" : (hseIssues.length > 0 ? "rgba(239,68,68,0.12)" : "rgba(34,197,94,0.12)")
             },
             {
               n: "Shopdrawing",
-              i: window.getDashSvg ? window.getDashSvg('pen-tool', 24, 'var(--hp-brand-accent)') : "✏",
+              sub: "Bản vẽ thi công",
+              i: window.getDashSvg ? window.getDashSvg('pen-tool', 20, 'var(--hp-brand-accent)') : "✏",
               t: "shopdrawing",
-              desc: `${sdCount} nhân sự · ${sdTasks} bản vẽ`,
-              color: "var(--primary)"
+              desc: (sdCount === 0 && sdTasks === 0) ? "Chưa có dữ liệu" : `${sdCount} nhân sự · ${sdTasks} bản vẽ`,
+              statusBadge: (sdCount === 0 && sdTasks === 0) ? "⚪ Chưa có dữ liệu" : "🟢 Hoạt động",
+              color: (sdCount === 0 && sdTasks === 0) ? "var(--muted)" : "var(--hp-brand-accent)",
+              bg: (sdCount === 0 && sdTasks === 0) ? "rgba(148,163,184,0.12)" : "rgba(14,165,233,0.12)"
             },
             {
               n: "Bảo trì",
-              i: window.getDashSvg ? window.getDashSvg('wrench', 24, 'var(--hp-warning)') : "🔧",
+              sub: "Bảo trì & sửa chữa",
+              i: window.getDashSvg ? window.getDashSvg('wrench', 20, 'var(--hp-warning)') : "🔧",
               t: "baotri",
-              desc: `${mtCount} nhân sự · ${mtTasks} lượt bảo trì`,
-              color: "var(--accent)"
+              desc: (mtCount === 0 && mtTasks === 0) ? "Chưa có dữ liệu" : `${mtCount} nhân sự · ${mtTasks} lượt bảo trì`,
+              statusBadge: (mtCount === 0 && mtTasks === 0) ? "⚪ Chưa có dữ liệu" : "🟢 Hoạt động",
+              color: (mtCount === 0 && mtTasks === 0) ? "var(--muted)" : "var(--hp-warning)",
+              bg: (mtCount === 0 && mtTasks === 0) ? "rgba(148,163,184,0.12)" : "rgba(245,158,11,0.12)"
             }
           ];
           
           if (document.getElementById("exec-chuyenmon")) {
-            document.getElementById("exec-chuyenmon").innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">'
+            document.getElementById("exec-chuyenmon").innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">'
               + cm.map(c => `
-                <div class="dept-card" style="cursor:pointer;text-align:center" onclick="switchTab('${c.t}')">
-                  <div style="font-size:24px">${c.i}</div>
-                  <div style="font-weight:700;color:var(--primary-dark);margin:4px 0">${c.n}</div>
-                  <div style="font-size:12px;font-weight:600;color:${c.color || 'var(--muted)'};margin-top:4px">${c.desc}</div>
+                <div class="dept-card" onclick="switchTab('${c.t}')" style="cursor:pointer; padding:12px 14px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.2s, box-shadow 0.2s;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--surface-2); display:flex; align-items:center; justify-content:center;">${c.i}</div>
+                      <div>
+                        <div style="font-weight:700; font-size:13px; color:var(--hp-text-primary); line-height:1.2;">${localEsc(c.n)}</div>
+                        <div style="font-size:11px; color:var(--muted); margin-top:2px;">${localEsc(c.sub)}</div>
+                      </div>
+                    </div>
+                    <span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; background:${c.bg}; color:${c.color}; white-space:nowrap;">${c.statusBadge}</span>
+                  </div>
+                  <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                    <span style="color:var(--hp-text-primary); font-weight:600;">${localEsc(c.desc)}</span>
+                    <span style="color:var(--primary); font-weight:700;">Xem ›</span>
+                  </div>
                 </div>
               `).join("")
               + '</div>';

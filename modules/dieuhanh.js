@@ -419,37 +419,124 @@ async function renderExecutive(){
     ? sortedDepts.map(k=>`<div class="it"><b>${deptNames[k]||esc(k)}</b><span>${(depts[k]||[]).length} người</span></div>`).join("")
     : '<div class="muted">Chưa phân bổ nhân sự bộ phận.</div>';
 
-  // Khối chuyên môn (để sẵn giao diện)
+  // Khối chuyên môn (Khối 4 card compact nhỏ gọn)
   if($("exec-chuyenmon")){
+    const sdCount = (depts.shopdrawing || []).length;
+    const mtCount = (depts.baotri || []).length;
+    const hasSubs = subs && subs.length > 0;
+    
     const cm=[
-      {n:"QA-QC",     i:getDashSvg('check-circle', 26, 'var(--hp-success)'), t:"qaqc",        sub:"Kiểm soát chất lượng"},
-      {n:"HSE",       i:getDashSvg('shield', 26, 'var(--hp-primary)'),          t:"hse",          sub:"An toàn lao động"},
-      {n:"Shopdrawing",i:getDashSvg('pen-tool', 26, 'var(--hp-brand-accent)'), t:"shopdrawing",  sub:"Bản vẽ thi công"},
-      {n:"Bảo trì",   i:getDashSvg('wrench', 26, 'var(--hp-warning)'),       t:"baotri",       sub:"Bảo trì & sửa chữa"}
+      {
+        n:"QA-QC", sub:"Kiểm soát chất lượng",
+        i:getDashSvg('check-circle', 20, 'var(--hp-success)'), t:"qaqc",
+        desc: !hasSubs ? "Chưa có dữ liệu" : "0 vấn đề chất lượng",
+        statusBadge: !hasSubs ? "⚪ Chưa có dữ liệu" : "🟢 Tốt",
+        color: !hasSubs ? "var(--muted)" : "var(--hp-success)",
+        bg: !hasSubs ? "rgba(148,163,184,0.12)" : "rgba(34,197,94,0.12)"
+      },
+      {
+        n:"HSE", sub:"An toàn lao động",
+        i:getDashSvg('shield', 20, 'var(--hp-primary)'), t:"hse",
+        desc: !hasSubs ? "Chưa có dữ liệu" : "An toàn: Tốt (0 cảnh báo)",
+        statusBadge: !hasSubs ? "⚪ Chưa có dữ liệu" : "🟢 An toàn",
+        color: !hasSubs ? "var(--muted)" : "var(--hp-success)",
+        bg: !hasSubs ? "rgba(148,163,184,0.12)" : "rgba(34,197,94,0.12)"
+      },
+      {
+        n:"Shopdrawing", sub:"Bản vẽ thi công",
+        i:getDashSvg('pen-tool', 20, 'var(--hp-brand-accent)'), t:"shopdrawing",
+        desc: sdCount === 0 ? "Chưa có dữ liệu" : `${sdCount} nhân sự`,
+        statusBadge: sdCount === 0 ? "⚪ Chưa có dữ liệu" : "🟢 Hoạt động",
+        color: sdCount === 0 ? "var(--muted)" : "var(--hp-brand-accent)",
+        bg: sdCount === 0 ? "rgba(148,163,184,0.12)" : "rgba(14,165,233,0.12)"
+      },
+      {
+        n:"Bảo trì", sub:"Bảo trì & sửa chữa",
+        i:getDashSvg('wrench', 20, 'var(--hp-warning)'), t:"baotri",
+        desc: mtCount === 0 ? "Chưa có dữ liệu" : `${mtCount} nhân sự`,
+        statusBadge: mtCount === 0 ? "⚪ Chưa có dữ liệu" : "🟢 Hoạt động",
+        color: mtCount === 0 ? "var(--muted)" : "var(--hp-warning)",
+        bg: mtCount === 0 ? "rgba(148,163,184,0.12)" : "rgba(245,158,11,0.12)"
+      }
     ];
-    $("exec-chuyenmon").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">'
-      + cm.map(c=>`<div class="dept-card" style="cursor:pointer;text-align:center" onclick="switchTab('${c.t}')">
-          <div style="font-size:26px;margin-bottom:6px">${c.i}</div>
-          <div style="font-weight:700;color:var(--primary-dark);font-size:14px">${c.n}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px">${c.sub}</div>
-          <div style="margin-top:8px;font-size:11px;color:var(--primary);font-weight:600">Vào bộ phận →</div>
+
+    $("exec-chuyenmon").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">'
+      + cm.map(c=>`<div class="dept-card" onclick="switchTab('${c.t}')" style="cursor:pointer; padding:12px 14px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.2s, box-shadow 0.2s;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:32px; height:32px; border-radius:8px; background:var(--surface-2); display:flex; align-items:center; justify-content:center;">${c.i}</div>
+              <div>
+                <div style="font-weight:700; font-size:13px; color:var(--hp-text-primary); line-height:1.2;">${esc(c.n)}</div>
+                <div style="font-size:11px; color:var(--muted); margin-top:2px;">${esc(c.sub)}</div>
+              </div>
+            </div>
+            <span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; background:${c.bg}; color:${c.color}; white-space:nowrap;">${c.statusBadge}</span>
+          </div>
+          <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+            <span style="color:var(--hp-text-primary); font-weight:600;">${esc(c.desc)}</span>
+            <span style="color:var(--primary); font-weight:700;">Xem ›</span>
+          </div>
         </div>`).join("")
       + '</div>';
   }
 
-  // Biểu đồ cơ cấu trạng thái
+  // Biểu đồ cơ cấu sức khỏe dự án (Donut)
   if(typeof Chart!=="undefined" && $("exec-status-chart")){
     if(window._execChart){ try{ window._execChart.destroy(); }catch(e){} }
     const css = getComputedStyle(document.documentElement);
     const C = (n) => css.getPropertyValue(n).trim();
     const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
-    const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
-    window._execChart=new Chart($("exec-status-chart"),{ type:'doughnut',
-      data:{ labels:Object.keys(stCounts), datasets:[{ data:Object.values(stCounts), backgroundColor:[C('--hp-muted'), C('--hp-brand-accent'), C('--hp-warning'), C('--hp-brand-primary')], borderWidth:2, borderColor:borderCol }] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:textSecondary, boxWidth:10, usePointStyle:true, font:{size:11} } } }, cutout:'66%' } });
+    const textSecondary = '#CBD5E1';
+
+    const tierCounts = { "Rất tốt": 0, "Tốt": 0, "Cần theo dõi": 0, "Cảnh báo": 0, "Nguy hiểm": 0 };
+    const tierColors = {
+      "Rất tốt": "#22c55e",
+      "Tốt": "#3b82f6",
+      "Cần theo dõi": "#eab308",
+      "Cảnh báo": "#f97316",
+      "Nguy hiểm": "#ef4444"
+    };
+
+    stats.forEach(s => {
+      const tierName = s.healthStatus || (typeof healthTier === 'function' ? healthTier(s.health).name : "Tốt");
+      tierCounts[tierName] = (tierCounts[tierName] || 0) + 1;
+    });
+
+    const activeLabels = Object.keys(tierCounts).filter(k => tierCounts[k] > 0);
+    const activeData = activeLabels.map(k => tierCounts[k]);
+    const activeColors = activeLabels.map(k => tierColors[k]);
+
+    window._execChart = new Chart($("exec-status-chart"), {
+      type: 'doughnut',
+      data: {
+        labels: activeLabels.length ? activeLabels : ["Chưa có dữ liệu"],
+        datasets: [{
+          data: activeData.length ? activeData : [1],
+          backgroundColor: activeColors.length ? activeColors : ['#94a3b8'],
+          borderWidth: 2,
+          borderColor: borderCol
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: textSecondary, boxWidth: 12, usePointStyle: true, font: { size: 11, weight: '600' } }
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => activeLabels.length ? `${c.label}: ${c.raw} dự án` : "Chưa có dự án"
+            }
+          }
+        },
+        cutout: '66%'
+      }
+    });
   }
 
-  // Biểu đồ cột đôi Đã thu vs Đã chi theo dự án (grouped, cột dính nhau)
+  // Biểu đồ cột đôi Đã thu vs Đã chi theo dự án (grouped, cột gọn ~280px)
   if(typeof Chart!=="undefined" && $("exec-finance-chart")){
     if(window._financeChart){ try{ window._financeChart.destroy(); }catch(e){} }
     if(finTop.length){
@@ -466,10 +553,10 @@ async function renderExecutive(){
 
       const css = getComputedStyle(document.documentElement);
       const C = (n) => css.getPropertyValue(n).trim();
-      const brandPrimary = C('--hp-brand-primary') || '#60BB46';
-      const warningColor = C('--hp-warning') || '#FFA726';
-      const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
-      const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+      const brandPrimary = '#22c55e';
+      const warningColor = '#f59e0b';
+      const textSecondary = '#CBD5E1';
+      const borderCol = 'rgba(255, 255, 255, 0.08)';
 
       window._financeChart = new Chart($("exec-finance-chart"), {
         type: 'bar',
@@ -480,19 +567,21 @@ async function renderExecutive(){
               label: 'Đã thu',
               data: finTop.map(r => +(r.thu / divisor).toFixed(3)),
               backgroundColor: brandPrimary,
-              borderRadius: { topLeft: 5, topRight: 5 },
+              borderRadius: { topLeft: 4, topRight: 4 },
               borderSkipped: false,
-              barPercentage: 0.85,
-              categoryPercentage: 0.7
+              maxBarThickness: 42,
+              barPercentage: 0.75,
+              categoryPercentage: 0.65
             },
             {
               label: 'Đã chi',
               data: finTop.map(r => +(r.chi / divisor).toFixed(3)),
               backgroundColor: warningColor,
-              borderRadius: { topLeft: 5, topRight: 5 },
+              borderRadius: { topLeft: 4, topRight: 4 },
               borderSkipped: false,
-              barPercentage: 0.85,
-              categoryPercentage: 0.7
+              maxBarThickness: 42,
+              barPercentage: 0.75,
+              categoryPercentage: 0.65
             }
           ]
         },
@@ -502,9 +591,14 @@ async function renderExecutive(){
           plugins: {
             legend: {
               position: 'top', align: 'end',
-              labels: { color: textSecondary, boxWidth: 12, usePointStyle: true, font: { size: 11 } }
+              labels: { color: textSecondary, boxWidth: 12, usePointStyle: true, font: { size: 11, weight: '600' } }
             },
             tooltip: {
+              backgroundColor: '#1E293B',
+              titleColor: '#F5F7FA',
+              bodyColor: '#F5F7FA',
+              borderColor: 'rgba(255, 255, 255, 0.15)',
+              borderWidth: 1,
               callbacks: {
                 label: (c) => `${c.dataset.label}: ${fmt(c.raw * divisor)} ${unit}`
               }
@@ -522,7 +616,7 @@ async function renderExecutive(){
             },
             x: {
               grid: { display: false },
-              ticks: { font: { size: 11 }, color: textSecondary }
+              ticks: { font: { size: 11, weight: '600' }, color: textSecondary }
             }
           }
         }
