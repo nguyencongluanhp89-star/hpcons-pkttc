@@ -929,10 +929,13 @@ async function exportPNG169() {
         }
         const t_cn = t_cn_val || ((typeof workCN === 'function') ? workCN(t_vi) : '');
         
+        const ROW_H = 210;
         drawItemsHtml += `
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
-            <img src="${d.img}" class="draw-im-169" style="width: 100%; flex: 1 1 0; min-height: 60px; object-fit: cover; display: block;">
-            <div style="padding: 8px 10px; text-align: center; line-height: 1.3; font-size: ${FS.bodySmall}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04); height: 100%;">
+            <div style="flex: 1 1 auto; min-height: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+              <img src="${d.img}" class="draw-im-169" style="width: 100%; height: 100%; object-fit: contain; background: #ffffff; display: block;">
+            </div>
+            <div style="padding: 6px 8px; text-align: center; line-height: 1.3; font-size: ${FS.bodySmall}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
               <div style="font-weight: ${FW.body}; color: #0f172a; text-transform: uppercase; line-height: 1.25;">${t_vi}</div>
               ${t_cn ? `<div style="color: #64748b; font-size: ${FS.tiny}px; line-height: 1.25; margin-top: 2px;">${t_cn}</div>` : ''}
             </div>
@@ -940,10 +943,11 @@ async function exportPNG169() {
         `;
       });
       
+      const ROW_H = 210;
       drawsCardHtml = `
-        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 1 1 auto; min-height: 0;">
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
           ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex: 1; min-height: 0; align-content: stretch;">
+          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: ${ROW_H}px; gap: 10px;">
             ${drawItemsHtml}
           </div>
         </div>
@@ -1244,6 +1248,9 @@ async function exportPNG169() {
           <!-- Khối 07: An toàn - Chất lượng - Tiến độ -->
           ${safeQualCardHtml}
 
+          <!-- Spacer dồn khoảng trống dư của Cột 3 xuống dưới -->
+          <div style="flex: 1 1 auto; min-height: 0;"></div>
+
           <!-- Chữ ký & Phê duyệt (Luôn luôn nằm đáy) -->
           ${signatureHtml}
 
@@ -1289,7 +1296,9 @@ async function exportPNG169() {
       // Chống phân kỳ: MỌI ảnh đều LẤP ĐẦY ô (khối 03 + khối 05 chia đều chiều cao còn lại; ảnh tổng
       // quan 01 do khối 02 flex hấp thụ) → không ảnh nào tự tính chiều cao theo bề rộng → an toàn.
       const RATIO = 15 / 9;              // rộng : cao = 15 : 9 (ảnh ngang cân đối)
-      const DRAW_ALLOWANCE = 620;        // chỗ dành cho lưới bản vẽ 2×2 (2 hàng) trong cột 3
+      const ROW_H = 210;                 // chiều cao cố định mỗi hàng bản vẽ
+      const drawRows = validDraws.length > 0 ? Math.ceil(validDraws.length / 2) : 0;
+      const DRAW_ALLOWANCE = drawRows > 0 ? (drawRows * ROW_H + (drawRows - 1) * 10) : 0;
       const PHOTO_ROWS = 4;              // khối 03: LUÔN giữ chỗ 4 hàng × 2 cột = đủ 8 hình
       const CHROME = () => headerHeight + footerHeight + 142; // padding dọc 58+44 + 2 gap 20 = 142
 
@@ -1315,8 +1324,6 @@ async function exportPNG169() {
         tempContainer.querySelectorAll('.ov-sub-img').forEach(b => { const w=b.getBoundingClientRect().width; if(w>0) b.style.height=Math.round(w*120/262)+'px'; });
         // ảnh khối 03 (cột 2): LUÔN chia đủ 4 hàng — ít ảnh cũng không phình to, chỗ vẫn giữ cho đủ 8 hình
         fillGrid('photos-grid-169', PHOTO_ROWS);
-        // bản vẽ khối 05 (cột 3): chia đều chiều cao còn lại, KHÔNG theo bề rộng
-        fillGrid('draws-grid-169');
 
         // Đo khung biểu đồ rồi vẽ lại bằng toạ độ pixel thật
         const chartBox = tempContainer.querySelector('.chart-container-169');
@@ -1333,18 +1340,16 @@ async function exportPNG169() {
       // Đo chiều cao PHẦN CHỮ của cột 3 (tạm thu lưới bản vẽ về 0) — để chốt khung không cắt, không phình.
       function col3TextNeed() {
         const dg = document.getElementById('draws-grid-169');
-        let saved = null;
-        if (dg) { saved = { f: dg.style.flex, h: dg.style.height, m: dg.style.minHeight };
-          dg.style.flex = '0 0 auto'; dg.style.height = '0px'; dg.style.minHeight = '0px'; }
+        let savedDisplay = null;
+        if (dg) { savedDisplay = dg.style.display; dg.style.display = 'none'; }
         const prev = col3El.style.height; col3El.style.height = 'auto';
         const need = col3El.scrollHeight;
         col3El.style.height = prev;
-        if (dg && saved) { dg.style.flex = saved.f; dg.style.height = saved.h; dg.style.minHeight = saved.m; }
+        if (dg && savedDisplay !== null) { dg.style.display = savedDisplay; }
         return need;
       }
 
-      // Hội tụ: chiều cao = chữ cột 3 + chỗ bản vẽ + khung. Đổi width theo RATIO mỗi lượt (text co giãn
-      // nhẹ theo bề rộng → hội tụ, KHÔNG phân kỳ vì bản vẽ lấp đầy chứ không tự tính theo width).
+      // Hội tụ: chiều cao = chữ cột 3 + chỗ bản vẽ + khung. Đổi width theo RATIO mỗi lượt.
       let finalH = 1900;                 // seed cho ~15:9
       for (let i = 0; i < 4; i++) {
         layout(finalH);
