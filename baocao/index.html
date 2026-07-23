@@ -414,7 +414,7 @@
     <div style="display: flex; gap: 8px; align-items: center;">
       <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="background:transparent; border:none; font-size:18px; cursor:pointer; padding:6px; display:inline-flex; align-items:center; justify-content:center; color: var(--hp-text-primary);" title="Bật/Tắt chế độ Ban đêm">🌙</button>
       <button class="logout-btn-header" id="pwa-install-btn" style="background:var(--hp-primary,#096AA7); display:none;" onclick="handlePwaInstallClick()">📲 Tải app</button>
-      <button class="logout-btn-header" id="btn-project-members" style="background:var(--hp-primary,#096AA7); display:none;" onclick="openProjectMembersModal()">👥 Thành viên</button>
+      <button class="logout-btn-header" id="btn-project-contractors" style="background:var(--hp-primary,#096AA7); display:none;" onclick="openContractorsModal()">🏗️ Nhà thầu</button>
       <button class="logout-btn-header" id="btn-switch-project" style="background:#475569;" onclick="switchToProjectSelector()">Đổi dự án</button>
       <button class="logout-btn-header" id="btn-logout-header" onclick="handleLogoutClick()">Đăng xuất</button>
     </div>
@@ -653,6 +653,96 @@
     <!-- Footer -->
     <div style="padding:12px 20px; background:var(--hp-background, #F1F5F9); border-top:1px solid var(--hp-divider, rgba(15,25,35,.06)); display:flex; justify-content:flex-end; gap:10px; flex-shrink:0;">
       <button onclick="closeProjectMembersModal()" style="padding:10px 20px; border-radius:var(--hp-radius-sm, 6px); border:1px solid var(--line, rgba(15,25,35,.10)); background:var(--hp-card, #fff); color:var(--hp-text-secondary, #46545F); font-weight:600; cursor:pointer; min-height:44px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;">ĐÓNG</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL QUẢN LÝ NHÀ THẦU (DỰ ÁN HIỆN TẠI) ===== -->
+<div id="project-contractors-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+  <div class="contractors-modal-card" style="background:var(--hp-card, #fff); color:var(--hp-text-primary, #1B2733); border-radius:var(--hp-radius-lg, 12px); width:100%; max-width:680px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 12px 32px rgba(0,0,0,0.3); overflow:hidden; box-sizing:border-box;">
+    
+    <!-- Header -->
+    <div style="padding:16px 20px; border-bottom:1px solid var(--hp-divider, rgba(15,25,35,.08)); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:var(--hp-surface, #F8FAFC);">
+      <div>
+        <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--hp-primary, #096AA7); display:flex; align-items:center; gap:8px;">
+          🏗️ QUẢN LÝ NHÀ THẦU & TỔ ĐỘI
+        </h3>
+        <div id="contractors-modal-subtitle" style="font-size:12px; color:var(--hp-text-muted, #64707C); margin-top:2px;">Dự án: Đang tải...</div>
+      </div>
+      <button onclick="closeContractorsModal()" style="background:transparent; border:none; font-size:24px; cursor:pointer; color:var(--hp-text-muted, #64707C); width:44px; height:44px; display:flex; align-items:center; justify-content:center;" title="Đóng">✕</button>
+    </div>
+    
+    <!-- Body -->
+    <div style="padding:18px 20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px; min-height:0; box-sizing:border-box;">
+      
+      <!-- Action Bar -->
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-shrink:0;">
+        <span style="font-weight:700; font-size:13px; color:var(--hp-text-secondary, #46545F);">DANH SÁCH NHÀ THẦU CỦA DỰ ÁN</span>
+        <button type="button" onclick="toggleContractorForm(true)" style="padding:8px 14px; border-radius:6px; background:var(--hp-primary, #096AA7); color:#fff; font-size:12px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <span>+ Khai báo nhà thầu mới</span>
+        </button>
+      </div>
+
+      <!-- Form Khai báo / Edit (ẩn/hiện) -->
+      <div id="contractor-form-container" style="display:none; background:var(--hp-surface, #F8FAFC); border:1px solid var(--hp-border, rgba(15,25,35,.12)); border-radius:8px; padding:16px; flex-shrink:0;">
+        <div style="font-weight:800; font-size:14px; margin-bottom:12px; color:var(--hp-primary, #096AA7);" id="contractor-form-title">➕ Khai báo nhà thầu mới</div>
+        <input type="hidden" id="ctr_form_id" value="">
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div style="grid-column: span 2;">
+            <label style="font-size:12px; font-weight:700; color:var(--hp-text-secondary); display:block; margin-bottom:4px;">Tên nhà thầu / Tổ đội <span style="color:var(--hp-danger, #ef4444);">*</span></label>
+            <input type="text" id="ctr_form_name" placeholder="E.g. Đội cốp pha anh Tâm, Công ty Minh Phát..." style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-primary); font-size:13px; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:var(--hp-text-secondary); display:block; margin-bottom:4px;">Phân loại</label>
+            <select id="ctr_form_type" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-primary); font-size:13px; height:38px; box-sizing:border-box; cursor:pointer;">
+              <option value="contractor">Nhà thầu phụ (subcontractor)</option>
+              <option value="team">Tổ đội thi công (team)</option>
+              <option value="internal">Ban chỉ huy / Nội bộ (internal)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:var(--hp-text-secondary); display:block; margin-bottom:4px;">Trạng thái</label>
+            <select id="ctr_form_status" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-primary); font-size:13px; height:38px; box-sizing:border-box; cursor:pointer;">
+              <option value="active">🟢 Đang hoạt động (active)</option>
+              <option value="inactive">🔴 Tạm ngưng (inactive)</option>
+              <option value="finished">🏁 Đã hoàn thành (finished)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:var(--hp-text-secondary); display:block; margin-bottom:4px;">Người đại diện</label>
+            <input type="text" id="ctr_form_rep" placeholder="Họ và tên đại diện" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-primary); font-size:13px; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:var(--hp-text-secondary); display:block; margin-bottom:4px;">Số điện thoại</label>
+            <input type="text" id="ctr_form_phone" placeholder="SĐT liên hệ" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-primary); font-size:13px; box-sizing:border-box;">
+          </div>
+          <div style="grid-column: span 2;">
+            <label style="font-size:12px; font-weight:700; color:var(--hp-text-secondary); display:block; margin-bottom:4px;">Ghi chú</label>
+            <input type="text" id="ctr_form_note" placeholder="Ghi chú thêm (hạng mục đảm nhận...)" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-primary); font-size:13px; box-sizing:border-box;">
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" onclick="toggleContractorForm(false)" style="padding:8px 14px; border-radius:6px; border:1px solid var(--line, rgba(15,25,35,.15)); background:var(--hp-card, #fff); color:var(--hp-text-secondary); font-size:12px; font-weight:600; cursor:pointer;">Hủy</button>
+          <button type="button" onclick="saveContractorItem()" style="padding:8px 16px; border-radius:6px; background:var(--hp-success, #22c55e); color:#fff; font-size:12px; font-weight:700; border:none; cursor:pointer;">💾 Lưu nhà thầu</button>
+        </div>
+      </div>
+      
+      <!-- Status Message Bar -->
+      <div id="contractors-status-bar" style="font-size:13px; font-weight:600; min-height:20px; display:none;"></div>
+      
+      <!-- Contractors List Container -->
+      <div id="contractors-items-list" style="border:1px solid var(--line, rgba(15,25,35,.10)); border-radius:var(--hp-radius-sm, 6px); background:var(--hp-surface, #F8FAFC); overflow-y:auto; flex:1; min-height:180px; box-sizing:border-box;">
+        <div style="padding: 20px; text-align: center; color: var(--hp-text-muted, #64707C);">Đang tải danh sách nhà thầu...</div>
+      </div>
+      
+    </div>
+    
+    <!-- Footer -->
+    <div style="padding:12px 20px; background:var(--hp-background, #F1F5F9); border-top:1px solid var(--hp-divider, rgba(15,25,35,.06)); display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+      <span style="font-size:11px; color:var(--hp-text-muted);">Đồng bộ Firebase `config/contractors` dùng chung app chính</span>
+      <button onclick="closeContractorsModal()" style="padding:10px 20px; border-radius:var(--hp-radius-sm, 6px); border:1px solid var(--line, rgba(15,25,35,.10)); background:var(--hp-card, #fff); color:var(--hp-text-secondary, #46545F); font-weight:600; cursor:pointer; min-height:44px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;">ĐÓNG</button>
     </div>
   </div>
 </div>
@@ -899,13 +989,13 @@
       // Đã đăng nhập
       loginOverlay.style.display = "none";
       
-      // Hiển thị/Ẩn nút Thành viên dự án dựa trên vai trò
-      const btnMembers = document.getElementById("btn-project-members");
-      if (btnMembers) {
-        if (["admin", "director", "pm"].includes(user.role) || user.admin_like) {
-          btnMembers.style.display = "inline-block";
+      // Hiển thị/Ẩn nút Nhà thầu dự án dựa trên vai trò
+      const btnContractors = document.getElementById("btn-project-contractors");
+      if (btnContractors) {
+        if (["admin", "director", "pm", "site_manager", "engineer"].includes(user.role) || user.admin_like) {
+          btnContractors.style.display = "inline-block";
         } else {
-          btnMembers.style.display = "none";
+          btnContractors.style.display = "none";
         }
       }
 
@@ -1411,6 +1501,290 @@
         el.innerText = "";
         el.style.display = "none";
       }, 3000);
+    }
+  }
+
+  // ========== CONTRACTORS CONTROL (PART C - QUICK DECLARATION) ==========
+  let currentProjectContractors = [];
+
+  function openContractorsModal() {
+    const overlay = document.getElementById("project-contractors-overlay");
+    if (overlay) overlay.style.display = "flex";
+    
+    const subtitle = document.getElementById("contractors-modal-subtitle");
+    if (subtitle) {
+      subtitle.innerText = `Dự án: ${AppCore.currentProject ? AppCore.currentProject.name : "Chưa chọn"}`;
+    }
+    toggleContractorForm(false);
+    loadContractorsData();
+  }
+
+  function closeContractorsModal() {
+    const overlay = document.getElementById("project-contractors-overlay");
+    if (overlay) overlay.style.display = "none";
+  }
+
+  function toggleContractorForm(show, editItem = null) {
+    const formContainer = document.getElementById("contractor-form-container");
+    const formTitle = document.getElementById("contractor-form-title");
+    if (!formContainer) return;
+
+    if (!show) {
+      formContainer.style.display = "none";
+      document.getElementById("ctr_form_id").value = "";
+      document.getElementById("ctr_form_name").value = "";
+      document.getElementById("ctr_form_type").value = "contractor";
+      document.getElementById("ctr_form_status").value = "active";
+      document.getElementById("ctr_form_rep").value = "";
+      document.getElementById("ctr_form_phone").value = "";
+      document.getElementById("ctr_form_note").value = "";
+    } else {
+      formContainer.style.display = "block";
+      if (editItem) {
+        formTitle.innerText = "✏️ Sửa thông tin nhà thầu";
+        document.getElementById("ctr_form_id").value = editItem.id || "";
+        document.getElementById("ctr_form_name").value = editItem.name || "";
+        document.getElementById("ctr_form_type").value = editItem.type || "contractor";
+        document.getElementById("ctr_form_status").value = editItem.status || "active";
+        document.getElementById("ctr_form_rep").value = editItem.rep || "";
+        document.getElementById("ctr_form_phone").value = editItem.phone || "";
+        document.getElementById("ctr_form_note").value = editItem.note || "";
+      } else {
+        formTitle.innerText = "➕ Khai báo nhà thầu mới";
+        document.getElementById("ctr_form_id").value = "";
+        document.getElementById("ctr_form_name").value = "";
+        document.getElementById("ctr_form_type").value = "contractor";
+        document.getElementById("ctr_form_status").value = "active";
+        document.getElementById("ctr_form_rep").value = "";
+        document.getElementById("ctr_form_phone").value = "";
+        document.getElementById("ctr_form_note").value = "";
+      }
+      document.getElementById("ctr_form_name").focus();
+    }
+  }
+
+  async function loadContractorsData() {
+    const listEl = document.getElementById("contractors-items-list");
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--hp-text-muted, #64707C);">Đang tải danh sách nhà thầu...</div>';
+
+    const projectId = AppCore.currentProject ? AppCore.currentProject.id : "";
+    if (!projectId) {
+      listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--hp-danger, #ef4444);">Vui lòng chọn dự án trước khi khai báo nhà thầu.</div>';
+      return;
+    }
+
+    try {
+      const doc = await AppCore.db.collection("config").doc("contractors").get();
+      const allContractors = doc.exists ? (doc.data().value || []) : [];
+      window._ALL_FIRESTORE_CONTRACTORS = allContractors;
+      
+      currentProjectContractors = allContractors.filter(c => c.project_id === projectId);
+      renderContractorsList();
+    } catch (err) {
+      console.error("Lỗi nạp danh sách nhà thầu:", err);
+      listEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--hp-danger, #ef4444); font-weight:600;">Lỗi tải nhà thầu: ${err.message}</div>`;
+    }
+  }
+
+  function renderContractorsList() {
+    const listEl = document.getElementById("contractors-items-list");
+    if (!listEl) return;
+    listEl.innerHTML = "";
+
+    if (!currentProjectContractors || currentProjectContractors.length === 0) {
+      listEl.innerHTML = `
+        <div style="padding: 30px 15px; text-align: center; color: var(--hp-text-muted, #64707C); line-height: 1.6;">
+          Chưa có nhà thầu / tổ đội nào được khai báo cho dự án này.<br>
+          Bấm nút <b>"+ Khai báo nhà thầu mới"</b> phía trên để thêm.
+        </div>
+      `;
+      return;
+    }
+
+    const sorted = [...currentProjectContractors].sort((a, b) => {
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (a.status !== 'active' && b.status === 'active') return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    const typeLabels = {
+      contractor: 'Nhà thầu phụ',
+      team: 'Tổ đội thi công',
+      internal: 'Ban chỉ huy'
+    };
+
+    sorted.forEach(item => {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--hp-divider, rgba(15,25,35,.06)); gap:10px; box-sizing:border-box;";
+
+      const infoCol = document.createElement("div");
+      infoCol.style.cssText = "flex:1; min-width:0;";
+
+      const statusBadge = item.status === 'active'
+        ? `<span style="background:rgba(34,197,94,0.12); color:var(--hp-success, #22c55e); font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">🟢 Hoạt động</span>`
+        : item.status === 'finished'
+        ? `<span style="background:rgba(59,130,246,0.12); color:var(--hp-info, #3b82f6); font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">🏁 Hoàn thành</span>`
+        : `<span style="background:rgba(239,68,68,0.12); color:var(--hp-danger, #ef4444); font-size:11px; font-weight:700; padding:2px 6px; border-radius:4px;">🔴 Tạm ngưng</span>`;
+
+      const typeBadge = `<span style="background:rgba(9,106,167,0.1); color:var(--hp-primary, #096AA7); font-size:11px; font-weight:600; padding:2px 6px; border-radius:4px; margin-left:6px;">${typeLabels[item.type] || item.type || 'Nhà thầu'}</span>`;
+
+      infoCol.innerHTML = `
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-bottom:3px;">
+          <span style="font-weight:700; font-size:14px; color:var(--hp-text-primary);">${esc(item.name)}</span>
+          ${typeBadge}
+          ${statusBadge}
+        </div>
+        <div style="font-size:12px; color:var(--hp-text-muted); display:flex; gap:12px; flex-wrap:wrap;">
+          ${item.rep ? `<span>Đại diện: <b>${esc(item.rep)}</b></span>` : ''}
+          ${item.phone ? `<span>SĐT: <b>${esc(item.phone)}</b></span>` : ''}
+          ${item.note ? `<span>Ghi chú: ${esc(item.note)}</span>` : ''}
+        </div>
+      `;
+
+      const actionsCol = document.createElement("div");
+      actionsCol.style.cssText = "display:flex; gap:6px; flex-shrink:0;";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.innerText = "✏️ Sửa";
+      editBtn.style.cssText = "padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--line, rgba(15,25,35,.12)); background:var(--hp-card, #fff); color:var(--hp-text-primary); cursor:pointer;";
+      editBtn.onclick = () => toggleContractorForm(true, item);
+
+      const toggleStatusBtn = document.createElement("button");
+      toggleStatusBtn.type = "button";
+      toggleStatusBtn.innerText = item.status === 'active' ? "Ẩn" : "Hiện";
+      toggleStatusBtn.style.cssText = "padding:4px 8px; font-size:12px; border-radius:4px; border:1px solid var(--line, rgba(15,25,35,.12)); background:var(--hp-surface, #f8fafc); color:var(--hp-text-secondary); cursor:pointer;";
+      toggleStatusBtn.onclick = () => toggleContractorStatus(item);
+
+      actionsCol.appendChild(editBtn);
+      actionsCol.appendChild(toggleStatusBtn);
+
+      row.appendChild(infoCol);
+      row.appendChild(actionsCol);
+      listEl.appendChild(row);
+    });
+  }
+
+  async function saveContractorItem() {
+    const nameInput = document.getElementById("ctr_form_name");
+    const name = nameInput.value.trim();
+    if (!name) {
+      showContractorsStatus("Vui lòng nhập tên nhà thầu / tổ đội!", "red");
+      nameInput.focus();
+      return;
+    }
+
+    const projectId = AppCore.currentProject ? AppCore.currentProject.id : "";
+    if (!projectId) {
+      showContractorsStatus("Chưa chọn dự án!", "red");
+      return;
+    }
+
+    const id = document.getElementById("ctr_form_id").value || ("ctr_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7));
+    const type = document.getElementById("ctr_form_type").value;
+    const status = document.getElementById("ctr_form_status").value;
+    const rep = document.getElementById("ctr_form_rep").value.trim();
+    const phone = document.getElementById("ctr_form_phone").value.trim();
+    const note = document.getElementById("ctr_form_note").value.trim();
+
+    showContractorsStatus("Đang lưu lên Firebase...", "green");
+
+    try {
+      const docRef = AppCore.db.collection("config").doc("contractors");
+      const docSnap = await docRef.get();
+      let allContractors = docSnap.exists ? (docSnap.data().value || []) : [];
+
+      const nowIso = new Date().toISOString();
+      const existingIdx = allContractors.findIndex(x => x.id === id);
+
+      if (existingIdx >= 0) {
+        allContractors[existingIdx] = {
+          ...allContractors[existingIdx],
+          name, type, status, rep, phone, note,
+          project_id: projectId,
+          updated_at: nowIso
+        };
+      } else {
+        allContractors.push({
+          id,
+          project_id: projectId,
+          name,
+          type,
+          status,
+          rep,
+          phone,
+          note,
+          aliases: [],
+          voiceKeywords: [],
+          added_at: nowIso,
+          updated_at: nowIso
+        });
+      }
+
+      await docRef.set({
+        value: allContractors,
+        updated_at: nowIso
+      }, { merge: false });
+
+      if (typeof AppCore.postMessage === 'function') {
+        AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });
+      }
+
+      showContractorsStatus("Đã lưu nhà thầu thành công ✓", "green");
+      toggleContractorForm(false);
+      await loadContractorsData();
+    } catch (err) {
+      console.error("Lỗi lưu nhà thầu lên Firebase:", err);
+      showContractorsStatus("Lỗi lưu: " + err.message, "red");
+    }
+  }
+
+  async function toggleContractorStatus(item) {
+    const newStatus = item.status === 'active' ? 'inactive' : 'active';
+    showContractorsStatus(`Đang chuyển trạng thái...`, "green");
+
+    try {
+      const docRef = AppCore.db.collection("config").doc("contractors");
+      const docSnap = await docRef.get();
+      let allContractors = docSnap.exists ? (docSnap.data().value || []) : [];
+
+      const idx = allContractors.findIndex(x => x.id === item.id);
+      if (idx >= 0) {
+        allContractors[idx].status = newStatus;
+        allContractors[idx].updated_at = new Date().toISOString();
+
+        await docRef.set({
+          value: allContractors,
+          updated_at: new Date().toISOString()
+        }, { merge: false });
+
+        if (typeof AppCore.postMessage === 'function') {
+          AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });
+        }
+
+        showContractorsStatus("Đã cập nhật trạng thái ✓", "green");
+        await loadContractorsData();
+      }
+    } catch (err) {
+      console.error("Lỗi chuyển trạng thái nhà thầu:", err);
+      showContractorsStatus("Lỗi: " + err.message, "red");
+    }
+  }
+
+  function showContractorsStatus(msg, color) {
+    const el = document.getElementById("contractors-status-bar");
+    if (!el) return;
+    el.innerText = msg;
+    el.style.display = "block";
+    el.style.color = color === "green" ? "var(--hp-success, #22c55e)" : "var(--hp-danger, #ef4444)";
+    
+    if (color === "green") {
+      if (window.contractorsStatusTimeout) clearTimeout(window.contractorsStatusTimeout);
+      window.contractorsStatusTimeout = setTimeout(() => {
+        el.innerText = "";
+        el.style.display = "none";
+      }, 3500);
     }
   }
 
