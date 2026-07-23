@@ -35,6 +35,16 @@ const firebaseConfig = {
     window.fb = { app, db, auth, storage };
 
     console.log("Firebase connected");
+
+    // Badge đồng bộ TỰ CẬP NHẬT theo trạng thái đăng nhập Firebase Auth.
+    // Trước đây badge (SyncEngine.setPill) vẽ NGAY lúc đăng nhập, nhưng firebaseAuthSync signIn chạy NỀN
+    // (async, xong sau 1-2s) nên lúc vẽ chưa có currentUser -> kẹt "Offline (local)" dù Firebase đã kết nối.
+    // onAuthStateChanged bắt cả: signIn nền xong + phiên tự khôi phục khi mở lại app -> vẽ lại badge đúng.
+    try {
+      auth.onAuthStateChanged(function () {
+        if (typeof SyncEngine !== "undefined" && SyncEngine.setPill) SyncEngine.setPill();
+      });
+    } catch (e) { console.warn("onAuthStateChanged (badge) lỗi:", e); }
   } catch (error) {
     console.error("Firebase connection error:", error);
   }
