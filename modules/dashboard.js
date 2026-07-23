@@ -333,7 +333,7 @@ async function renderDashboard() {
     if(totalThuCDT === 0 && totalChi === 0) {
       canvasFin.style.display = 'none';
       const finEm = document.createElement('div'); finEm.className = 'chart-empty';
-      finEm.innerHTML = renderEmptyState('📊', 'Chưa có dữ liệu tài chính', 'Hệ thống chưa ghi nhận các khoản thu chi cho dự án này.');
+      finEm.innerHTML = renderEmptyState((typeof getDashSvg === 'function' ? getDashSvg('activity', 40, 'var(--hp-text-secondary)') : ''), 'Chưa có dữ liệu tài chính', 'Hệ thống chưa ghi nhận các khoản thu chi cho dự án này.');
       finWrap.appendChild(finEm);
     } else { canvasFin.style.display = '';
     const maxFinVal = Math.max(totalThuCDT, totalChi);
@@ -380,10 +380,8 @@ async function renderDashboard() {
         }
       }
     });
-    } // end else: có dữ liệu tài chính
+    }
   }
-
-  // Top 3 Nhà thầu chi nhiều nhất
   const elFinTop = document.getElementById("dash-finance-top");
   if(elFinTop) {
     const grouped = {};
@@ -398,21 +396,20 @@ async function renderDashboard() {
       .sort((a, b) => b.val - a.val)
       .slice(0, 3);
     if(sorted.length === 0) {
-      elFinTop.innerHTML = renderEmptyState('💳', 'Chưa có thanh toán', 'Không có nhà thầu nào phát sinh chi phí thanh toán.');
+      elFinTop.innerHTML = `<div style="padding:10px 0; color:var(--muted); font-size:12px; font-style:italic;">Chưa có nhà thầu phát sinh chi phí thanh toán.</div>`;
     } else {
       elFinTop.innerHTML = sorted.map((x, idx) => {
         return `<div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border);">
-          <span><b>${idx + 1}. ${esc(x.name)}</b></span>
-          <span style="color:var(--danger); font-weight:700; white-space:nowrap;">${fmtAuto(x.val)}</span>
+          <span style="color:var(--hp-text-primary);"><b>${idx + 1}. ${esc(x.name)}</b></span>
+          <span style="color:var(--hp-danger); font-weight:700; white-space:nowrap;">${fmtAuto(x.val)}</span>
         </div>`;
       }).join("");
     }
   }
   
   // 4. Calculate Manpower & Rain (Last 7 Days - Mon to Sun)
-  // We need the last 7 days strings.
   const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday...
+  const dayOfWeek = today.getDay();
   const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   const lastMonday = new Date(today);
   lastMonday.setDate(today.getDate() - daysToLastMonday);
@@ -425,20 +422,17 @@ async function renderDashboard() {
     const d = new Date(lastMonday);
     d.setDate(lastMonday.getDate() + i);
     const pad = (n) => String(n).padStart(2, "0");
-    const dIso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; // Giờ local thay vì UTC
+    const dIso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const dayName = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][d.getDay()];
     labels.push(dayName);
     
-    // Find submissions for this day
     const daySubs = subs.filter(s => s.log_date === dIso);
     let dayManpower = 0;
     
     daySubs.forEach(s => {
-      // Sum manpower
       if(s.manpower && Array.isArray(s.manpower)) {
         dayManpower += s.manpower.reduce((acc, m) => acc + (Number(m.headcount) || 0), 0);
       }
-      // Sum rain
       if(s.totalRainHours && !isNaN(Number(s.totalRainHours))) {
         totalRain += Number(s.totalRainHours);
       }
@@ -446,8 +440,6 @@ async function renderDashboard() {
     
     manpowerData.push(dayManpower);
   }
-  
-
 
   // Update Weather — hiển thị trong Hero card với 100% Inline SVG
   const elWeather = document.getElementById("dash-hero-weather");
@@ -498,15 +490,25 @@ async function renderDashboard() {
     const totalMp = manpowerData.reduce((a,b) => a+b, 0);
     if(totalMp === 0) {
       canvas.style.display = 'none';
-      const mpEm = document.createElement('div'); mpEm.className = 'chart-empty';
-      mpEm.innerHTML = renderEmptyState('👷', 'Chưa có báo cáo nhân lực', 'Vui lòng cập nhật báo cáo ngày để hiển thị biểu đồ.');
+      const mpEm = document.createElement('div');
+      mpEm.className = 'chart-empty';
+      mpEm.style.height = '140px';
+      mpEm.style.display = 'flex';
+      mpEm.style.flexDirection = 'column';
+      mpEm.style.alignItems = 'center';
+      mpEm.style.justifyContent = 'center';
+      mpEm.style.color = 'var(--muted)';
+      mpEm.style.fontSize = '12px';
+      mpEm.innerHTML = `${getSvg('users', 32, 'var(--hp-text-secondary)')}
+        <div style="margin-top:6px; font-weight:600; color:var(--hp-text-primary);">Chưa có báo cáo nhân lực</div>
+        <div style="font-size:11px; margin-top:2px;">Vui lòng cập nhật báo cáo ngày để hiển thị biểu đồ.</div>`;
       mpWrap.appendChild(mpEm);
     } else { canvas.style.display = '';
     const css = getComputedStyle(document.documentElement);
     const C = (n) => css.getPropertyValue(n).trim();
     const brandAccent = C('--hp-brand-accent') || '#0969A7';
-    const textSecondary = C('--hp-text-secondary') || '#B8C0C8';
-    const borderCol = C('--hp-border') || 'rgba(255,255,255,0.08)';
+    const textSecondary = '#CBD5E1';
+    const borderCol = 'rgba(255,255,255,0.08)';
 
     const ctx = canvas.getContext('2d');
     window._dashMpChart = new Chart(ctx, {
@@ -533,182 +535,200 @@ async function renderDashboard() {
         scales: {
           x: { 
             display: true, 
-            ticks: { color: textSecondary, font: {size: 9} },
+            ticks: { color: textSecondary, font: {size: 11, weight: '600'} },
             grid: { color: borderCol }
           },
           y: { 
             display: true, 
             min: 0, 
-            ticks: { color: textSecondary, font: {size: 9}, stepSize: 5 }, 
+            ticks: { color: textSecondary, font: {size: 10}, stepSize: 5 }, 
             grid: { color: borderCol } 
           }
         },
-        layout: {
-          padding: 0
-        }
+        layout: { padding: 0 }
       }
     });
-    } // end else: có dữ liệu nhân lực
+    }
   }
 
-  // 5. Render Alerts / Warnings
+  // 5. Render Alerts & Overdue Tasks kèm SỐ NGÀY TRỄ
+  const overdueItems = [];
+  const tToday = todayISO();
+  (delayedTasks || []).forEach(it => {
+    const effEnd = (typeof getEffectiveEnd === 'function' ? getEffectiveEnd(it) : null) || it.end;
+    if (effEnd && effEnd < tToday && it.status !== 'done') {
+      const dDiff = Math.ceil((new Date(tToday) - new Date(effEnd)) / (1000 * 60 * 60 * 24));
+      overdueItems.push({
+        task: it.task,
+        effEnd: effEnd,
+        delayDays: dDiff > 0 ? dDiff : 1
+      });
+    }
+  });
+
+  overdueItems.sort((a, b) => b.delayDays - a.delayDays);
+
+  const elDelaysGroup = document.getElementById("dash-alerts-delays-group");
   const elDelays = document.getElementById("dash-alerts-delays");
   if(elDelays) {
-    if(delayedTasks.length === 0) {
-      elDelays.innerHTML = `<div class="subitem" style="color:var(--muted); font-style:italic;">Không có công việc trễ hạn</div>`;
+    if(overdueItems.length === 0) {
+      if (elDelaysGroup) elDelaysGroup.style.display = "none";
     } else {
-      elDelays.innerHTML = delayedTasks.slice(0, 5).map(it => {
-        const effectiveEnd = (typeof getEffectiveEnd === 'function' ? getEffectiveEnd(it) : null) || it.end;
+      if (elDelaysGroup) elDelaysGroup.style.display = "block";
+      const top5 = overdueItems.slice(0, 5);
+      let html = top5.map(it => {
         return `<div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('tiendo')">
-          <span>⚠️ <b>${esc(it.task)}</b></span>
-          <span style="color:var(--danger); font-weight:700; font-size:11px;">Hạn chót: ${fmtVN(effectiveEnd)}</span>
+          <span style="color:var(--hp-text-primary); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%;" title="${esc(it.task)}">${esc(it.task)}</span>
+          <span style="color:var(--hp-danger); font-weight:700; font-size:11px; white-space:nowrap;">Trễ ${it.delayDays} ngày · Hạn ${fmtVN(it.effEnd)}</span>
         </div>`;
       }).join("");
+
+      if (overdueItems.length > 5) {
+        html += `<div style="margin-top:8px; text-align:right;">
+          <button onclick="switchTab('tiendo')" style="font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; background:rgba(239,68,68,0.1); color:var(--hp-danger); border:1px solid rgba(239,68,68,0.25); cursor:pointer;">Xem tất cả ${overdueItems.length} công tác trễ ›</button>
+        </div>`;
+      }
+      elDelays.innerHTML = html;
     }
   }
   
+  // Gather Vướng mắc
+  let recentIssues = [];
+  const sortedSubs = [...subs].sort((a,b) => b.log_date.localeCompare(a.log_date));
+  for(const s of sortedSubs) {
+    if(s.issues && s.issues.length > 0) {
+      s.issues.forEach(iss => recentIssues.push({date: s.log_date, desc: iss.description, sev: iss.severity}));
+    }
+    if(recentIssues.length >= 5) break;
+  }
+  
+  const elIssuesGroup = document.getElementById("dash-alerts-issues-group");
   const elIssues = document.getElementById("dash-alerts-issues");
   if(elIssues) {
-    // Gather issues from latest reports
-    let recentIssues = [];
-    // Sort subs descending
-    const sortedSubs = [...subs].sort((a,b) => b.log_date.localeCompare(a.log_date));
-    for(const s of sortedSubs) {
-      if(s.issues && s.issues.length > 0) {
-        s.issues.forEach(iss => recentIssues.push({date: s.log_date, desc: iss.description, sev: iss.severity}));
-      }
-      if(recentIssues.length >= 5) break; // Get top 5 recent issues
-    }
-    
     if(recentIssues.length === 0) {
-      elIssues.innerHTML = `<div class="subitem" style="color:var(--muted); font-style:italic;">Không có vướng mắc</div>`;
+      if (elIssuesGroup) elIssuesGroup.style.display = "none";
     } else {
+      if (elIssuesGroup) elIssuesGroup.style.display = "block";
       elIssues.innerHTML = recentIssues.map(iss => {
-        const icon = iss.sev === 'high' ? '🔥' : (iss.sev === 'medium' ? '⚠️' : 'ℹ️');
-        const color = iss.sev === 'high' ? 'var(--danger)' : (iss.sev === 'medium' ? 'var(--warning)' : 'var(--ink)');
-        return `<div class="subitem" style="padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('baocaongay-new')">
-          <span style="color:${color}">${icon} <b>${iss.date.substring(5).replace('-','/')}</b>: ${esc(iss.desc)}</span>
+        const iconColor = iss.sev === 'high' ? 'var(--hp-danger)' : (iss.sev === 'medium' ? 'var(--hp-warning)' : 'var(--hp-text-secondary)');
+        const iconSvg = getSvg(iss.sev === 'high' ? 'alert-triangle' : (iss.sev === 'medium' ? 'alert-triangle' : 'clock'), 14, iconColor);
+        return `<div class="subitem" style="padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="switchTab('baocaongay-new')">
+          ${iconSvg} <span style="color:var(--hp-text-primary);"><b>${iss.date.substring(5).replace('-','/')}</b>: ${esc(iss.desc)}</span>
         </div>`;
       }).join("");
     }
   }
   
+  // Gather Duyệt chi
+  const pendingPayments = [];
+  (sc || []).forEach(x => {
+    if(x.status === 'pending') {
+      pendingPayments.push({ type: 'Thanh toán NT', name: x.contractor || 'Nhà thầu', amount: Number(x.amount) || 0 });
+    }
+  });
+  (ex || []).forEach(x => {
+    if(x.status === 'pending') {
+      pendingPayments.push({ type: 'Chi phí lẻ', name: x.desc || 'Chi phí', amount: Number(x.total) || 0 });
+    }
+  });
+
+  const elPaymentsGroup = document.getElementById("dash-alerts-payments-group");
   const elPayments = document.getElementById("dash-alerts-payments");
   if(elPayments) {
-    const pendingPayments = [];
-    (sc || []).forEach(x => {
-      if(x.status === 'pending') {
-        pendingPayments.push({
-          type: 'Thanh toán NT',
-          name: x.contractor || 'Nhà thầu',
-          amount: Number(x.amount) || 0,
-          date: x.date || ''
-        });
-      }
-    });
-    (ex || []).forEach(x => {
-      if(x.status === 'pending') {
-        pendingPayments.push({
-          type: 'Chi phí lẻ',
-          name: x.desc || 'Chi phí',
-          amount: Number(x.total) || 0,
-          date: x.date_scanned || ''
-        });
-      }
-    });
-
     if(pendingPayments.length === 0) {
-      elPayments.innerHTML = `<div class="subitem" style="color:var(--muted); font-style:italic;">Không có yêu cầu duyệt chi</div>`;
+      if (elPaymentsGroup) elPaymentsGroup.style.display = "none";
     } else {
+      if (elPaymentsGroup) elPaymentsGroup.style.display = "block";
       elPayments.innerHTML = pendingPayments.slice(0, 5).map(p => {
         return `<div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('thanhtoan')">
-          <span>⏳ <b>[${p.type}]</b> ${esc(p.name)}</span>
-          <span style="color:var(--warning); font-weight:700;">${fmtAuto(p.amount)}</span>
+          <span style="color:var(--hp-text-primary);">${getSvg('clock', 14, 'var(--hp-warning)')} <b>[${p.type}]</b> ${esc(p.name)}</span>
+          <span style="color:var(--hp-warning); font-weight:700;">${fmtAuto(p.amount)}</span>
         </div>`;
       }).join("");
     }
   }
 
-  // 6. Render LPB Summary (Tóm tắt đề xuất Liên phòng ban)
+  // Gather LPB Requests
+  let projLpbReqs = [];
+  try {
+    const lpbReqs = await metaGet("lpb_requests", []);
+    projLpbReqs = lpbReqs.filter(r => r.project_id === CUR.project && r.status !== "completed");
+  } catch (err) {}
+
+  const elLpbGroup = document.getElementById("dash-alerts-lpb-group");
   const elLpb = document.getElementById("dash-alerts-lpb");
   if (elLpb) {
-    try {
-      const lpbReqs = await metaGet("lpb_requests", []);
-      const projReqs = lpbReqs.filter(r => r.project_id === CUR.project && r.status !== "completed");
-      
-      const totalPending = projReqs.length;
-      const totalUrgent = projReqs.filter(r => r.urgent === true).length;
-      const totalOverdue = projReqs.filter(r => r.due && new Date() > new Date(r.due)).length;
-      
-      if (totalPending === 0) {
-        elLpb.innerHTML = `<div class="subitem" style="color:var(--muted); font-style:italic; cursor:pointer;" onclick="switchTab('lpb')">Không có đề xuất chờ xử lý</div>`;
-      } else {
-        elLpb.innerHTML = `
-          <div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('lpb')">
-            <span>🤝 <b>Chờ xử lý:</b> ${totalPending} đề xuất</span>
-            <span style="font-size:11px; display:flex; gap:6px;">
-              ${totalUrgent > 0 ? `<span class="badge" style="background:rgba(239, 68, 68, 0.08); color:var(--danger); font-weight:700; padding:2px 6px; border-radius:4px; margin:0;">🔥 ${totalUrgent} khẩn</span>` : ""}
-              ${totalOverdue > 0 ? `<span class="badge" style="background:rgba(239, 68, 68, 0.08); color:var(--danger); font-weight:700; padding:2px 6px; border-radius:4px; margin:0;">🔴 ${totalOverdue} trễ</span>` : ""}
-            </span>
-          </div>
-        `;
-      }
-    } catch (err) {
-      console.error("Lỗi render tóm tắt LPB trên Dashboard:", err);
+    if (projLpbReqs.length === 0) {
+      if (elLpbGroup) elLpbGroup.style.display = "none";
+    } else {
+      if (elLpbGroup) elLpbGroup.style.display = "block";
+      const totalPending = projLpbReqs.length;
+      const totalUrgent = projLpbReqs.filter(r => r.urgent === true).length;
+      const totalOverdue = projLpbReqs.filter(r => r.due && new Date() > new Date(r.due)).length;
+
+      elLpb.innerHTML = `
+        <div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('lpb')">
+          <span style="color:var(--hp-text-primary); display:flex; align-items:center; gap:6px;">${getSvg('users', 14, 'var(--hp-brand-accent)')} <b>Chờ xử lý:</b> ${totalPending} đề xuất</span>
+          <span style="font-size:11px; display:flex; gap:6px;">
+            ${totalUrgent > 0 ? `<span class="badge" style="background:rgba(239, 68, 68, 0.12); color:var(--hp-danger); font-weight:700; padding:2px 6px; border-radius:4px; margin:0;">${totalUrgent} khẩn</span>` : ""}
+            ${totalOverdue > 0 ? `<span class="badge" style="background:rgba(239, 68, 68, 0.12); color:var(--hp-danger); font-weight:700; padding:2px 6px; border-radius:4px; margin:0;">${totalOverdue} trễ</span>` : ""}
+          </span>
+        </div>
+      `;
     }
   }
 
-  // 7. Render Daily Report waiting for approval (Chỉ hiển thị cho người duyệt)
+  // Thu gọn Khối Cảnh báo & Rủi ro khi 0 phát sinh
+  let pendingReports = [];
+  try {
+    const isApprover = typeof CUR_USER !== 'undefined' && CUR_USER && (isAdminLikeRole(CUR_USER.role) || ["pm", "site_manager"].includes(CUR_USER.role));
+    if (isApprover) {
+      const allDaily = await metaGet("daily_reports", []);
+      pendingReports = allDaily.filter(r => r.project_id === CUR.project && (r.approval === "pending" || r.status === "pending"));
+    }
+  } catch (err) {}
+
   const elWaitingApprove = document.getElementById("dash-alerts-waiting-approve");
   const listWaitingApprove = document.getElementById("dash-waiting-approve-list");
   if (elWaitingApprove && listWaitingApprove) {
-    try {
-      const isApprover = typeof CUR_USER !== 'undefined' && CUR_USER && (isAdminLikeRole(CUR_USER.role) || ["pm", "site_manager"].includes(CUR_USER.role));
-      if (!isApprover) {
-        elWaitingApprove.classList.add("hide");
-      } else {
-        const allDaily = await metaGet("daily_reports", []);
-        const pendingReports = allDaily.filter(r => r.project_id === CUR.project && (r.approval === "pending" || r.status === "pending"));
-        
-        if (pendingReports.length === 0) {
-          elWaitingApprove.classList.add("hide");
-        } else {
-          elWaitingApprove.classList.remove("hide");
-          
-          listWaitingApprove.innerHTML = pendingReports.map(r => {
-            const fmtDate = (dStr) => {
-              if (!dStr) return "";
-              const parts = dStr.split("-");
-              return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            };
-            return `
-              <div class="subitem" onclick="selectAndApproveDailyReport('${r.date}')" 
-                style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid var(--border); border-radius:var(--r-sm); transition:background 0.2s;" 
-                onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='transparent'">
-                <span>⏳ Báo cáo ngày <b>${fmtDate(r.date)}</b> · Người nộp: <b>${esc(r.created_name || r.created_by || "Kỹ sư")}</b></span>
-                <span style="color:var(--primary); font-size:12px; font-weight:600;">Xem & Duyệt ➔</span>
-              </div>
-            `;
-          }).join("");
-        }
-      }
-    } catch (err) {
-      console.error("Lỗi render danh sách chờ duyệt báo cáo ngày:", err);
+    if (pendingReports.length === 0) {
+      elWaitingApprove.classList.add("hide");
+    } else {
+      elWaitingApprove.classList.remove("hide");
+      listWaitingApprove.innerHTML = pendingReports.map(r => {
+        const fmtDate = (dStr) => {
+          if (!dStr) return "";
+          const parts = dStr.split("-");
+          return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        };
+        return `
+          <div class="subitem" onclick="selectAndApproveDailyReport('${r.date}')" 
+            style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--border); border-radius:var(--r-sm); transition:background 0.2s;">
+            <span style="color:var(--hp-text-primary);">${getSvg('clock', 14, 'var(--hp-warning)')} Báo cáo ngày <b>${fmtDate(r.date)}</b> · Người nộp: <b>${esc(r.created_name || r.created_by || "Kỹ sư")}</b></span>
+            <span style="color:var(--hp-primary); font-size:12px; font-weight:600;">Xem & Duyệt ➔</span>
+          </div>
+        `;
+      }).join("");
+    }
+  }
+
+  const elSummaryWrapper = document.getElementById("dash-alerts-summary-wrapper");
+  if (overdueItems.length === 0 && recentIssues.length === 0 && pendingPayments.length === 0 && projLpbReqs.length === 0 && pendingReports.length === 0) {
+    if (elSummaryWrapper) {
+      elSummaryWrapper.innerHTML = `<div style="padding:14px 16px; background:var(--surface-2); border-radius:8px; color:var(--hp-text-secondary); font-size:12px; display:flex; align-items:center; gap:8px;">
+        ${getSvg('check-circle', 16, 'var(--hp-success)')}
+        <span>Chưa ghi nhận vướng mắc, yêu cầu duyệt chi hoặc đề xuất liên phòng ban.</span>
+      </div>`;
     }
   }
 }
 
 async function selectAndApproveDailyReport(date) {
   switchTab("baocaongay-new");
-  
-  // Chờ iframe load và gửi message
   setTimeout(() => {
     const iframe = document.querySelector("#tab-baocaongay-new iframe");
     if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({
-        type: 'NAVIGATE_TO_REPORT',
-        date: date
-      }, '*');
+      iframe.contentWindow.postMessage({ type: 'NAVIGATE_TO_REPORT', date: date }, '*');
     }
   }, 300);
 }
