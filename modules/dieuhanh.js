@@ -145,7 +145,7 @@ async function renderProjectList() {
   const editable = !CUR_USER || isAdminLikeRole(CUR_USER.role) || ["pm","site_manager"].includes(CUR_USER.role);
 
   if(list.length === 0){
-    pl.innerHTML = renderEmptyState('🏢', 'Chưa có dự án phân quyền', 'Vui lòng liên hệ Admin để được cấp quyền quản lý dự án.');
+    pl.innerHTML = renderEmptyState(getDashSvg('building', 40, 'var(--hp-text-secondary)'), 'Chưa có dự án phân quyền', 'Vui lòng liên hệ Admin để được cấp quyền quản lý dự án.');
     return;
   }
   let html = '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">';
@@ -231,6 +231,31 @@ async function delProject(id){
   await populateProjects(); renderExecutive(); renderProjectList();
 }
 
+function getDashSvg(name, size = 18, color = "currentColor") {
+  const paths = {
+    'building': '<rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="6" x2="9.01" y2="6"></line><line x1="15" y1="6" x2="15.01" y2="6"></line><line x1="9" y1="10" x2="9.01" y2="10"></line><line x1="15" y1="10" x2="15.01" y2="10"></line><line x1="9" y1="14" x2="9.01" y2="14"></line><line x1="15" y1="14" x2="15.01" y2="14"></line><line x1="9" y1="18" x2="15" y2="18"></line>',
+    'activity': '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>',
+    'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+    'users': '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+    'clock': '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
+    'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>',
+    'dollar-sign': '<line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>',
+    'wallet': '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>',
+    'user-check': '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline>',
+    'bar-chart': '<line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
+    'trending-up': '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>',
+    'calendar': '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>',
+    'list-todo': '<rect x="3" y="5" width="6" height="6" rx="1"></rect><path d="m3 17 2 2 4-4"></path><path d="M13 6h8"></path><path d="M13 12h8"></path><path d="M13 18h8"></path>',
+    'shield': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path>',
+    'pen-tool': '<path d="m12 19 7-7 3 3-7 7-3-3z"></path><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18z"></path><path d="m2 2 7.5 7.5"></path><circle cx="11" cy="11" r="2"></circle>',
+    'wrench': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
+    'check-circle': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>'
+  };
+  const path = paths[name] || '<circle cx="12" cy="12" r="10"></circle>';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">${path}</svg>`;
+}
+window.getDashSvg = getDashSvg;
+
 async function renderExecutive(){
  try{
   const projects=await DataService.listProjects();
@@ -276,36 +301,39 @@ async function renderExecutive(){
   // Hero
   const avg = total ? healthRound1(stats.reduce((a,s)=>a+s.health,0)/total) : 0;
   if($("exec-health")){
-    $("exec-health").textContent = fmtHealth(avg) + "đ";
+    $("exec-health").textContent = fmtHealth(avg) + "/100";
     $("exec-health").style.color = "var(" + healthTier(avg).token + ")";
   }
   if($("exec-date")){ try{ $("exec-date").textContent = new Date().toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ $("exec-date").textContent=tToday; } }
 
+  const subsToday=subs.filter(s=>s.log_date===tToday);
+  const reportedToday=new Set(subsToday.map(s=>s.project_id));
+  const hasSubToday = subsToday.length > 0;
+  const mpVal = !hasSubToday ? "Chưa nộp" : (manpowerToday === 0 ? "0 người" : manpowerToday.toLocaleString('vi-VN') + " người");
+  const mpColor = !hasSubToday ? "var(--hp-text-muted)" : (manpowerToday === 0 ? "var(--hp-warning)" : "var(--hp-success)");
+
   // KPI tổng quan
   const kpiCards=[
-    {icon:"🏢", val:total, label:"Tổng dự án", color:"var(--hp-primary)", iconBg:"var(--hp-info-bg)", desc:"Các dự án đang quản lý"},
-    {icon:"🚧", val:stCounts["Đang thi công"], label:"Đang thi công", color:"var(--hp-brand-accent)", iconBg:"var(--hp-info-bg)", desc:"Đang triển khai thực tế"},
-    {icon:"⚠️", val:risky, label:"Cảnh báo rủi ro", color:"var(--hp-danger)", iconBg:"var(--hp-danger-bg)", desc: risky > 0 ? "Yêu cầu kiểm tra" : "Hiện tại an toàn"},
-    {icon:"👷", val:(subs.filter(s=>s.log_date===tToday).length===0 ? "—" : manpowerToday), label:"Nhân lực hôm nay", color:"var(--hp-success)", iconBg:"var(--hp-success-bg)", desc:"Tổng số thợ & kỹ sư"},
-    {icon:"🕒", val:totalOverdue, label:"Quá hạn", color: totalOverdue>0?"var(--hp-danger)":"var(--hp-success)", iconBg: totalOverdue>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: totalOverdue>0 ? "Hạng mục trễ kế hoạch" : "Tiến độ đạt yêu cầu"}
+    {icon: getDashSvg("building", 22, "var(--hp-primary)"), val:total, label:"Tổng dự án", color:"var(--hp-primary)", iconBg:"var(--hp-info-bg)", desc:"Dự án đang quản lý"},
+    {icon: getDashSvg("activity", 22, "var(--hp-brand-accent)"), val:stCounts["Đang thi công"], label:"Đang thi công", color:"var(--hp-brand-accent)", iconBg:"var(--hp-info-bg)", desc:"Đang triển khai thực tế"},
+    {icon: getDashSvg("alert-triangle", 22, risky>0?"var(--hp-danger)":"var(--hp-success)"), val:risky, label:"Cảnh báo rủi ro", color:risky>0?"var(--hp-danger)":"var(--hp-success)", iconBg:risky>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: risky > 0 ? "Dự án điểm < 60đ" : "Các dự án an toàn"},
+    {icon: getDashSvg("users", 22, mpColor), val:mpVal, label:"Nhân lực hôm nay", color:mpColor, iconBg:"var(--hp-info-bg)", desc: !hasSubToday ? "Chưa có báo cáo ngày" : "Tổng thợ & kỹ sư"},
+    {icon: getDashSvg("clock", 22, totalOverdue>0?"var(--hp-danger)":"var(--hp-success)"), val:totalOverdue, label:"Công tác đang trễ", color: totalOverdue>0?"var(--hp-danger)":"var(--hp-success)", iconBg: totalOverdue>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: totalOverdue>0 ? "Việc trễ tiến độ" : "Tiến độ đạt yêu cầu"}
   ];
   if($("exec-kpi")) $("exec-kpi").innerHTML = kpiCards.map(k=>`
     <div class="kpi-card" style="min-width:0; border-top:4px solid ${k.color}">
       <div class="kpi-icon" style="background:${k.iconBg}; color:${k.color}">${k.icon}</div>
-      <div class="kpi-value" style="color:${k.color}; font-size:40px">${k.val}</div>
+      <div class="kpi-value" style="color:${k.color}; font-size:32px">${k.val}</div>
       <div class="kpi-label" style="color:${k.color}">${k.label}</div>
       <div class="kpi-desc">${k.desc}</div>
     </div>`).join("");
 
-  const subsToday=subs.filter(s=>s.log_date===tToday);
-  const reportedToday=new Set(subsToday.map(s=>s.project_id));
-
   // Bảng tình trạng dự án (Tiến độ kế hoạch theo thời gian + hạng mục quá hạn)
   if($("exec-progress-table")){
     if(!stats.length){
-      $("exec-progress-table").innerHTML = renderEmptyState('🏢', 'Chưa có dự án nào', 'Hệ thống chưa khởi tạo dự án nào trên hệ thống điều hành.');
+      $("exec-progress-table").innerHTML = renderEmptyState(getDashSvg('building', 40, 'var(--hp-text-secondary)'), 'Chưa có dự án nào', 'Hệ thống chưa khởi tạo dự án nào trên hệ thống điều hành.');
     } else {
-      $("exec-progress-table").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px">'
+      $("exec-progress-table").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">'
        + stats.map(s=>{
           const hc=healthColor(s.health);
           const stLabel = s.overdueTasks>0 ? {t:"Chậm tiến độ",c:"var(--danger)"}
@@ -321,22 +349,26 @@ async function renderExecutive(){
           const schedStr = hObj.scheduleScore != null ? fmtHealth(hObj.scheduleScore) + 'đ' : 'N/A';
           const repStr = hObj.reportScore != null ? fmtHealth(hObj.reportScore) + 'đ' : 'N/A';
           const extStr = hObj.extensionScore != null ? fmtHealth(hObj.extensionScore) + 'đ' : 'N/A';
-          const activeLateText = s.overdueTasks > 0 ? `<span style="color:var(--danger);font-weight:700">Đang trễ: ${s.overdueTasks}</span>` : `<span style="color:var(--success)">Đang trễ: 0</span>`;
-          const doneLateText = (hObj.completedLateTasks || 0) > 0 ? `<span style="color:#d97706;font-weight:600">Hoàn thành trễ: ${hObj.completedLateTasks}</span>` : `Hoàn thành trễ: 0`;
+          const activeLateText = s.overdueTasks > 0 ? `<span style="color:var(--danger);font-weight:700">Đang trễ: ${s.overdueTasks} việc</span>` : `<span style="color:var(--success)">Đang trễ: 0</span>`;
+          const doneLateText = (hObj.completedLateTasks || 0) > 0 ? `<span style="color:#d97706;font-weight:600">Hoàn thành trễ: ${hObj.completedLateTasks} việc</span>` : `Hoàn thành trễ: 0`;
           const breakdownHtml = `<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4" title="Tổng phạt trễ: ${(hObj.totalDelayPenalty || 0).toFixed(2)}">
-            <div>3 trụ: TĐ ${schedStr} · BC ${repStr} · GH ${extStr}</div>
+            <div style="display:flex; gap:6px; margin-bottom:2px; flex-wrap:wrap;">
+              <span class="dash-pillar-pill" style="font-size:10px; padding:1px 6px;">📈 TĐ ${schedStr}</span>
+              <span class="dash-pillar-pill" style="font-size:10px; padding:1px 6px;">📋 BC ${repStr}</span>
+              <span class="dash-pillar-pill" style="font-size:10px; padding:1px 6px;">⏱️ GH ${extStr}</span>
+            </div>
             <div>${activeLateText} · ${doneLateText}</div>
           </div>`;
-          const cardTitle = `Điểm sức khỏe V3: ${fmtHealth(s.health)}đ (${s.healthStatus})\n• Tiến độ: ${schedStr}\n• Báo cáo: ${repStr}\n• Gia hạn: ${extStr}\n• Đang trễ: ${s.overdueTasks} · Hoàn thành trễ: ${hObj.completedLateTasks || 0} · Phạt: ${(hObj.totalDelayPenalty || 0).toFixed(2)}`;
+          const cardTitle = `Điểm sức khỏe V3: ${fmtHealth(s.health)}/100 (${s.healthStatus})\n• Tiến độ: ${schedStr}\n• Báo cáo: ${repStr}\n• Gia hạn: ${extStr}\n• Đang trễ: ${s.overdueTasks} · Hoàn thành trễ: ${hObj.completedLateTasks || 0} · Phạt: ${(hObj.totalDelayPenalty || 0).toFixed(2)}`;
           return `<div onclick="openProject('${s.proj.id}')" title="${esc(cardTitle)}" style="cursor:pointer;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--surface);border-top:3px solid ${hc}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
               <div style="min-width:0;flex:1">
                 <div style="font-weight:800;font-size:15px;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis">${esc(s.proj.name)}</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(s.proj.commander||'-')} · ${esc(s.proj.status||'Đang thi công')}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px">👤 CHT: <b>${esc(s.proj.commander||'Chỉ huy trưởng')}</b> · ${esc(s.proj.status||'Đang thi công')}</div>
               </div>
-              <div style="text-align:center;flex-shrink:0;min-width:54px">
-                <div style="font-weight:800;font-size:24px;color:${hc};line-height:1">${fmtHealth(s.health)}</div>
-                <div style="font-size:10px;color:${hc};text-transform:uppercase;letter-spacing:.3px">${esc(s.healthStatus)}</div>
+              <div style="text-align:center;flex-shrink:0;min-width:64px">
+                <div style="font-weight:800;font-size:22px;color:${hc};line-height:1">${fmtHealth(s.health)}/100</div>
+                <div style="font-size:10px;color:${hc};text-transform:uppercase;letter-spacing:.3px;font-weight:700;margin-top:2px;">${esc(s.healthStatus)}</div>
               </div>
             </div>
             <div style="margin-top:10px"><span style="display:inline-block;font-size:11px;font-weight:700;color:${stLabel.c};background:var(--surface-2);border:1px solid var(--border);padding:3px 10px;border-radius:var(--r-pill)">${stLabel.t}</span></div>
@@ -346,7 +378,7 @@ async function renderExecutive(){
             </div>
             <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
               <div style="font-size:12px"><span style="color:var(--muted)">Báo cáo hôm nay: </span>${todayBadge}</div>
-              <span style="color:var(--primary);font-weight:700;font-size:13px">Xem ›</span>
+              <span style="color:var(--primary);font-weight:700;font-size:13px">Xem chi tiết ›</span>
             </div>
           </div>`;
         }).join("") + '</div>';
@@ -370,7 +402,7 @@ async function renderExecutive(){
       +`</div>`;
   };
   if($("exec-payment-summary")) $("exec-payment-summary").innerHTML =
-    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;border-radius:var(--r-md);background:var(--tint);font-weight:700;color:${wkColor};font-size:12px">📅 Tuần ${week} · ${wkLabel}</div>
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;border-radius:var(--r-md);background:var(--tint);font-weight:700;color:${wkColor};font-size:12px">${getDashSvg('calendar', 16, wkColor)} Tuần ${week} · ${wkLabel}</div>
      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
        ${metric('Giá trị HĐ',   totHD,      'var(--ink)')}
        ${metric('Đã thu',        totThu,     'var(--success)')}
@@ -390,10 +422,10 @@ async function renderExecutive(){
   // Khối chuyên môn (để sẵn giao diện)
   if($("exec-chuyenmon")){
     const cm=[
-      {n:"QA-QC",     i:"✔️", t:"qaqc",        sub:"Kiểm soát chất lượng"},
-      {n:"HSE",       i:"⛑️", t:"hse",          sub:"An toàn lao động"},
-      {n:"Shopdrawing",i:"✏️",t:"shopdrawing",  sub:"Bản vẽ thi công"},
-      {n:"Bảo trì",   i:"🔧", t:"baotri",       sub:"Bảo trì & sửa chữa"}
+      {n:"QA-QC",     i:getDashSvg('check-circle', 26, 'var(--hp-success)'), t:"qaqc",        sub:"Kiểm soát chất lượng"},
+      {n:"HSE",       i:getDashSvg('shield', 26, 'var(--hp-primary)'),          t:"hse",          sub:"An toàn lao động"},
+      {n:"Shopdrawing",i:getDashSvg('pen-tool', 26, 'var(--hp-brand-accent)'), t:"shopdrawing",  sub:"Bản vẽ thi công"},
+      {n:"Bảo trì",   i:getDashSvg('wrench', 26, 'var(--hp-warning)'),       t:"baotri",       sub:"Bảo trì & sửa chữa"}
     ];
     $("exec-chuyenmon").innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">'
       + cm.map(c=>`<div class="dept-card" style="cursor:pointer;text-align:center" onclick="switchTab('${c.t}')">
@@ -595,29 +627,87 @@ async function renderExecutive(){
     }
   } catch(err){ console.error("render gia hạn lỗi:", err); }
 
-  // VIỆC CẦN XỬ LÝ HÔM NAY (gom đầu việc cần lãnh đạo quyết)
+  // VIỆC CẦN XỬ LÝ HÔM NAY (Bảng điều hành hành động)
   try {
     const todo = [];
     const allReports = await metaGet("daily_reports", []);
-    const pendingReports = (allReports||[]).filter(r => r.status === "pending").length;
-    if (pendingReports>0) todo.push({icon:"📝", text:`${pendingReports} báo cáo chờ duyệt`, color:"var(--warning)", tab:"baocao"});
+    const pendingReports = (allReports||[]).filter(r => r.status === "pending" || r.approval === "pending").length;
+    if (pendingReports>0) todo.push({
+      projName: "Toàn công ty",
+      text: `Có <b>${pendingReports} Báo cáo ngày</b> đang chờ duyệt`,
+      commander: "BCH / KTS",
+      sev: { label: "🟡 Vừa", color: "var(--hp-warning)" },
+      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="switchTab('baocaongay-new')">Duyệt ›</button>`
+    });
+
     let pendingPay = 0;
     for (const p of projects) {
       const sc = await metaGet("subcon_payments:"+p.id, []);
       const ex = await metaGet("expenses:"+p.id, []);
       pendingPay += (sc||[]).filter(x=>x.status==="pending").length + (ex||[]).filter(x=>x.status==="pending").length;
     }
-    if (pendingPay>0) todo.push({icon:"💰", text:`${pendingPay} đề nghị thanh toán chờ duyệt`, color:"var(--danger)", tab:"thanhtoan"});
+    if (pendingPay>0) todo.push({
+      projName: "Toàn công ty",
+      text: `Có <b>${pendingPay} Yêu cầu thanh toán / duyệt chi</b> đang chờ xử lý`,
+      commander: "P.KTTC",
+      sev: { label: "🔴 Cao", color: "var(--hp-danger)" },
+      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="switchTab('thanhtoan')">Chi tiết ›</button>`
+    });
+
     const lpbAll = await metaGet("lpb_requests", []);
     const lpbUrgent = (lpbAll||[]).filter(r => r.status!=="completed" && (r.urgent || (r.due && new Date()>new Date(r.due)))).length;
-    if (lpbUrgent>0) todo.push({icon:"🔥", text:`${lpbUrgent} đề xuất liên phòng ban khẩn`, color:"#6b21a8", tab:"lpb"});
-    const missing = stats.filter(s => (s.proj.status!=="Đã bàn giao" && s.proj.status!=="Tạm dừng") && !reportedToday.has(s.proj.id)).length;
-    if (missing>0) todo.push({icon:"✗", text:`${missing} dự án chưa báo cáo hôm nay`, color:"var(--danger)", tab:"dashboard"});
+    if (lpbUrgent>0) todo.push({
+      projName: "Liên phòng ban",
+      text: `Có <b>${lpbUrgent} Đề xuất liên phòng ban khẩn/quá hạn</b>`,
+      commander: "Các Phòng Ban",
+      sev: { label: "🔴 Khẩn", color: "var(--hp-danger)" },
+      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="switchTab('lpb')">Xử lý ›</button>`
+    });
+
+    stats.forEach(s => {
+      if ((s.proj.status!=="Đã bàn giao" && s.proj.status!=="Tạm dừng") && !reportedToday.has(s.proj.id)) {
+        todo.push({
+          projName: s.proj.name,
+          text: `Chưa nộp <b>Báo cáo thi công ngày hôm nay</b>`,
+          commander: s.proj.commander || "Chỉ huy trưởng",
+          sev: { label: "🟡 Vừa", color: "var(--hp-warning)" },
+          action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="openProject('${s.proj.id}')">Xem ›</button>`
+        });
+      }
+    });
+
     const box=$("exec-todo"), list=$("exec-todo-list");
     if (box && list) {
       box.classList.remove("hide");
-      if (!todo.length) list.innerHTML = '<div style="color:var(--success); font-weight:600; padding:6px 0">✓ Không có việc tồn đọng cần xử lý hôm nay.</div>';
-      else list.innerHTML = todo.map(t=>`<div onclick="switchTab('${t.tab}')" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); font-size:13px; font-weight:600" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--surface)'"><span style="font-size:16px">${t.icon}</span><span style="color:${t.color}">${t.text}</span><span style="color:var(--primary); font-size:11px">→</span></div>`).join("");
+      if (!todo.length) {
+        list.innerHTML = '<div style="color:var(--hp-success); font-weight:600; padding:6px 0">🟢 Không có việc tồn đọng cần xử lý hôm nay. Tất cả các dự án đang vận hành an toàn.</div>';
+      } else {
+        const tableHtml = `
+          <table class="dash-action-table" style="width:100%; border-collapse:collapse; font-size:13px; background:var(--surface); border-radius:8px; overflow:hidden;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border); text-align:left; color:var(--muted); font-size:11px;">
+                <th style="padding:8px 10px;">Dự án</th>
+                <th style="padding:8px 10px;">Vấn đề / Cảnh báo trọng tâm cần xử lý</th>
+                <th style="padding:8px 10px;">Phụ trách (CHT)</th>
+                <th style="padding:8px 10px; text-align:center;">Mức độ</th>
+                <th style="padding:8px 10px; text-align:right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${todo.slice(0, 5).map(t => `
+                <tr>
+                  <td style="font-weight:700; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(t.projName)}</td>
+                  <td>${t.text}</td>
+                  <td style="color:var(--muted); font-size:12px; white-space:nowrap;">👤 ${esc(t.commander)}</td>
+                  <td style="text-align:center; white-space:nowrap;"><span style="font-weight:700; font-size:11px; color:${t.sev.color};">${t.sev.label}</span></td>
+                  <td style="text-align:right; white-space:nowrap;">${t.action}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+        list.innerHTML = tableHtml;
+      }
     }
   } catch(err){ console.error("render todo lỗi:", err); }
 
