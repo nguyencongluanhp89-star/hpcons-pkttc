@@ -375,6 +375,13 @@ const PHOTO_AREA_PCT = 64;   // % chiều cao khối 03 dành cho khu ảnh
 
 async function exportPNG169() {
   try {
+    // RÀNG BUỘC (Sếp 23/07): PHẢI bấm "Nộp duyệt" TRƯỚC khi Xuất ảnh — đảm bảo dữ liệu đã đẩy lên hệ
+    // thống. Chưa nộp (draft/rejected) -> KHÓA, không xuất ảnh, báo cho người dùng.
+    const _st = window._reportStatus || 'draft';
+    if (_st === 'draft' || _st === 'rejected') {
+      alert("⚠️ Báo cáo CHƯA được nộp duyệt.\n\nVui lòng bấm nút \"🚀 Nộp duyệt\" để đưa dữ liệu lên hệ thống trước, sau đó mới Xuất ảnh báo cáo.");
+      return;
+    }
     const dt = fmtDate(el('f_date').value);
     const prog = el('f_prog').value || 0;
     
