@@ -1,3 +1,49 @@
+/** modules/dashboard.js v1.5 — GĐ2A: Banner Sức Khỏe V3 + 5 KPI Cards + 100% Inline SVG */
+
+function getSvg(name, size = 18, color = "currentColor") {
+  if (typeof window.getDashSvg === 'function') {
+    return window.getDashSvg(name, size, color);
+  }
+  const paths = {
+    'building': '<rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="6" x2="9.01" y2="6"></line><line x1="15" y1="6" x2="15.01" y2="6"></line><line x1="9" y1="10" x2="9.01" y2="10"></line><line x1="15" y1="10" x2="15.01" y2="10"></line><line x1="9" y1="14" x2="9.01" y2="14"></line><line x1="15" y1="14" x2="15.01" y2="14"></line><line x1="9" y1="18" x2="15" y2="18"></line>',
+    'trending-up': '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>',
+    'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+    'file-text': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line>',
+    'users': '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>',
+    'wallet': '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>',
+    'calendar': '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>',
+    'user-check': '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline>',
+    'clock': '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
+    'bar-chart': '<line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>'
+  };
+  const path = paths[name] || '<circle cx="12" cy="12" r="10"></circle>';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">${path}</svg>`;
+}
+
+function getWeatherSvgIcon(code, size = 16, color = "rgba(255,255,255,0.85)") {
+  const wMap = {
+    0: { label: "Nắng ráo", p: '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>' },
+    1: { label: "Ít mây", p: '<path d="M17.5 19a4.5 4.5 0 0 0 2.09-8.5 6 6 0 0 0-11.18-1.5 3.5 3.5 0 0 0 .59 7"></path>' },
+    2: { label: "Nhiều mây", p: '<path d="M17.5 19a4.5 4.5 0 0 0 2.09-8.5 6 6 0 0 0-11.18-1.5 3.5 3.5 0 0 0 .59 7"></path>' },
+    3: { label: "Âm u", p: '<path d="M17.5 19a4.5 4.5 0 0 0 2.09-8.5 6 6 0 0 0-11.18-1.5 3.5 3.5 0 0 0 .59 7"></path>' },
+    45: { label: "Sương mù", p: '<line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="14" x2="21" y2="14"></line><line x1="5" y1="18" x2="19" y2="18"></line>' },
+    48: { label: "Sương mù", p: '<line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="14" x2="21" y2="14"></line><line x1="5" y1="18" x2="19" y2="18"></line>' },
+    51: { label: "Mưa phùn nhẹ", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    53: { label: "Mưa phùn", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    55: { label: "Mưa phùn to", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    61: { label: "Mưa nhẹ", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    63: { label: "Mưa vừa", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    65: { label: "Mưa to", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    80: { label: "Mưa rào nhẹ", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    81: { label: "Mưa rào vừa", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    82: { label: "Mưa rào to", p: '<path d="m19 15-3 5h4l-3 5"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
+    95: { label: "Giông bão", p: '<path d="m19 15-3 5h4l-3 5"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' }
+  };
+  const item = wMap[code] || { label: "Bình thường", p: '<circle cx="12" cy="12" r="5"></circle>' };
+  const icon = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">${item.p}</svg>`;
+  return { label: item.label, icon };
+}
+
 // dashboard.js - Project-specific Dashboard
 async function renderDashboard() {
   if(!CUR || !CUR.project) return;
@@ -10,7 +56,24 @@ async function renderDashboard() {
   const allSubs = await DataService.listSubmissions();
   const subs = allSubs.filter(s => s.project_id === CUR.project);
   
-  // Update Hero
+  // Compute Project Health V3
+  let H = null;
+  try {
+    if (typeof computeProjectHealth === 'function') {
+      H = await computeProjectHealth(proj);
+    }
+  } catch(e) {
+    console.error("Lỗi computeProjectHealth:", e);
+  }
+
+  const healthScore = H ? H.healthScore : "--";
+  const healthStatus = H ? H.healthStatus : "Đang cập nhật";
+  const healthColor = H ? ("var(" + H.healthColorToken + ")") : "var(--hp-text-primary)";
+  const schedText = (H && H.scheduleScore != null) ? fmtHealth(H.scheduleScore) + "đ" : "N/A";
+  const repText = (H && H.reportScore != null) ? fmtHealth(H.reportScore) + "đ" : "N/A";
+  const extText = (H && H.extensionScore != null) ? fmtHealth(H.extensionScore) + "đ" : "N/A";
+
+  // Update Hero Banner
   const dashHero = document.getElementById("dash-hero");
   if(dashHero) {
     const d = new Date();
@@ -18,49 +81,81 @@ async function renderDashboard() {
     const dateStr = `${days[d.getDay()]}, ${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
 
     let endDateInfo = '';
-    if(proj.endDate) {
-      const endD = new Date(proj.endDate);
-      const dLeft = Math.ceil((endD - new Date()) / (1000*60*60*24));
-      const endFmt = endD.getDate().toString().padStart(2,'0') + '/' + (endD.getMonth()+1).toString().padStart(2,'0') + '/' + endD.getFullYear();
-      const dColor = dLeft < 0 ? '#ff9090' : dLeft <= 30 ? '#ffd700' : 'rgba(255,255,255,0.75)';
-      const dLabel = dLeft < 0 ? `Trễ ${Math.abs(dLeft)} ngày` : `Còn ${dLeft} ngày`;
-      endDateInfo = `<div style="font-size:13px;color:${dColor};display:flex;align-items:center;gap:4px"><span>📅</span><span>HT: ${endFmt} · ${dLabel}</span></div>`;
+    const endDateStr = proj.end_date || proj.endDate; // Dùng chuẩn proj.end_date
+    if(endDateStr) {
+      const endD = new Date(endDateStr);
+      if (!isNaN(endD.getTime())) {
+        const dLeft = Math.ceil((endD - new Date()) / (1000*60*60*24));
+        const endFmt = endD.getDate().toString().padStart(2,'0') + '/' + (endD.getMonth()+1).toString().padStart(2,'0') + '/' + endD.getFullYear();
+        const dColor = dLeft < 0 ? 'var(--hp-danger)' : dLeft <= 30 ? 'var(--hp-warning)' : 'rgba(255,255,255,0.85)';
+        const dLabel = dLeft < 0 ? `Trễ ${Math.abs(dLeft)} ngày` : `Còn ${dLeft} ngày`;
+        const calSvg = getSvg('calendar', 14, dColor);
+        endDateInfo = `<div style="font-size:13px;color:${dColor};display:flex;align-items:center;gap:4px">${calSvg}<span>HT: ${endFmt} · ${dLabel}</span></div>`;
+      }
+    }
+
+    let commanderInfo = '';
+    if (proj.commander) {
+      const userSvg = getSvg('user-check', 14, 'rgba(255,255,255,0.85)');
+      commanderInfo = `<div style="font-size:13px;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:4px">${userSvg}<span>CHT: <b>${esc(proj.commander)}</b></span></div>`;
     }
 
     dashHero.innerHTML = `
-      <div class="score">
-        <div class="ring"><b id="dash-health">--</b><span id="dash-health-desc">SỨC KHỎE</span></div>
-      </div>
-      <div class="hsep"></div>
-      <div class="htext" style="flex:1;min-width:200px">
-        <div class="hv" style="text-transform:uppercase;">${esc(proj.name)}</div>
-        <div style="display:flex;align-items:center;gap:14px;margin-top:6px;flex-wrap:wrap">
-          <div class="hl">${dateStr}</div>
-          ${endDateInfo}
-          <div id="dash-hero-weather" style="font-size:13px;color:rgba(255,255,255,0.75);display:flex;align-items:center;gap:4px">
-            <span>⏳</span><span>Đang tải thời tiết...</span>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px 24px; margin-bottom:24px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:20px; box-shadow:var(--shadow-sm);">
+        <div style="flex:1; min-width:280px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h1 style="margin:0; font-size:22px; font-weight:800; color:var(--hp-text-primary); text-transform:uppercase; letter-spacing:-0.3px;">${esc(proj.name)}</h1>
+            <span style="font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; background:rgba(34,197,94,0.12); color:var(--hp-success); white-space:nowrap;">🟢 ${esc(proj.status || "Đang thi công")}</span>
+          </div>
+          
+          <div style="display:flex; align-items:center; gap:16px; margin-top:10px; flex-wrap:wrap; font-size:13px; color:var(--hp-text-secondary);">
+            <div style="display:flex; align-items:center; gap:5px;">
+              ${getSvg('calendar', 14, 'var(--hp-primary)')}
+              <span>${dateStr}</span>
+            </div>
+            ${endDateInfo}
+            ${commanderInfo}
+            <div id="dash-hero-weather" style="display:flex; align-items:center; gap:5px;">
+              ${getSvg('clock', 14, 'var(--muted)')}
+              <span>Đang tải thời tiết...</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:16px; background:var(--surface-2); padding:12px 18px; border-radius:12px; border:1px solid var(--border);">
+          <div style="text-align:center; padding-right:16px; border-right:1px solid var(--border);">
+            <div style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Điểm Sức Khỏe</div>
+            <div style="font-size:32px; font-weight:800; color:${healthColor}; line-height:1.1; margin:2px 0;">${fmtHealth(healthScore)}<span style="font-size:14px; font-weight:600; color:var(--muted);">/100</span></div>
+            <span style="font-size:11px; font-weight:700; color:${healthColor}; white-space:nowrap;">${healthStatus}</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <span style="color:var(--muted); display:flex; align-items:center; gap:4px;">${getSvg('trending-up', 13, 'var(--hp-primary)')} Tiến độ</span>
+              <span style="font-weight:700; color:var(--hp-text-primary);">${schedText}</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <span style="color:var(--muted); display:flex; align-items:center; gap:4px;">${getSvg('file-text', 13, 'var(--hp-brand-accent)')} Báo cáo</span>
+              <span style="font-weight:700; color:var(--hp-text-primary);">${repText}</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <span style="color:var(--muted); display:flex; align-items:center; gap:4px;">${getSvg('clock', 13, 'var(--hp-warning)')} Gia hạn</span>
+              <span style="font-weight:700; color:var(--hp-text-primary);">${extText}</span>
+            </div>
           </div>
         </div>
       </div>
     `;
   }
   
-  // 2. Calculate Progress & Health
+  // 2. Calculate Progress & Tasks
   let progressPct = 0;
-  let healthScore = "--";
-  let healthStatus = "";
-  let healthColor = "var(--text-strong)";
   let delayedTasks = [];
   let doneTasksCount = 0;
   let workTasksCount = 0;
   try {
     const tasks = await metaGet("progress:" + CUR.project, []);
     if(tasks && tasks.length > 0) {
-      let active = 0;
-      let lateOrDelayed = 0;
-      let doneTasks = 0;
-
-      // Filter tasks to exclude section headers (Level 1)
       const workTasks = tasks.filter(it => {
         if (typeof levelOf === 'function') {
           return levelOf(it.task) > 1;
@@ -76,20 +171,10 @@ async function renderDashboard() {
           stObj = statusOf(it.start, it.end, it);
         }
         if (stObj.label === "Trễ hạn / Đã qua") {
-          lateOrDelayed++;
           delayedTasks.push(it);
         }
-        if (stObj.label !== "Sắp tới") active++;
       });
 
-      const projects = await DataService.listProjects();
-      const proj = projects.find(p => p.id === CUR.project);
-      const H = await computeProjectHealth(proj);
-      healthScore = H.healthScore;
-      healthStatus = H.healthStatus;
-      healthColor = "var(" + H.healthColorToken + ")";
-
-      // Weighted progress calculation: sum of (completedPct * duration) / sum of duration
       let totalDuration = 0;
       let completedDuration = 0;
       workTasks.forEach(it => {
@@ -104,54 +189,56 @@ async function renderDashboard() {
       if (totalDuration > 0) {
         progressPct = Math.round((completedDuration / totalDuration) * 100);
       } else if (workTasks.length > 0) {
-        progressPct = Math.round(doneTasks / workTasks.length * 100);
+        progressPct = Math.round(doneTasksCount / workTasks.length * 100);
       }
     }
   } catch(e) {
-    console.error("Lỗi tính tiến độ & sức khỏe:", e);
+    console.error("Lỗi tính tiến độ:", e);
   }
   
+  // Render 5 KPI Cards với Inline SVG & Phân biệt dữ liệu
   const elProgress = document.getElementById("dash-kpi-progress");
   if(elProgress) elProgress.textContent = progressPct + "%";
   const elProgressDesc = document.getElementById("dash-kpi-progress-desc");
   if(elProgressDesc) {
-    elProgressDesc.textContent = workTasksCount > 0 ? `Đã xong ${doneTasksCount}/${workTasksCount} việc` : "Chưa có hạng mục";
+    elProgressDesc.textContent = workTasksCount > 0 ? `Đã xong ${doneTasksCount}/${workTasksCount} việc` : "Chưa lập kế hoạch";
   }
+  const elProgressIcon = document.getElementById("dash-kpi-progress-icon");
+  if(elProgressIcon) elProgressIcon.innerHTML = getSvg('trending-up', 22, 'var(--hp-primary)');
 
   const elLate = document.getElementById("dash-kpi-late");
+  const activeOverdue = H ? (H.activeOverdueTasks || 0) : delayedTasks.length;
   if(elLate) {
-    elLate.textContent = delayedTasks.length;
-    elLate.style.color = delayedTasks.length > 0 ? "var(--danger)" : "var(--success)";
-    elLate.style.fontSize = "36px";
+    elLate.textContent = activeOverdue;
+    elLate.style.color = activeOverdue > 0 ? "var(--hp-danger)" : "var(--hp-success)";
+    elLate.style.fontSize = "32px";
   }
   const elLateDesc = document.getElementById("dash-kpi-late-desc");
   if(elLateDesc) {
-    elLateDesc.textContent = delayedTasks.length > 0 ? "Cần xử lý gấp" : "Tiến độ an toàn";
+    elLateDesc.textContent = activeOverdue > 0 ? "Cần xử lý gấp" : "Tiến độ an toàn";
   }
-  
-  const elHealth = document.getElementById("dash-health");
-  if(elHealth) {
-    elHealth.textContent = fmtHealth(healthScore) + "đ";
-    elHealth.style.color = healthColor;
-    if (typeof H !== 'undefined' && H) {
-      const schedText = H.scheduleScore != null ? fmtHealth(H.scheduleScore) + "đ" : "N/A";
-      const repText = H.reportScore != null ? fmtHealth(H.reportScore) + "đ" : "N/A";
-      const extText = H.extensionScore != null ? fmtHealth(H.extensionScore) + "đ" : "N/A";
-      const ttText = `Điểm sức khỏe V3: ${fmtHealth(H.healthScore)}đ (${H.healthStatus})\n` +
-        `• Tiến độ: ${schedText}\n` +
-        `• Báo cáo ngày: ${repText}\n` +
-        `• Gia hạn: ${extText}\n` +
-        `• Đang trễ: ${H.activeOverdueTasks || 0} · Hoàn thành trễ: ${H.completedLateTasks || 0} · Phạt trễ: ${(H.totalDelayPenalty || 0).toFixed(2)}`;
-      const container = elHealth.closest(".score") || elHealth.parentElement;
-      if (container) container.title = ttText;
-    }
+  const elLateIcon = document.getElementById("dash-kpi-late-icon");
+  if(elLateIcon) elLateIcon.innerHTML = getSvg('alert-triangle', 22, activeOverdue > 0 ? 'var(--hp-danger)' : 'var(--hp-success)');
+
+  // Báo cáo hôm nay KPI
+  const todayStr = todayISO();
+  const todaySubs = subs.filter(s => s.log_date === todayStr);
+  const elReport = document.getElementById("dash-kpi-report");
+  if(elReport) {
+    elReport.textContent = todaySubs.length > 0 ? "Đã nộp" : "Chưa nộp";
+    elReport.style.color = todaySubs.length > 0 ? "var(--hp-success)" : "var(--hp-warning)";
+    elReport.style.fontSize = "24px";
   }
-  const elHealthDesc = document.getElementById("dash-health-desc");
-  if(elHealthDesc && healthStatus) {
-    elHealthDesc.textContent = "SỨC KHỎE · " + healthStatus.toUpperCase();
+  const elReportDesc = document.getElementById("dash-kpi-report-desc");
+  if(elReportDesc) {
+    elReportDesc.textContent = todaySubs.length > 0
+      ? `Nộp bởi ${esc(todaySubs[0].created_name || todaySubs[0].created_by || "Kỹ sư")}`
+      : "Chưa gửi báo cáo ngày";
   }
-  
-  // 3. Calculate Finance
+  const elReportIcon = document.getElementById("dash-kpi-report-icon");
+  if(elReportIcon) elReportIcon.innerHTML = getSvg('file-text', 22, todaySubs.length > 0 ? 'var(--hp-success)' : 'var(--hp-warning)');
+
+  // Calculate Finance
   const sc = await metaGet("subcon_payments:" + CUR.project, []);
   const ex = await metaGet("expenses:" + CUR.project, []);
   const cd = await metaGet("cdt:" + CUR.project, []);
@@ -171,8 +258,8 @@ async function renderDashboard() {
   
   const totalChi = totalChiSubcon + totalChiExp;
   const balanceValue = totalThuCDT - totalChi;
+  const hasFinanceData = (totalThuCDT > 0 || totalChi > 0);
   
-  // Hàm format tiền linh động: tỷ nếu >= 1 tỷ, tr nếu nhỏ hơn
   const fmtAuto = (val) => {
     const abs = Math.abs(Number(val) || 0);
     if (abs >= 1e9) {
@@ -184,17 +271,58 @@ async function renderDashboard() {
 
   const elBalance = document.getElementById("dash-kpi-balance");
   if(elBalance) {
-    const textVal = fmtAuto(balanceValue);
-    elBalance.textContent = textVal;
-    elBalance.style.whiteSpace = "nowrap";
-    // Co giãn cỡ chữ theo độ dài
-    elBalance.style.fontSize = textVal.length > 12 ? "20px" : textVal.length > 8 ? "24px" : "32px";
-    elBalance.style.color = balanceValue < 0 ? "var(--danger)" : "var(--success)";
+    if (!hasFinanceData) {
+      elBalance.textContent = "Chưa có dữ liệu";
+      elBalance.style.fontSize = "20px";
+      elBalance.style.color = "var(--muted)";
+    } else {
+      const textVal = fmtAuto(balanceValue);
+      elBalance.textContent = textVal;
+      elBalance.style.whiteSpace = "nowrap";
+      elBalance.style.fontSize = textVal.length > 12 ? "20px" : textVal.length > 8 ? "24px" : "32px";
+      elBalance.style.color = balanceValue < 0 ? "var(--hp-danger)" : "var(--hp-success)";
+    }
   }
   const elBalanceDesc = document.getElementById("dash-kpi-balance-desc");
   if(elBalanceDesc) {
-    elBalanceDesc.textContent = `Thu: ${fmtAuto(totalThuCDT)} · Chi: ${fmtAuto(totalChi)}`;
+    elBalanceDesc.textContent = hasFinanceData
+      ? `Thu: ${fmtAuto(totalThuCDT)} · Chi: ${fmtAuto(totalChi)}`
+      : "⚪ Chưa phát sinh thu chi";
   }
+  const elBalanceIcon = document.getElementById("dash-kpi-balance-icon");
+  if(elBalanceIcon) elBalanceIcon.innerHTML = getSvg('wallet', 22, balanceValue < 0 ? 'var(--hp-danger)' : 'var(--hp-success)');
+
+  // Calculate Manpower Today & 7 Days
+  let todayManpower = 0;
+  todaySubs.forEach(s => {
+    if(s.manpower && Array.isArray(s.manpower)) {
+      todayManpower += s.manpower.reduce((acc, m) => acc + (Number(m.headcount) || 0), 0);
+    }
+  });
+
+  const elManpower = document.getElementById("dash-kpi-manpower");
+  if(elManpower) {
+    if (todaySubs.length === 0) {
+      elManpower.textContent = "—";
+      elManpower.style.color = "var(--muted)";
+    } else if (todayManpower === 0) {
+      elManpower.textContent = "0 người";
+      elManpower.style.color = "var(--hp-brand-accent)";
+    } else {
+      elManpower.textContent = todayManpower.toLocaleString('vi-VN') + " người";
+      elManpower.style.color = "var(--hp-brand-accent)";
+    }
+  }
+  const elManpowerDesc = document.getElementById("dash-kpi-manpower-desc");
+  if(elManpowerDesc) {
+    if (todaySubs.length === 0) {
+      elManpowerDesc.textContent = "⚪ Chưa có báo cáo ngày";
+    } else {
+      elManpowerDesc.textContent = todayManpower === 0 ? "🟢 Báo cáo ghi nhận 0 công" : "🟢 Đã cập nhật hôm nay";
+    }
+  }
+  const elManpowerIcon = document.getElementById("dash-kpi-manpower-icon");
+  if(elManpowerIcon) elManpowerIcon.innerHTML = getSvg('users', 22, 'var(--hp-brand-accent)');
   
   // Render Finance Chart (Đã thu vs Đã chi) — đơn vị linh động
   const canvasFin = document.getElementById("dash-chart-finance");
@@ -319,43 +447,28 @@ async function renderDashboard() {
     manpowerData.push(dayManpower);
   }
   
-  // Update Manpower Today KPI card
-  let todayManpower = 0;
-  const todayStr = todayISO();
-  const todaySubs = subs.filter(s => s.log_date === todayStr);
-  todaySubs.forEach(s => {
-    if(s.manpower && Array.isArray(s.manpower)) {
-      todayManpower += s.manpower.reduce((acc, m) => acc + (Number(m.headcount) || 0), 0);
-    }
-  });
-  
-  const elManpower = document.getElementById("dash-kpi-manpower");
-  if(elManpower) {
-    elManpower.textContent = todayManpower.toLocaleString('vi-VN');
-  }
-  const elManpowerDesc = document.getElementById("dash-kpi-manpower-desc");
-  if(elManpowerDesc) {
-    elManpowerDesc.textContent = `Tuần này: ${manpowerData.reduce((a,b) => a+b, 0).toLocaleString('vi-VN')} công`;
-  }
 
-  // Update Weather — hiển thị trong Hero card
+
+  // Update Weather — hiển thị trong Hero card với 100% Inline SVG
   const elWeather = document.getElementById("dash-hero-weather");
   if(elWeather) {
     if(proj.latitude == null || proj.longitude == null) {
-      elWeather.innerHTML = `<span>📍</span><span>Chưa cấu hình tọa độ</span>`;
+      elWeather.innerHTML = `${getSvg('building', 14, 'var(--hp-text-secondary)')}<span>Chưa cấu hình tọa độ</span>`;
     } else if(!navigator.onLine) {
       let offlineWeather = "";
       const todaySub = subs.find(s => s.log_date === todayStr);
       if(todaySub) {
         if(todaySub.weather_m && todaySub.weather_a) {
-          offlineWeather = `Sáng: ${todaySub.weather_m === 'rainy' ? '🌧️' : '☀️'} / Chiều: ${todaySub.weather_a === 'rainy' ? '🌧️' : '☀️'}`;
+          const wm = todaySub.weather_m === 'rainy' ? getWeatherSvgIcon(61) : getWeatherSvgIcon(0);
+          const wa = todaySub.weather_a === 'rainy' ? getWeatherSvgIcon(61) : getWeatherSvgIcon(0);
+          offlineWeather = `Sáng: ${wm.label} / Chiều: ${wa.label}`;
         } else if(todaySub.weather) {
           offlineWeather = todaySub.weather;
         }
       }
       elWeather.innerHTML = offlineWeather
-        ? `<span>${offlineWeather}</span>`
-        : `<span>📡</span><span>Offline</span>`;
+        ? `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>${offlineWeather}</span>`
+        : `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>Offline</span>`;
     } else {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${proj.latitude}&longitude=${proj.longitude}&current=temperature_2m,weather_code&timezone=auto`;
@@ -365,23 +478,13 @@ async function renderDashboard() {
             if(data && data.current) {
               const code = data.current.weather_code;
               const temp = Math.round(data.current.temperature_2m);
-              const wMap = {
-                0:{label:"Nắng ráo",icon:"☀️"}, 1:{label:"Ít mây",icon:"🌤️"},
-                2:{label:"Nhiều mây",icon:"⛅"}, 3:{label:"Âm u",icon:"☁️"},
-                45:{label:"Sương mù",icon:"🌫️"}, 48:{label:"Sương mù",icon:"🌫️"},
-                51:{label:"Mưa phùn nhẹ",icon:"🌧️"}, 53:{label:"Mưa phùn",icon:"🌧️"},
-                55:{label:"Mưa phùn to",icon:"🌧️"}, 61:{label:"Mưa nhẹ",icon:"🌧️"},
-                63:{label:"Mưa vừa",icon:"🌧️"}, 65:{label:"Mưa to",icon:"🌧️"},
-                80:{label:"Mưa rào nhẹ",icon:"🌦️"}, 81:{label:"Mưa rào vừa",icon:"🌦️"},
-                82:{label:"Mưa rào to",icon:"⛈️"}, 95:{label:"Giông bão",icon:"⛈️"}
-              };
-              const info = wMap[code] || {label:"Bình thường",icon:"🌤️"};
-              elWeather.innerHTML = `<span>${info.icon}</span><span>${temp}°C · ${info.label}</span>`;
+              const info = getWeatherSvgIcon(code, 15, 'rgba(255,255,255,0.85)');
+              elWeather.innerHTML = `${info.icon}<span>${temp}°C · ${info.label}</span>`;
             }
           })
-          .catch(() => { elWeather.innerHTML = `<span>🌡️</span><span>Không tải được</span>`; });
+          .catch(() => { elWeather.innerHTML = `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>Không tải được</span>`; });
       } catch(e) {
-        elWeather.innerHTML = `<span>🌡️</span><span>Không tải được</span>`;
+        elWeather.innerHTML = `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>Không tải được</span>`;
       }
     }
   }

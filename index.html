@@ -336,45 +336,77 @@
 <section id="tab-dashboard">
     <style>
       #tab-dashboard {
+        scroll-margin-top: 80px;
         --info: #0ea5e9;
         --warn: var(--warning);
       }
+      #tab-dashboard #dash-title {
+        color: var(--hp-text-primary) !important;
+      }
       #tab-dashboard .kpi-card {
         cursor: pointer;
+        padding: 16px 12px;
+      }
+      #tab-dashboard #dash-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      @media (max-width: 1400px) {
+        #tab-dashboard #dash-kpi-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 992px) {
+        #tab-dashboard #dash-kpi-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 560px) {
+        #tab-dashboard #dash-kpi-grid {
+          grid-template-columns: 1fr !important;
+        }
       }
     </style>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
-      <h2 id="dash-title" style="margin:0;color:var(--primary-dark)">Tổng quan dự án</h2>
+      <h2 id="dash-title" style="margin:0;color:var(--hp-text-primary);font-size:22px;font-weight:800;">Tổng quan dự án</h2>
     </div>
     
     <div id="dash-hero" class="hero" style="margin-bottom:16px;"></div>
     
     
-    <!-- KHỐI 1: SỨC KHỎE TỔNG QUAN -->
-    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+    <!-- KHỐI 1: 5 THẺ KPI TỔNG QUAN -->
+    <div id="dash-kpi-grid">
       <div class="kpi-card" style="border-top:4px solid var(--hp-primary);" onclick="switchTab('tiendo')">
-        <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-primary);">📈</div>
+        <div class="kpi-icon" id="dash-kpi-progress-icon" style="background:var(--hp-info-bg); color:var(--hp-primary);"></div>
         <div class="kpi-value" style="color:var(--hp-primary);" id="dash-kpi-progress">--</div>
-        <div class="kpi-label" style="color:var(--hp-primary);">TIẾN ĐỘ CHUNG</div>
+        <div class="kpi-label" style="color:var(--hp-primary);">TIẾN ĐỘ KẾ HOẠCH</div>
         <div class="kpi-desc" id="dash-kpi-progress-desc">--</div>
       </div>
-      <div class="kpi-card" style="border-top:4px solid var(--hp-success);" id="dash-kpi-finance-card" onclick="switchTab('thanhtoan')">
-        <div class="kpi-icon" style="background:var(--hp-success-bg); color:var(--hp-success);">💰</div>
-        <div class="kpi-value" style="color:var(--hp-success);" id="dash-kpi-balance">--</div>
-        <div class="kpi-label" style="color:var(--hp-success);">CÂN ĐỐI DÒNG TIỀN</div>
-        <div class="kpi-desc" id="dash-kpi-balance-desc">--</div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-danger);" onclick="switchTab('tiendo')">
+        <div class="kpi-icon" id="dash-kpi-late-icon" style="background:var(--hp-danger-bg); color:var(--hp-danger);"></div>
+        <div class="kpi-value" style="color:var(--hp-danger);" id="dash-kpi-late">--</div>
+        <div class="kpi-label" style="color:var(--hp-danger);">CÔNG TÁC ĐANG TRỄ</div>
+        <div class="kpi-desc" id="dash-kpi-late-desc">--</div>
+      </div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-success);" onclick="switchTab('baocaongay-new')">
+        <div class="kpi-icon" id="dash-kpi-report-icon" style="background:var(--hp-success-bg); color:var(--hp-success);"></div>
+        <div class="kpi-value" style="color:var(--hp-success);" id="dash-kpi-report">--</div>
+        <div class="kpi-label" style="color:var(--hp-success);">BÁO CÁO HÔM NAY</div>
+        <div class="kpi-desc" id="dash-kpi-report-desc">--</div>
       </div>
       <div class="kpi-card" style="border-top:4px solid var(--hp-brand-accent);" onclick="switchTab('baocaongay-new')">
-        <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-brand-accent);">👷</div>
+        <div class="kpi-icon" id="dash-kpi-manpower-icon" style="background:var(--hp-info-bg); color:var(--hp-brand-accent);"></div>
         <div class="kpi-value" style="color:var(--hp-brand-accent);" id="dash-kpi-manpower">--</div>
         <div class="kpi-label" style="color:var(--hp-brand-accent);">NHÂN LỰC HÔM NAY</div>
         <div class="kpi-desc" id="dash-kpi-manpower-desc">--</div>
       </div>
-      <div class="kpi-card" style="border-top:4px solid var(--hp-danger);" onclick="switchTab('tiendo')">
-        <div class="kpi-icon" style="background:var(--hp-danger-bg); color:var(--hp-danger);">🚨</div>
-        <div class="kpi-value" style="color:var(--hp-danger);" id="dash-kpi-late">--</div>
-        <div class="kpi-label" style="color:var(--hp-danger);">HẠNG MỤC TRỄ HẠN</div>
-        <div class="kpi-desc" id="dash-kpi-late-desc">--</div>
+      <div class="kpi-card" style="border-top:4px solid var(--hp-success);" id="dash-kpi-finance-card" onclick="switchTab('thanhtoan')">
+        <div class="kpi-icon" id="dash-kpi-balance-icon" style="background:var(--hp-success-bg); color:var(--hp-success);"></div>
+        <div class="kpi-value" style="color:var(--hp-success);" id="dash-kpi-balance">--</div>
+        <div class="kpi-label" style="color:var(--hp-success);">DÒNG TIỀN DỰ ÁN</div>
+        <div class="kpi-desc" id="dash-kpi-balance-desc">--</div>
       </div>
     </div>
     
@@ -2662,7 +2694,7 @@ updateHeaderDate();
 <script src="modules/baocao.js"></script>
 <script src="modules/excel.js"></script>
 <script src="modules/health.js?v=3"></script>
-<script src="modules/dashboard.js?v=1.4"></script>
+<script src="modules/dashboard.js?v=1.5"></script>
 <script src="modules/nhathau.js?v=1"></script>
 <script src="modules/tiendo.js?v=6"></script>
 <script src="modules/thanhtoan.js?v=1"></script>
