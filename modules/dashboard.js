@@ -1,4 +1,4 @@
-/** modules/dashboard.js v1.5 — GĐ2A: Banner Sức Khỏe V3 + 5 KPI Cards + 100% Inline SVG */
+/** modules/dashboard.js v1.8 — Căn đều lề 2 bên (wrap-dashboard) cho màn Tổng quan dự án */
 
 function getSvg(name, size = 18, color = "currentColor") {
   if (typeof window.getDashSvg === 'function') {

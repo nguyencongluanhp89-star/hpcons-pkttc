@@ -330,11 +330,27 @@
   </div>
 </div>
 
-<div class="wrap">
+<div class="wrap wrap-dashboard">
 <div id="proj-banner" class="proj-banner hide"></div>
 
 <section id="tab-dashboard">
     <style>
+      .wrap-dashboard {
+        max-width: 100% !important;
+        padding: 0 24px !important;
+        margin: 16px 0 !important;
+        box-sizing: border-box !important;
+      }
+      @media (max-width: 1366px) {
+        .wrap-dashboard {
+          padding: 0 16px !important;
+        }
+      }
+      @media (max-width: 768px) {
+        .wrap-dashboard {
+          padding: 0 12px !important;
+        }
+      }
       #tab-dashboard {
         scroll-margin-top: 80px;
         --info: #0ea5e9;
@@ -2702,7 +2718,7 @@ updateHeaderDate();
 <script src="modules/baocao.js"></script>
 <script src="modules/excel.js"></script>
 <script src="modules/health.js?v=3"></script>
-<script src="modules/dashboard.js?v=1.7"></script>
+<script src="modules/dashboard.js?v=1.8"></script>
 <script src="modules/nhathau.js?v=1"></script>
 <script src="modules/tiendo.js?v=6"></script>
 <script src="modules/thanhtoan.js?v=1"></script>
