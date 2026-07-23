@@ -1,5 +1,9 @@
 // ===== modules/health.js — Điểm sức khỏe dự án (HÀM DÙNG CHUNG) =====
-// Tiêu chí Sếp: 2 yếu tố = (1) gia hạn quy đổi, (2) tuân thủ báo cáo ngày ĐÃ DUYỆT.
+// Tiêu chí Sếp (23/07): 3 TRỤ trọng số BẰNG NHAU (mỗi trụ 1/3):
+//   (1) TIẾN ĐỘ = 100 − tỷ lệ công tác TRỄ HẠN (chưa bấm hoàn thành & đã quá hạn cuối).
+//   (2) BÁO CÁO = tỷ lệ ngày báo cáo ĐÃ DUYỆT / số ngày bắt buộc.
+//   (3) GIA HẠN = 100 − tỷ lệ lần gia hạn / tổng công tác.
+// Trễ hạn: số công tác trễ / tổng công tác (vd 5/20 = 25%). Đã bấm "Hoàn thành" = xong, không tính trễ.
 const HEALTH_TIERS = [
   { min: 90, name: "Tốt",      token: "--hp-brand-primary" },
   { min: 75, name: "Khá",      token: "--hp-success" },
@@ -26,26 +30,45 @@ function calculateProjectHealthScore(input){
   input = input || {};
   const totalTasks           = healthSafeNum(input.totalTasks, "totalTasks");
   const totalExtensionWeight = healthSafeNum(input.totalExtensionWeight, "totalExtensionWeight");
+  const overdueTasks         = healthSafeNum(input.overdueTasks, "overdueTasks");
   const approvedReports      = healthSafeNum(input.approvedReports, "approvedReports");
   const requiredReportDays   = healthSafeNum(input.requiredReportDays, "requiredReportDays");
-  // (1) gia hạn quy đổi — totalTasks=0 -> 0 (không chia 0); KHÔNG kẹp trần (có thể > 100%)
-  const extensionWeightedRate = totalTasks > 0
-    ? healthRound1(totalExtensionWeight / totalTasks * 100) : 0;
-  // (2) tuân thủ báo cáo — chưa phát sinh ngày nào -> 100; kẹp trần 100
+
+  // --- TRỤ 1: TIẾN ĐỘ (trễ hạn) — tỷ lệ công tác trễ / tổng công tác; càng ít trễ điểm càng cao.
+  const overdueRate   = totalTasks > 0 ? healthRound1(Math.min(100, overdueTasks / totalTasks * 100)) : 0;
+  const progressScore = healthRound1(Math.max(0, 100 - overdueRate));
+
+  // --- TRỤ 2: BÁO CÁO — tỷ lệ ngày đã duyệt / ngày bắt buộc (chưa phát sinh ngày nào -> 100).
   const reportComplianceRate = requiredReportDays > 0
     ? healthRound1(Math.min(100, approvedReports / requiredReportDays * 100)) : 100;
   const reportNonComplianceRate = healthRound1(100 - reportComplianceRate);
-  // (3) điểm — kẹp 0..100
-  const healthScore = healthRound1(Math.max(0, Math.min(100, reportComplianceRate - extensionWeightedRate)));
+  const reportScore = reportComplianceRate;
+
+  // --- TRỤ 3: GIA HẠN — tỷ lệ lần gia hạn / tổng công tác; càng ít gia hạn điểm càng cao.
+  const extensionWeightedRate = totalTasks > 0
+    ? healthRound1(totalExtensionWeight / totalTasks * 100) : 0;
+  const extensionScore = healthRound1(Math.max(0, 100 - extensionWeightedRate));
+
+  // --- ĐIỂM = trung bình 3 trụ (trọng số BẰNG NHAU, mỗi trụ 1/3) — kẹp 0..100.
+  const healthScore = healthRound1(Math.max(0, Math.min(100,
+    (progressScore + reportScore + extensionScore) / 3)));
   const tier = healthTier(healthScore);
   return { healthScore, healthStatus: tier.name, healthColorToken: tier.token,
-    totalTasks, totalExtensionWeight, extensionWeightedRate,
-    approvedReports, requiredReportDays, reportComplianceRate, reportNonComplianceRate };
+    totalTasks, totalExtensionWeight, extensionWeightedRate, extensionScore,
+    overdueTasks, overdueRate, progressScore,
+    approvedReports, requiredReportDays, reportComplianceRate, reportNonComplianceRate, reportScore };
 }
 // hiển thị: 85.0 -> "85"; 85.4 -> "85.4"
 function fmtHealth(n){
   const r = healthRound1(healthSafeNum(n, "fmtHealth"));
   return (r % 1 === 0) ? String(Math.trunc(r)) : String(r);
+}
+// Xác định 1 công tác có TRỄ HẠN không: CHƯA bấm hoàn thành (status !== 'done') & đã quá HẠN CUỐI
+// (hạn cuối = getEffectiveEnd, đã cộng gia hạn) — nhất quán với nhãn "Trễ hạn / Đã qua" ở tab Tiến độ.
+function healthIsOverdue(it, todayIso){
+  if (!it || it.status === 'done') return false;
+  const eff = (typeof getEffectiveEnd === 'function') ? getEffectiveEnd(it) : it.end;
+  return !!(eff && todayIso > eff);
 }
 // Gom dữ liệu 1 dự án rồi gọi hàm chính. proj = object dự án (có id, start_date, end_date, off_weekdays).
 async function computeProjectHealth(proj){
@@ -55,6 +78,8 @@ async function computeProjectHealth(proj){
     (typeof levelOf === 'function') ? levelOf(it.task) > 1 : true);   // chỉ công tác lá
   const totalTasks = workTasks.length;
   const totalExtensionWeight = workTasks.reduce((s, it) => s + ((it.extensions || []).length), 0);
+  // TRỄ HẠN: đếm trên công tác lá — chưa hoàn thành & quá hạn cuối (định nghĩa chuẩn dùng chung).
+  const overdueTasks = workTasks.filter(it => healthIsOverdue(it, todayISO())).length;
   // báo cáo ĐÃ DUYỆT của dự án (báo cáo cũ thiếu status coi như approved — giữ tương thích)
   const approvedDates = new Set(
     (await DataService.listDailyReports())
@@ -74,5 +99,5 @@ async function computeProjectHealth(proj){
       if (approvedDates.has(isoFromDate(d))) approvedReports++;
     }
   }
-  return calculateProjectHealthScore({ totalTasks, totalExtensionWeight, approvedReports, requiredReportDays });
+  return calculateProjectHealthScore({ totalTasks, totalExtensionWeight, overdueTasks, approvedReports, requiredReportDays });
 }

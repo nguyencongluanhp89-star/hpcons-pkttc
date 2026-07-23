@@ -25,7 +25,11 @@ async function projectStats(id){
   // Tiến độ kế hoạch theo thời gian (nhất quán với tab Tiến độ) + số hạng mục quá ngày kết thúc KH
   let schedulePct=0;
   if(start && end && end>start){ const pas=new Date(t)-start; schedulePct=Math.max(0,Math.min(100,Math.round(pas/(end-start)*100))); }
-  const overdueTasks=(progress||[]).filter(it=>it.end && t>it.end).length;
+  // Trễ hạn: dùng ĐỊNH NGHĨA CHUẨN như điểm sức khỏe (chưa hoàn thành & quá hạn cuối, chỉ công tác lá).
+  const overdueTasks=(progress||[]).filter(it=>
+    ((typeof levelOf==='function')?levelOf(it.task)>1:true) &&
+    ((typeof healthIsOverdue==='function') ? healthIsOverdue(it,t) : (it.status!=='done' && it.end && t>it.end))
+  ).length;
   return {proj, rate, highIssues, overdueConds, readyDots, dotCount:cdt.length, health: H.healthScore, healthStatus: H.healthStatus, healthColorToken: H.healthColorToken, totalManpower, manpowerToday, schedulePct, overdueTasks, logDays:days.length};
 }
 
