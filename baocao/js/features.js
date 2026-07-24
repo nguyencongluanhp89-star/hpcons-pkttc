@@ -1606,6 +1606,38 @@ function toggleVoiceAQT(){
 }
 
 
+const WMO_TABLE = {
+  0:  { label:"Nắng",           emoji:"☀️",  sev:0 },
+  1:  { label:"Ít mây",         emoji:"🌤️", sev:1 },
+  2:  { label:"Nhiều mây",      emoji:"⛅",  sev:2 },
+  3:  { label:"Âm u",           emoji:"☁️",  sev:3 },
+  45: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+  48: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+  51: { label:"Mưa phùn nhẹ",   emoji:"🌦️", sev:4 },
+  53: { label:"Mưa phùn",       emoji:"🌦️", sev:4 },
+  55: { label:"Mưa phùn to",    emoji:"🌧️", sev:5 },
+  56: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+  57: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+  61: { label:"Mưa nhẹ",        emoji:"🌦️", sev:5 },
+  63: { label:"Mưa vừa",        emoji:"🌧️", sev:6 },
+  65: { label:"Mưa to",         emoji:"🌧️", sev:7 },
+  66: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+  67: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+  71: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  73: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  75: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  77: { label:"Tuyết hạt",      emoji:"🌨️", sev:6 },
+  80: { label:"Mưa rào nhẹ",    emoji:"🌦️", sev:5 },
+  81: { label:"Mưa rào vừa",    emoji:"🌧️", sev:6 },
+  82: { label:"Mưa rào to",     emoji:"⛈️",  sev:8 },
+  85: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+  86: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+  95: { label:"Giông bão",      emoji:"⛈️",  sev:9 },
+  96: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 },
+  99: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 }
+};
+function wmoInfo(code){ return WMO_TABLE[code] || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
+
 // Tự động lấy thời tiết ưu tiên bằng tọa độ dự án, sau đó làm dự phòng bằng GPS thiết bị và Open-Meteo API
 async function fetchWeatherFromGPS(auto = false) {
   const statusEl = el('weatherStatus');
@@ -1669,55 +1701,63 @@ async function fetchWeatherFromGPS(auto = false) {
       cutoffHour = -1;
     }
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation&timezone=Asia%2FBangkok&start_date=${dateStr}&end_date=${dateStr}`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=weather_code,precipitation&timezone=Asia%2FBangkok&start_date=${dateStr}&end_date=${dateStr}`;
     
     const res = await fetch(url);
     const data = await res.json();
     
-    if(!data || !data.hourly || !data.hourly.precipitation) {
+    if(!data || !data.hourly || !data.hourly.weather_code) {
       throw new Error("Không có dữ liệu thời tiết");
     }
 
     const times = data.hourly.time;
-    const precips = data.hourly.precipitation;
+    const codes = data.hourly.weather_code || [];
+    const precips = data.hourly.precipitation || [];
     
     let rainHoursCount = 0;
     let rainDetails = [];
-    let morningRain = false;
-    let afternoonRain = false;
+    let repCode = null;
+    let repSev = -1;
 
     for(let i=0; i<times.length; i++) {
       const t = times[i];
-      const hour = parseInt(t.substring(11,13));
+      const hour = parseInt(t.substring(11,13), 10);
       const p = precips[i] || 0;
+      const c = codes[i];
       
-      // Khung giờ thi công 6h00 - 20h00; chỉ tính MƯA LỚN >= 2.5mm/giờ (nước chảy khi rơi),
-      // bỏ mưa phùn/mưa bay (< 2.5mm) vì vẫn thi công được. Mỗi giờ mưa lớn = 1 giờ ảnh hưởng.
-      // CHỈ tính giờ ĐÃ QUA (hour <= cutoffHour) — bỏ dự báo các giờ chưa tới.
+      // Khung giờ thi công 6h00 - 20h00; chỉ tính giờ ĐÃ QUA (hour <= cutoffHour)
       if(hour >= 6 && hour <= 20 && hour <= cutoffHour) {
+        const info = wmoInfo(c);
+        if (info.sev > repSev) { repSev = info.sev; repCode = c; }
         if(p >= 2.5) {
           rainHoursCount++;
           rainDetails.push(`${hour}h (${p.toFixed(1)}mm)`);
-          if(hour < 12) morningRain = true;
-          else afternoonRain = true;
         }
       }
     }
 
-    // Set dropdowns
-    el('f_weather_m').value = morningRain ? "rainy" : "sunny";
-    el('f_weather_a').value = afternoonRain ? "rainy" : "sunny";
-    
-    // Set rain hours
-    if(el('f_rain_hours')) el('f_rain_hours').value = rainHoursCount;
+    const repInfo = wmoInfo(repCode);
+    const label = repCode !== null ? repInfo.label : "Đang cập nhật";
+    window._repWeatherCode = repCode;
+    window._repWeatherLabel = label;
 
-    // Generate note — nêu rõ đây là số liệu THỰC TẾ tính đến thời điểm hiện tại (khi là hôm nay)
-    const realtimeSuffix = (dateStr === vnDateStr) ? ` (số liệu thực tế đến ${cutoffHour}h)` : '';
+    // Set dropdowns (suy từ repSev để tương thích code cũ)
+    const fallbackVal = (repSev >= 4) ? "rainy" : "sunny";
+    if (el('f_weather_m')) el('f_weather_m').value = fallbackVal;
+    if (el('f_weather_a')) el('f_weather_a').value = fallbackVal;
+    
+    // Set rain hours & display
+    if(el('f_rain_hours')) el('f_rain_hours').value = rainHoursCount;
+    if(el('f_weather_display')) {
+      el('f_weather_display').value = (repCode !== null ? `${repInfo.emoji} ${label}` : "⏳ Đang cập nhật") + (rainHoursCount > 0 ? ` · Mưa ảnh hưởng: ${rainHoursCount} giờ` : '');
+    }
+
+    // Generate note
     let note = "";
     if(rainHoursCount > 0) {
-      note = `Thời gian mưa: ${rainHoursCount} giờ (mưa lớn ≥2.5mm trong khung 6h–20h: ${rainDetails.join(', ')})${realtimeSuffix}. Ảnh hưởng công tác thi công ngoài trời.`;
+      note = `${label} · Mưa ảnh hưởng: ${rainHoursCount} giờ`;
     } else {
-      note = `Thời tiết nắng ráo, công tác thi công thuận lợi${realtimeSuffix}.`;
+      note = label;
     }
     if (el('f_weather_note')) el('f_weather_note').value = note;
 
@@ -1875,6 +1915,8 @@ async function saveReportData(targetStatus) {
       bch: bch,
       weather_m: weather_m,
       weather_a: weather_a,
+      weather_code: (typeof window._repWeatherCode !== 'undefined' ? window._repWeatherCode : null),
+      weather_label: (typeof window._repWeatherLabel !== 'undefined' ? window._repWeatherLabel : ''),
       weather_note: el('f_weather_note') ? el('f_weather_note').value : '',
       units: (typeof units !== 'undefined' ? units : []),
       works_full: (typeof works !== 'undefined' ? works : []),
@@ -2084,6 +2126,8 @@ async function saveToCloud() {
       bch: bch,
       weather_m: weather_m,
       weather_a: weather_a,
+      weather_code: (typeof window._repWeatherCode !== 'undefined' ? window._repWeatherCode : null),
+      weather_label: (typeof window._repWeatherLabel !== 'undefined' ? window._repWeatherLabel : ''),
       weather_note: el('f_weather_note') ? el('f_weather_note').value : '',
       units: (typeof units !== 'undefined' ? units : []),
       works_full: (typeof works !== 'undefined' ? works : []),
@@ -2199,6 +2243,8 @@ async function _silentSave() {
       bch: parseInt(el('f_bch') ? el('f_bch').value : 0) || 0,
       weather_m: el('f_weather_m') ? el('f_weather_m').value : '',
       weather_a: el('f_weather_a') ? el('f_weather_a').value : '',
+      weather_code: (typeof window._repWeatherCode !== 'undefined' ? window._repWeatherCode : null),
+      weather_label: (typeof window._repWeatherLabel !== 'undefined' ? window._repWeatherLabel : ''),
       weather_note: el('f_weather_note') ? el('f_weather_note').value : '',
       units: (typeof units !== 'undefined' ? units : []),
       works_full: (typeof works !== 'undefined' ? works : []),

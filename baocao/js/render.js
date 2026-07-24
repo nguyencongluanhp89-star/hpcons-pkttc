@@ -11,6 +11,67 @@ function fmtDate(v){
 }
 function imgOrPh(src,cls,phtxt,id){return src?`<img class="${cls}" src="${src}" style="cursor:pointer;transition:0.2s" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="if('${id}')el('${id}').click()" title="Nhấn để đổi ảnh">`:`<div class="${cls} ph" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'" onclick="if('${id}')el('${id}').click()" title="Nhấn để tải ảnh lên">${phtxt||'Ảnh'}</div>`}
 
+/* ---------- Bảng mã WMO chuẩn (N3) dùng chung ---------- */
+const WMO_TABLE = {
+  0:  { label:"Nắng",           emoji:"☀️",  sev:0 },
+  1:  { label:"Ít mây",         emoji:"🌤️", sev:1 },
+  2:  { label:"Nhiều mây",      emoji:"⛅",  sev:2 },
+  3:  { label:"Âm u",           emoji:"☁️",  sev:3 },
+  45: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+  48: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+  51: { label:"Mưa phùn nhẹ",   emoji:"🌦️", sev:4 },
+  53: { label:"Mưa phùn",       emoji:"🌦️", sev:4 },
+  55: { label:"Mưa phùn to",    emoji:"🌧️", sev:5 },
+  56: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+  57: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+  61: { label:"Mưa nhẹ",        emoji:"🌦️", sev:5 },
+  63: { label:"Mưa vừa",        emoji:"🌧️", sev:6 },
+  65: { label:"Mưa to",         emoji:"🌧️", sev:7 },
+  66: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+  67: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+  71: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  73: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  75: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  77: { label:"Tuyết hạt",      emoji:"🌨️", sev:6 },
+  80: { label:"Mưa rào nhẹ",    emoji:"🌦️", sev:5 },
+  81: { label:"Mưa rào vừa",    emoji:"🌧️", sev:6 },
+  82: { label:"Mưa rào to",     emoji:"⛈️",  sev:8 },
+  85: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+  86: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+  95: { label:"Giông bão",      emoji:"⛈️",  sev:9 },
+  96: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 },
+  99: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 }
+};
+function wmoInfo(code){ return WMO_TABLE[code] || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
+
+function getReportWeatherInfo(r) {
+  let code = (r && r.weather_code !== undefined && r.weather_code !== null) ? r.weather_code : (typeof window._repWeatherCode !== 'undefined' ? window._repWeatherCode : null);
+  let label = (r && r.weather_label) ? r.weather_label : (typeof window._repWeatherLabel !== 'undefined' ? window._repWeatherLabel : '');
+  let rainHours = Number(r && r.rain_hours !== undefined ? r.rain_hours : (el('f_rain_hours') ? el('f_rain_hours').value : 0)) || 0;
+  
+  let emoji = '🌤️';
+  if (code !== null && code !== undefined) {
+    const info = wmoInfo(code);
+    emoji = info.emoji;
+    if (!label) label = info.label;
+  } else if (!label) {
+    const wm = (r && r.weather_m) || (el('f_weather_m') ? el('f_weather_m').value : '');
+    const wa = (r && r.weather_a) || (el('f_weather_a') ? el('f_weather_a').value : '');
+    if (wm === 'rainy' || wa === 'rainy' || wm === 'stormy' || wa === 'stormy') {
+      emoji = '🌧️'; label = 'Có mưa';
+    } else {
+      emoji = '☀️'; label = 'Nắng';
+    }
+  } else {
+    if (label.includes('Giông') || label.includes('bão')) emoji = '⛈️';
+    else if (label.includes('Mưa to') || label.includes('Mưa vừa')) emoji = '🌧️';
+    else if (label.includes('Mưa')) emoji = '🌦️';
+    else if (label.includes('Nắng')) emoji = '☀️';
+    else if (label.includes('mây')) emoji = '⛅';
+  }
+  return { code, label, emoji, rainHours };
+}
+
 /* ---------- draw có debounce (tránh lag khi gõ liên tục) ---------- */
 let _drawTimer = null;
 function drawDebounced(){
@@ -69,45 +130,18 @@ function draw(){
   const logoHtml=`<img src="${logoImg||window.HPCONS_REPORT_LOGO||''}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để đổi logo nhà thầu">`;
   const logoCdtHtml=logoImgCdt?`<img src="${logoImgCdt}" style="max-height:80px;cursor:pointer" onclick="el('f_logo_cdt').click()" title="Nhấn để đổi logo chủ đầu tư">`:'<div style="cursor:pointer;border:1.5px dashed #cbd5e1;border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94a3b8;min-width:140px;background:#f8fafc" onclick="el(\'f_logo_cdt\').click()" title="Nhấn để tải logo chủ đầu tư"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><div style="font-size:11px;font-weight:700">LOGO CHỦ ĐẦU TƯ</div><div style="font-size:10px;font-weight:400">(Nhấn để tải lên)</div></div>';
 
-  const weatherIcons = {
-    'sunny': {i:'☀️', l:'Nắng đẹp', c:'wt-sunny'},
-    'cloudy': {i:'⛅', l:'Nhiều mây', c:'wt-cloudy'},
-    'rainy': {i:'🌧️', l:'Có mưa', c:'wt-rainy'},
-    'stormy': {i:'⛈️', l:'Giông bão', c:'wt-stormy'}
-  };
-  const wm = el('f_weather_m').value;
-  const wa = el('f_weather_a').value;
-  const wnote = el('f_weather_note').value.trim();
-  
-  let wIconBox = '';
-  let wTextBox = '';
-  if (wm === wa) {
-    wIconBox = `<div style="font-size:60px; line-height:1; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15))">${weatherIcons[wm].i}</div>`;
-    wTextBox = `<div class="kv" style="justify-content:center; font-weight:700; text-transform:uppercase; letter-spacing:0.5px" class="${weatherIcons[wm].c}">
-      <span class="${weatherIcons[wm].c}">CẢ NGÀY: ${weatherIcons[wm].l}</span>
-    </div>`;
-  } else {
-    wIconBox = `
-      <div style="font-size:52px; line-height:1; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15))">${weatherIcons[wm].i}</div>
-      <div style="font-size:52px; line-height:1; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15))">${weatherIcons[wa].i}</div>
-    `;
-    wTextBox = `<div class="kv" style="justify-content:space-around; font-weight:700; text-transform:uppercase; letter-spacing:0.5px">
-      <span class="${weatherIcons[wm].c}">SÁNG: ${weatherIcons[wm].l}</span>
-      <span class="${weatherIcons[wa].c}">CHIỀU: ${weatherIcons[wa].l}</span>
-    </div>`;
+  const wInfo = getReportWeatherInfo();
+  const wIconBox = `<div style="font-size:60px; line-height:1; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15))">${wInfo.emoji}</div>`;
+  let wTextBox = `<div class="kv" style="justify-content:center; font-weight:700; text-transform:uppercase; letter-spacing:0.5px">
+    <span>${wInfo.label}</span>
+  </div>`;
+  if (wInfo.rainHours > 0) {
+    wTextBox += `<div style="text-align:center;font-weight:700;color:var(--red);font-size:var(--fs-body);margin-top:6px;background:#fdeaea;padding:4px 8px;border-radius:4px;display:inline-block">Mưa ảnh hưởng: ${wInfo.rainHours} giờ</div>`;
   }
   
-  let rh = parseFloat(el('f_rain_hours') ? el('f_rain_hours').value : 0) || 0;
-  if (rh > 0) {
-    wTextBox += `<div style="text-align:center;font-weight:700;color:var(--red);font-size:var(--fs-body);margin-top:6px;background:#fdeaea;padding:4px 8px;border-radius:4px;display:inline-block">Thời gian mưa: ${rh} giờ</div><div style="text-align:center"></div>`;
-  }
-  
-  let wNoteCls = 'good';
-  if (wm.includes('storm') || wa.includes('storm')) wNoteCls = 'alert';
-  else if (wm.includes('rain') || wa.includes('rain')) wNoteCls = '';
-  
+  const wnote = el('f_weather_note') ? el('f_weather_note').value.trim() : '';
   const weatherNoteBox = wnote 
-    ? `<div class="kv" style="border-bottom:0; justify-content:center"><div class="w-note ${wNoteCls}">${wnote}</div></div>`
+    ? `<div class="kv" style="border-bottom:0; justify-content:center"><div class="w-note">${wnote}</div></div>`
     : `<div class="kv" style="border-bottom:0; justify-content:center"><div class="w-note" style="opacity:0">&nbsp;</div></div>`;
   let workHtml=works.map((w,i)=>{
     const cleanT = stripIdx(w.t);
@@ -437,45 +471,19 @@ async function exportPNG169() {
       ? `<img src="${logoImgCdt}" class="hdr-logo" style="width:auto; max-width:100%; object-fit:contain; display:block;">`
       : '';
 
-    // Thời tiết
-    const weatherIcons = {
-      'sunny': {i:'☀️', l:'Nắng đẹp', c:'wt-sunny'},
-      'cloudy': {i:'⛅', l:'Nhiều mây', c:'wt-cloudy'},
-      'rainy': {i:'🌧️', l:'Có mưa', c:'wt-rainy'},
-      'stormy': {i:'⛈️', l:'Giông bão', c:'wt-stormy'}
-    };
-    const wm = el('f_weather_m').value;
-    const wa = el('f_weather_a').value;
-    const wnote = el('f_weather_note').value.trim();
+    // Thời tiết (N5)
+    const wInfo = getReportWeatherInfo();
+    const wnote = el('f_weather_note') ? el('f_weather_note').value.trim() : '';
     
-    let weatherText = '';
-    let weatherIcon = '☀️';
-    if (wm === wa) {
-      weatherIcon = weatherIcons[wm] ? weatherIcons[wm].i : '☀️';
-      weatherText = `Cả ngày: ${weatherIcons[wm] ? weatherIcons[wm].l : 'Nắng đẹp'}`;
-    } else {
-      weatherIcon = `${weatherIcons[wm] ? weatherIcons[wm].i : '☀️'}${weatherIcons[wa] ? weatherIcons[wa].i : '☀️'}`;
-      weatherText = `Sáng: ${weatherIcons[wm] ? weatherIcons[wm].l : 'Nắng'} | Chiều: ${weatherIcons[wa] ? weatherIcons[wa].l : 'Nắng'}`;
-    }
-    let rh = parseFloat(el('f_rain_hours') ? el('f_rain_hours').value : 0) || 0;
-    if (rh > 0) {
-      weatherText += ` (Mưa ${rh}h)`;
+    let weatherText = `${wInfo.emoji} ${wInfo.label}`;
+    if (wInfo.rainHours > 0) {
+      weatherText += ` (Mưa ${wInfo.rainHours}h)`;
     }
     if (wnote) {
       weatherText += ` - ${wnote}`;
     }
 
-    // Định nghĩa wIconBox
-    let wIconBox = '';
-    if (wm === wa) {
-      wIconBox = `<div style="font-size: ${FS.weatherIc}px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${weatherIcons[wm] ? weatherIcons[wm].i : '☀️'}</div>`;
-    } else {
-      wIconBox = `
-        <div style="font-size: 90px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${weatherIcons[wm] ? weatherIcons[wm].i : '☀️'}</div>
-        <div style="font-size: 28px; color: #cbd5e1; font-weight: 400; transform: rotate(15deg)">/</div>
-        <div style="font-size: 90px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${weatherIcons[wa] ? weatherIcons[wa].i : '☀️'}</div>
-      `;
-    }
+    const wIconBox = `<div style="font-size: ${FS.weatherIc}px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${wInfo.emoji}</div>`;
 
     // Nhân lực
     const totalManpower = el('f_total') ? el('f_total').value : 0;
@@ -760,28 +768,12 @@ async function exportPNG169() {
 
     let weeklyChartSvg = '';
 
-    const wColorMap = { sunny:'#d97706', cloudy:'#475569', rainy:'#2563eb', stormy:'#dc2626' };
-    const wColor = wColorMap[wm] || '#d97706';
-    let statusText1 = '';
-    if (wm === wa) {
-      statusText1 = `CẢ NGÀY: ${(weatherIcons[wm] ? weatherIcons[wm].l : 'Nắng đẹp').toUpperCase()}`;
-    } else {
-      statusText1 = `SÁNG: ${(weatherIcons[wm] ? weatherIcons[wm].l : 'Nắng').toUpperCase()} | CHIỀU: ${(weatherIcons[wa] ? weatherIcons[wa].l : 'Nắng').toUpperCase()}`;
-    }
-
-    const isRainy = (wm === 'rainy' || wm === 'stormy' || wa === 'rainy' || wa === 'stormy' || rh > 0);
-    let statusText2 = '';
-    if (isRainy) {
-      if (wnote) {
-        statusText2 = wnote;
-        const hasHours = wnote.toLowerCase().includes('giờ') || wnote.toLowerCase().includes('h');
-        if (rh > 0 && !hasHours) {
-          statusText2 += ` · MƯA ẢNH HƯỞNG: ${rh} GIỜ`;
-        }
-      } else if (rh > 0) {
-        statusText2 = `MƯA ẢNH HƯỞNG THI CÔNG: ${rh} GIỜ`;
-      }
-    }
+    const wInfo169 = getReportWeatherInfo(typeof currentReportData !== 'undefined' ? currentReportData : null);
+    const wColor = (wInfo169.code !== null && wInfo169.code >= 51) ? '#2563eb' : '#d97706';
+    const statusText1 = wInfo169.label.toUpperCase();
+    const wnote169 = el('f_weather_note') ? el('f_weather_note').value.trim() : '';
+    const statusText2 = wInfo169.rainHours > 0 ? `MƯA ẢNH HƯỞNG: ${wInfo169.rainHours} GIỜ` : (wnote169 ? wnote169.toUpperCase() : '');
+    const wIconBox169 = `<div style="font-size: 60px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${wInfo169.emoji}</div>`;
 
     const manpowerHtml = `
       <div class="card" style="flex: 1; border: 1px solid #e2e8f0; border-top: 6px solid var(--navy2); border-radius: 12px; padding: 12px 20px; background: rgba(9,106,167,0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.01); display: grid; grid-template-rows: auto 1fr 44px 44px; height: 100%; box-sizing: border-box; justify-content: stretch; align-content: stretch; overflow: hidden;">
@@ -814,7 +806,7 @@ async function exportPNG169() {
         
         <!-- Hàng 2 (Vùng nội dung chính) -->
         <div style="grid-row: 2; display: flex; align-items: center; justify-content: center; min-height: 0; transform: translateY(-10px);">
-          ${wIconBox}
+          ${wIconBox169}
         </div>
         
         <!-- Hàng 3 (Hàng thông tin 1) -->
