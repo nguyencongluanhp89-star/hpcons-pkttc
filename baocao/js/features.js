@@ -1607,13 +1607,12 @@ function toggleVoiceAQT(){
 
 
 // Tự động lấy thời tiết ưu tiên bằng tọa độ dự án, sau đó làm dự phòng bằng GPS thiết bị và Open-Meteo API
-async function fetchWeatherFromGPS() {
+async function fetchWeatherFromGPS(auto = false) {
   const statusEl = el('weatherStatus');
-  const btn = event.currentTarget;
-  if(!statusEl || !btn) return;
+  const btn = document.getElementById('btn-weather-gps');
 
-  btn.disabled = true;
-  statusEl.style.color = "var(--navy)";
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.style.color = "var(--navy)";
 
   let lat = null;
   let lon = null;
@@ -1637,10 +1636,14 @@ async function fetchWeatherFromGPS() {
 
   try {
     if (useProjGPS) {
-      statusEl.innerText = "Đang lấy thời tiết theo tọa độ dự án...";
+      if (statusEl) statusEl.innerText = "Đang lấy thời tiết theo tọa độ dự án...";
+    } else if (auto) {
+      // TỰ ĐỘNG: chỉ chạy khi dự án ĐÃ khai tọa độ — KHÔNG bật popup xin GPS thiết bị mỗi lần mở app.
+      if (btn) btn.disabled = false;
+      return;
     } else {
-      // 2. Dự phòng: dùng định vị GPS thiết bị
-      statusEl.innerText = "Đang định vị GPS thiết bị...";
+      // 2. Dự phòng (chỉ khi bấm tay): dùng định vị GPS thiết bị
+      if (statusEl) statusEl.innerText = "Đang định vị GPS thiết bị...";
       const pos = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
       }).catch(e => {
@@ -1651,8 +1654,20 @@ async function fetchWeatherFromGPS() {
       lon = pos.coords.longitude;
     }
 
-    const dateStr = el('f_date').value; // YYYY-MM-DD
-    statusEl.innerText = "Đang tải dữ liệu thời tiết...";
+    const dateStr = el('f_date').value; // YYYY-MM-DD (ngày báo cáo đang chọn)
+    if (statusEl) statusEl.innerText = "Đang tải dữ liệu thời tiết...";
+
+    // CHỈ LẤY SỐ LIỆU THỰC TẾ tới thời điểm hiện tại (giờ VN); bỏ phần DỰ BÁO các giờ chưa tới (Sếp chốt 24/07).
+    const vnNow = new Date(Date.now() + 7 * 3600 * 1000); // giờ VN (UTC+7)
+    const vnDateStr = vnNow.toISOString().slice(0, 10);
+    const vnHour = vnNow.getUTCHours();
+    let cutoffHour = 20; // ngày trong quá khứ: cả khung thi công (tới 20h) đều đã xảy ra
+    if (dateStr === vnDateStr) {
+      cutoffHour = vnHour;             // HÔM NAY: chỉ tính tới GIỜ HIỆN TẠI (thời điểm xem/nộp)
+    } else if (dateStr > vnDateStr) {  // ngày TƯƠNG LAI: chưa có số liệu thực
+      if (auto) { if (btn) btn.disabled = false; return; }
+      cutoffHour = -1;
+    }
 
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation&timezone=Asia%2FBangkok&start_date=${dateStr}&end_date=${dateStr}`;
     
@@ -1676,9 +1691,10 @@ async function fetchWeatherFromGPS() {
       const hour = parseInt(t.substring(11,13));
       const p = precips[i] || 0;
       
-      // Khung giờ thi công 6h00 - 21h00; chỉ tính MƯA LỚN >= 2.5mm/giờ (nước chảy khi rơi),
+      // Khung giờ thi công 6h00 - 20h00; chỉ tính MƯA LỚN >= 2.5mm/giờ (nước chảy khi rơi),
       // bỏ mưa phùn/mưa bay (< 2.5mm) vì vẫn thi công được. Mỗi giờ mưa lớn = 1 giờ ảnh hưởng.
-      if(hour >= 6 && hour <= 20) {
+      // CHỈ tính giờ ĐÃ QUA (hour <= cutoffHour) — bỏ dự báo các giờ chưa tới.
+      if(hour >= 6 && hour <= 20 && hour <= cutoffHour) {
         if(p >= 2.5) {
           rainHoursCount++;
           rainDetails.push(`${hour}h (${p.toFixed(1)}mm)`);
@@ -1695,26 +1711,28 @@ async function fetchWeatherFromGPS() {
     // Set rain hours
     if(el('f_rain_hours')) el('f_rain_hours').value = rainHoursCount;
 
-    // Generate note
+    // Generate note — nêu rõ đây là số liệu THỰC TẾ tính đến thời điểm hiện tại (khi là hôm nay)
+    const realtimeSuffix = (dateStr === vnDateStr) ? ` (số liệu thực tế đến ${cutoffHour}h)` : '';
     let note = "";
     if(rainHoursCount > 0) {
-      note = `Thời gian mưa: ${rainHoursCount} giờ (mưa lớn ≥2.5mm trong khung 6h–21h: ${rainDetails.join(', ')}). Ảnh hưởng công tác thi công ngoài trời.`;
+      note = `Thời gian mưa: ${rainHoursCount} giờ (mưa lớn ≥2.5mm trong khung 6h–20h: ${rainDetails.join(', ')})${realtimeSuffix}. Ảnh hưởng công tác thi công ngoài trời.`;
     } else {
-      note = "Thời tiết nắng ráo, công tác thi công thuận lợi.";
+      note = `Thời tiết nắng ráo, công tác thi công thuận lợi${realtimeSuffix}.`;
     }
-    el('f_weather_note').value = note;
+    if (el('f_weather_note')) el('f_weather_note').value = note;
 
-    statusEl.innerText = "Đã cập nhật thời tiết tự động!";
-    statusEl.style.color = "var(--green)";
-    
-    setTimeout(() => { statusEl.innerText = ""; }, 3000);
-    draw(); // Re-render preview
+    if (statusEl) {
+      statusEl.innerText = "Đã cập nhật thời tiết tự động!";
+      statusEl.style.color = "var(--green)";
+      setTimeout(() => { if (statusEl) statusEl.innerText = ""; }, 3000);
+    }
+    if (typeof draw === 'function') draw(); // Re-render preview
 
   } catch(e) {
-    statusEl.innerText = "Lỗi: " + e.message;
-    statusEl.style.color = "var(--red)";
+    if (statusEl && !auto) { statusEl.innerText = "Lỗi: " + e.message; statusEl.style.color = "var(--red)"; }
+    else console.warn("Tự động lấy thời tiết lỗi (bỏ qua):", e && e.message);
   } finally {
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -1911,6 +1929,8 @@ async function saveReportData(targetStatus) {
 
 async function submitReportForApproval() {
   if (!confirm("Báo cáo sẽ được nộp cho Chỉ huy trưởng duyệt và bạn sẽ không thể tự ý sửa đổi nữa. Xác nhận nộp?")) return;
+  // Chốt số liệu thời tiết THỰC TẾ tới đúng thời điểm nộp (bỏ dự báo) trước khi lưu.
+  try { await fetchWeatherFromGPS(true); } catch (e) { console.warn("Chốt thời tiết khi nộp lỗi (bỏ qua):", e && e.message); }
   await saveReportData('pending');
 }
 

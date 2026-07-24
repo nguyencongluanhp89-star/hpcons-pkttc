@@ -1729,6 +1729,16 @@ async function loadReportForDate(date) {
         if (typeof draw === 'function') draw();
         if (typeof updateProgress === 'function') updateProgress();
       }
+
+      // TỰ ĐỘNG lấy thời tiết thực tế (tới giờ hiện tại) khi mở app / đổi ngày — CHỈ khi báo cáo
+      // còn NHÁP (draft/rejected). Báo cáo đã nộp (pending/approved) giữ nguyên số liệu đã chốt
+      // tại thời điểm nộp. Hàm tự bỏ qua nếu dự án chưa khai tọa độ GPS.
+      try {
+        const _st = window._reportStatus || 'draft';
+        if ((_st === 'draft' || _st === 'rejected') && typeof fetchWeatherFromGPS === 'function') {
+          await fetchWeatherFromGPS(true);
+        }
+      } catch (e) { console.warn("Tự động lấy thời tiết khi mở báo cáo lỗi (bỏ qua):", e && e.message); }
     }
   } catch (e) {
     console.error("Lỗi khi tải báo cáo ngày:", e);

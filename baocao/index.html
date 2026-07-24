@@ -496,7 +496,7 @@
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
         <div style="font-weight:700;color:var(--navy);font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
           <span>THỜI TIẾT HÔM NAY</span>
-          <button type="button" class="addbtn" style="margin:0;border:1px solid var(--green);color:var(--green-d);background:#eefdf4" onclick="fetchWeatherFromGPS()">📍 Tự động lấy (GPS)</button>
+          <button type="button" id="btn-weather-gps" class="addbtn" style="margin:0;border:1px solid var(--green);color:var(--green-d);background:#eefdf4" onclick="fetchWeatherFromGPS()">📍 Tự động lấy (GPS)</button>
         </div>
         <div id="weatherStatus" class="hint"></div>
         <label>Số giờ mưa ảnh hưởng thi công (6h-21h)</label>
@@ -755,9 +755,9 @@
 <script src="app-core.js?v=10"></script>
 <script src="js/data.js?v=2"></script>
 <script src="js/utils.js?v=2"></script>
-<script src="js/features.js?v=1.5"></script>
+<script src="js/features.js?v=1.6"></script>
 <script src="hpcons-logo.js?v=1"></script>
-<script src="js/render.js?v=2.0"></script>
+<script src="js/render.js?v=2.1"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT
