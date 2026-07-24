@@ -20,28 +20,41 @@ function getSvg(name, size = 18, color = "currentColor") {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">${path}</svg>`;
 }
 
+const WMO_TABLE = {
+  0:  { label:"Nắng",           emoji:"☀️",  sev:0 },
+  1:  { label:"Ít mây",         emoji:"🌤️", sev:1 },
+  2:  { label:"Nhiều mây",      emoji:"⛅",  sev:2 },
+  3:  { label:"Âm u",           emoji:"☁️",  sev:3 },
+  45: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+  48: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+  51: { label:"Mưa phùn nhẹ",   emoji:"🌦️", sev:4 },
+  53: { label:"Mưa phùn",       emoji:"🌦️", sev:4 },
+  55: { label:"Mưa phùn to",    emoji:"🌧️", sev:5 },
+  56: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+  57: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+  61: { label:"Mưa nhẹ",        emoji:"🌦️", sev:5 },
+  63: { label:"Mưa vừa",        emoji:"🌧️", sev:6 },
+  65: { label:"Mưa to",         emoji:"🌧️", sev:7 },
+  66: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+  67: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+  71: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  73: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  75: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+  77: { label:"Tuyết hạt",      emoji:"🌨️", sev:6 },
+  80: { label:"Mưa rào nhẹ",    emoji:"🌦️", sev:5 },
+  81: { label:"Mưa rào vừa",    emoji:"🌧️", sev:6 },
+  82: { label:"Mưa rào to",     emoji:"⛈️",  sev:8 },
+  85: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+  86: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+  95: { label:"Giông bão",      emoji:"⛈️",  sev:9 },
+  96: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 },
+  99: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 }
+};
+function wmoInfo(code){ return WMO_TABLE[code] || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
+
 function getWeatherSvgIcon(code, size = 16, color = "rgba(255,255,255,0.85)") {
-  const wMap = {
-    0: { label: "Nắng ráo", p: '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>' },
-    1: { label: "Ít mây", p: '<path d="M17.5 19a4.5 4.5 0 0 0 2.09-8.5 6 6 0 0 0-11.18-1.5 3.5 3.5 0 0 0 .59 7"></path>' },
-    2: { label: "Nhiều mây", p: '<path d="M17.5 19a4.5 4.5 0 0 0 2.09-8.5 6 6 0 0 0-11.18-1.5 3.5 3.5 0 0 0 .59 7"></path>' },
-    3: { label: "Âm u", p: '<path d="M17.5 19a4.5 4.5 0 0 0 2.09-8.5 6 6 0 0 0-11.18-1.5 3.5 3.5 0 0 0 .59 7"></path>' },
-    45: { label: "Sương mù", p: '<line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="14" x2="21" y2="14"></line><line x1="5" y1="18" x2="19" y2="18"></line>' },
-    48: { label: "Sương mù", p: '<line x1="3" y1="10" x2="21" y2="10"></line><line x1="3" y1="14" x2="21" y2="14"></line><line x1="5" y1="18" x2="19" y2="18"></line>' },
-    51: { label: "Mưa phùn nhẹ", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    53: { label: "Mưa phùn", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    55: { label: "Mưa phùn to", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    61: { label: "Mưa nhẹ", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    63: { label: "Mưa vừa", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    65: { label: "Mưa to", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    80: { label: "Mưa rào nhẹ", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    81: { label: "Mưa rào vừa", p: '<path d="M16 13v8M8 13v8M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    82: { label: "Mưa rào to", p: '<path d="m19 15-3 5h4l-3 5"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' },
-    95: { label: "Giông bão", p: '<path d="m19 15-3 5h4l-3 5"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>' }
-  };
-  const item = wMap[code] || { label: "Bình thường", p: '<circle cx="12" cy="12" r="5"></circle>' };
-  const icon = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">${item.p}</svg>`;
-  return { label: item.label, icon };
+  const info = wmoInfo(code);
+  return { label: info.label, icon: info.emoji };
 }
 
 // dashboard.js - Project-specific Dashboard
@@ -441,37 +454,69 @@ async function renderDashboard() {
     manpowerData.push(dayManpower);
   }
 
-  // Update Weather — hiển thị trong Hero card với 100% Inline SVG
+  // Update Weather — thống nhất 1 nguồn + 1 kiểu hiển thị với App báo cáo ngày (N1-N5)
   const elWeather = document.getElementById("dash-hero-weather");
   if(elWeather) {
     if(proj.latitude == null || proj.longitude == null) {
       elWeather.innerHTML = `${getSvg('building', 14, 'var(--hp-text-secondary)')}<span>Chưa cấu hình tọa độ</span>`;
     } else if(!navigator.onLine) {
       let offlineWeather = "";
-      const todaySub = subs.find(s => s.log_date === todayStr);
+      const vnNow = new Date(Date.now() + 7 * 3600 * 1000);
+      const vnDateStr = vnNow.toISOString().slice(0, 10);
+      const todaySub = subs.find(s => s.log_date === vnDateStr || s.date === vnDateStr);
       if(todaySub) {
-        if(todaySub.weather_m && todaySub.weather_a) {
-          const wm = todaySub.weather_m === 'rainy' ? getWeatherSvgIcon(61) : getWeatherSvgIcon(0);
-          const wa = todaySub.weather_a === 'rainy' ? getWeatherSvgIcon(61) : getWeatherSvgIcon(0);
-          offlineWeather = `Sáng: ${wm.label} / Chiều: ${wa.label}`;
-        } else if(todaySub.weather) {
-          offlineWeather = todaySub.weather;
+        let code = (todaySub.weather_code !== undefined && todaySub.weather_code !== null) ? todaySub.weather_code : null;
+        let label = todaySub.weather_label || "";
+        let rh = Number(todaySub.rain_hours) || 0;
+        let emoji = "🌤️";
+        if (code !== null && code !== undefined) {
+          const info = wmoInfo(code); emoji = info.emoji; if (!label) label = info.label;
+        } else if (!label) {
+          const isRain = todaySub.weather_m === 'rainy' || todaySub.weather_a === 'rainy';
+          emoji = isRain ? '🌧️' : '☀️'; label = isRain ? 'Có mưa' : 'Nắng';
+        } else {
+          if (label.includes('Giông') || label.includes('bão')) emoji = '⛈️';
+          else if (label.includes('Mưa')) emoji = '🌧️';
+          else if (label.includes('Nắng')) emoji = '☀️';
         }
+        offlineWeather = `${emoji} ${label}` + (rh > 0 ? ` · Mưa ảnh hưởng: ${rh} giờ` : '');
       }
       elWeather.innerHTML = offlineWeather
-        ? `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>${offlineWeather}</span>`
+        ? `<span>${offlineWeather}</span>`
         : `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>Offline</span>`;
     } else {
       try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${proj.latitude}&longitude=${proj.longitude}&current=temperature_2m,weather_code&timezone=auto`;
+        const vnNow = new Date(Date.now() + 7 * 3600 * 1000);
+        const vnDateStr = vnNow.toISOString().slice(0, 10);
+        const vnHour = vnNow.getUTCHours();
+        const cutoffHour = vnHour;
+
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${proj.latitude}&longitude=${proj.longitude}&hourly=weather_code,precipitation&timezone=Asia%2FBangkok&start_date=${vnDateStr}&end_date=${vnDateStr}`;
         fetch(url)
           .then(res => res.json())
           .then(data => {
-            if(data && data.current) {
-              const code = data.current.weather_code;
-              const temp = Math.round(data.current.temperature_2m);
-              const info = getWeatherSvgIcon(code, 15, 'rgba(255,255,255,0.85)');
-              elWeather.innerHTML = `${info.icon}<span>${temp}°C · ${info.label}</span>`;
+            if(data && data.hourly && data.hourly.weather_code) {
+              const times = data.hourly.time;
+              const codes = data.hourly.weather_code || [];
+              const precs = data.hourly.precipitation || [];
+              let repCode = null, repSev = -1, rainHours = 0;
+
+              for (let i = 0; i < times.length; i++) {
+                const hour = parseInt(times[i].substring(11, 13), 10);
+                if (hour < 6 || hour > 20 || hour > cutoffHour) continue;
+                const code = codes[i];
+                const info = wmoInfo(code);
+                if (info.sev > repSev) { repSev = info.sev; repCode = code; }
+                if ((precs[i] || 0) >= 2.5) rainHours++;
+              }
+
+              if (repCode === null) {
+                elWeather.innerHTML = `<span>⏳ Đang cập nhật</span>`;
+              } else {
+                const repInfo = wmoInfo(repCode);
+                const weatherStr = `${repInfo.emoji} ${repInfo.label}` + (rainHours > 0 ? ` · Mưa ảnh hưởng: ${rainHours} giờ` : '');
+                elWeather.innerHTML = `<span>${weatherStr}</span>`;
+              }
             }
           })
           .catch(() => { elWeather.innerHTML = `${getSvg('clock', 14, 'var(--hp-text-secondary)')}<span>Không tải được</span>`; });
