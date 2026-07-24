@@ -1023,6 +1023,18 @@
         const projects = await AppCore.loadProjects();
         if (!EMBED) {
           renderProjects(projects);
+          // Tự vào dự án đã nhớ lần trước (nếu còn hợp lệ) -> bỏ bước chọn dự án
+          const lastId = getRememberedProject();
+          if (lastId && projects.some(p => p.id === lastId)) {
+            selectedProjId = lastId;
+            try {
+              await handleProjectSelectConfirm();
+            } catch (e) {
+              console.warn("Tự vào dự án đã nhớ lỗi, quay lại màn chọn:", e);
+              document.getElementById("project-overlay").style.display = "flex";
+              document.getElementById("app-shell").style.display = "none";
+            }
+          }
         } else if (window.PENDING_EMBED_PROJECT) {
           const p = window.PENDING_EMBED_PROJECT;
           await selectProjectById(p.projectId, p.projName, p.projInfo);
@@ -1220,7 +1232,8 @@
     if (!proj) return;
 
     AppCore.currentProject = proj;
-    
+    rememberLastProject(proj.id); // ghi nhớ để lần sau mở app vào thẳng dự án này
+
     // Đặt tên tiêu đề
     document.getElementById("app-header-info").innerText = `Dự án: ${proj.name}`;
     window.CURRENT_COMMANDER = proj.commander || "Chỉ huy trưởng";
@@ -1258,8 +1271,24 @@
     AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });
   }
 
+  // ===== NHỚ DỰ ÁN VỪA VÀO (theo từng tài khoản) — lần sau mở app vào thẳng, bỏ bước chọn =====
+  function _lastProjKey() {
+    return (AppCore.currentUser && AppCore.currentUser.uid)
+      ? ("bca_last_project_" + AppCore.currentUser.uid) : null;
+  }
+  function rememberLastProject(id) {
+    try { const k = _lastProjKey(); if (k && id) localStorage.setItem(k, id); } catch (e) {}
+  }
+  function getRememberedProject() {
+    try { const k = _lastProjKey(); return k ? localStorage.getItem(k) : null; } catch (e) { return null; }
+  }
+  function forgetLastProject() {
+    try { const k = _lastProjKey(); if (k) localStorage.removeItem(k); } catch (e) {}
+  }
+
   function switchToProjectSelector() {
     selectedProjId = "";
+    forgetLastProject(); // bấm "Đổi dự án" = chủ đích chọn lại -> không tự nhảy vào dự án cũ nữa
     document.getElementById("btn-select-project").disabled = true;
     document.getElementById("project-overlay").style.display = "flex";
     document.getElementById("app-shell").style.display = "none";
