@@ -1240,18 +1240,19 @@ function switchTab(tab){
           if (typeof syncKBToIframe === 'function') syncKBToIframe();
           try {
             const list = await DataService.listProjects();
-            const _p = (list || []).find(x => x.id === CUR.project);
-            if (_p && iframe.contentWindow) {
+            const curNorm = (CUR.project || '').trim().toLowerCase();
+            const _p = (list || []).find(x => x.id === CUR.project || (x.name && x.name.trim().toLowerCase() === curNorm));
+            if (iframe && iframe.contentWindow) {
               iframe.contentWindow.postMessage({
                 type: 'PROJECT_CHANGED',
                 projectId: CUR.project,
-                projName: _p.name || '',
+                projName: (_p && _p.name) || CUR.project || '',
                 projInfo: {
-                  name: _p.name || '',
-                  address: _p.address || '',
-                  scale: _p.scale || '',
-                  start_date: _p.start_date || '',
-                  end_date: _p.end_date || ''
+                  name: (_p && _p.name) || CUR.project || '',
+                  address: (_p && _p.address) || '',
+                  scale: (_p && _p.scale) || '',
+                  start_date: (_p && _p.start_date) || '',
+                  end_date: (_p && _p.end_date) || ''
                 }
               }, '*');
             }
@@ -1261,18 +1262,20 @@ function switchTab(tab){
         if (typeof syncKBToIframe === 'function') syncKBToIframe();
         (async () => {
           try {
-            const _p = (await DataService.listProjects()).find(x => x.id === CUR.project);
-            if (_p && iframe && iframe.contentWindow) {
+            const list = await DataService.listProjects();
+            const curNorm = (CUR.project || '').trim().toLowerCase();
+            const _p = (list || []).find(x => x.id === CUR.project || (x.name && x.name.trim().toLowerCase() === curNorm));
+            if (iframe && iframe.contentWindow) {
               iframe.contentWindow.postMessage({
                 type: 'PROJECT_CHANGED',
                 projectId: CUR.project,
-                projName: _p.name || '',
+                projName: (_p && _p.name) || CUR.project || '',
                 projInfo: {
-                  name: _p.name || '',
-                  address: _p.address || '',
-                  scale: _p.scale || '',
-                  start_date: _p.start_date || '',
-                  end_date: _p.end_date || ''
+                  name: (_p && _p.name) || CUR.project || '',
+                  address: (_p && _p.address) || '',
+                  scale: (_p && _p.scale) || '',
+                  start_date: (_p && _p.start_date) || '',
+                  end_date: (_p && _p.end_date) || ''
                 }
               }, '*');
             }
@@ -1335,7 +1338,7 @@ window.addEventListener("load", async ()=>{
   CUR.user=await metaGet("cur_user", users[0]?.id || ""); CUR.project=await metaGet("cur_project", projects[0]?.id || "");
   $("cur-user").value=CUR.user; $("cur-project").value=CUR.project;
   $("cur-user").onchange=e=>{ CUR.user=e.target.value; metaSet("cur_user",CUR.user); renderMySubs(); };
-  $("cur-project").onchange=async e=>{ CUR.project=e.target.value; metaSet("cur_project",CUR.project); const _p0=(projects||[]).find(x=>x.id===CUR.project); try{ if(typeof Swal!=='undefined') Swal.fire({toast:true, position:'top', icon:'info', title:'Đang chuyển sang: '+((_p0&&_p0.name)||'…'), showConfirmButton:false, timer:900, didOpen:(t)=>{ const b=Swal.getContainer(); } }); }catch(_){} document.body.style.cursor='progress'; await SyncEngine.pull(); renderDashboard(); renderMySubs(); renderContractors(); renderTiendo(); renderCdt(); renderTeam(); updateProjBanner(document.querySelector(".nav-btn.active, .sub-btn.active")?.dataset.tab); syncKBToIframe(); const _p=(projects||[]).find(x=>x.id===CUR.project); const _bcn=document.querySelector('iframe'); if(_bcn&&_bcn.contentWindow) _bcn.contentWindow.postMessage({type:'PROJECT_CHANGED', projectId: CUR.project, projName:(_p&&_p.name)||'', projInfo:_p?{name:_p.name||'', address:_p.address||'', scale:_p.scale||'', start_date:_p.start_date||'', end_date:_p.end_date||''}:null},'*'); document.body.style.cursor=''; try{ if(typeof Swal!=='undefined') Swal.fire({toast:true, position:'top', icon:'success', title:'Đang xem: '+((_p&&_p.name)||''), showConfirmButton:false, timer:1200}); }catch(_){} };
+  $("cur-project").onchange=async e=>{ CUR.project=e.target.value; metaSet("cur_project",CUR.project); const curNorm=(CUR.project||'').trim().toLowerCase(); const _p0=(projects||[]).find(x=>x.id===CUR.project||(x.name&&x.name.trim().toLowerCase()===curNorm)); try{ if(typeof Swal!=='undefined') Swal.fire({toast:true, position:'top', icon:'info', title:'Đang chuyển sang: '+((_p0&&_p0.name)||CUR.project||'…'), showConfirmButton:false, timer:900, didOpen:(t)=>{ const b=Swal.getContainer(); } }); }catch(_){} document.body.style.cursor='progress'; await SyncEngine.pull(); renderDashboard(); renderMySubs(); renderContractors(); renderTiendo(); renderCdt(); renderTeam(); updateProjBanner(document.querySelector(".nav-btn.active, .sub-btn.active")?.dataset.tab); syncKBToIframe(); const _p=(projects||[]).find(x=>x.id===CUR.project||(x.name&&x.name.trim().toLowerCase()===curNorm)); const _bcn=document.querySelector('iframe'); if(_bcn&&_bcn.contentWindow) _bcn.contentWindow.postMessage({type:'PROJECT_CHANGED', projectId: CUR.project, projName:(_p&&_p.name)||CUR.project||'', projInfo:{name:(_p&&_p.name)||CUR.project||'', address:(_p&&_p.address)||'', scale:(_p&&_p.scale)||'', start_date:(_p&&_p.start_date)||'', end_date:(_p&&_p.end_date)||''}},'*'); document.body.style.cursor=''; try{ if(typeof Swal!=='undefined') Swal.fire({toast:true, position:'top', icon:'success', title:'Đang xem: '+((_p&&_p.name)||CUR.project||''), showConfirmButton:false, timer:1200}); }catch(_){} };
   document.querySelectorAll(".nav-btn[data-tab], .sub-tab-btn[data-tab]").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   const dz=$("td-drop");
   if(dz){
