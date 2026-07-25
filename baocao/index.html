@@ -738,9 +738,9 @@
 <script src="app-core.js?v=10"></script>
 <script src="js/data.js?v=2"></script>
 <script src="js/utils.js?v=2"></script>
-<script src="js/features.js?v=1.7"></script>
+<script src="js/features.js?v=1.8"></script>
 <script src="hpcons-logo.js?v=1"></script>
-<script src="js/render.js?v=2.2"></script>
+<script src="js/render.js?v=2.3"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT
@@ -752,10 +752,12 @@
     document.addEventListener("DOMContentLoaded", () => {
       const loginOverlay = document.getElementById("login-overlay");
       const projectOverlay = document.getElementById("project-overlay");
+      const appShell = document.getElementById("app-shell");
       const btnSwitchProj = document.getElementById("btn-switch-project");
       const btnLogoutHeader = document.getElementById("btn-logout-header");
       if (loginOverlay) loginOverlay.style.display = "none";
       if (projectOverlay) projectOverlay.style.display = "none";
+      if (appShell) appShell.style.display = "block";
       if (btnSwitchProj) btnSwitchProj.style.display = "none";
       if (btnLogoutHeader) btnLogoutHeader.style.display = "none";
     });
@@ -766,6 +768,22 @@
         showEmbedToast("Đang kết nối tài khoản…");
       }
     }, 6000);
+  }
+
+  function checkRenderModuleLoaded() {
+    if (typeof loadReportForDate !== 'function' || typeof draw !== 'function') {
+      const err = new Error("Module render.js chưa được nạp hoặc bị lỗi khởi tạo.");
+      console.error("[PKTTC Error]", err);
+      const wrap = document.getElementById("previewWrap") || document.getElementById("app-shell");
+      if (wrap) {
+        wrap.innerHTML = `<div style="padding:20px 24px;margin:30px auto;max-width:540px;background:#fee2e2;border:1.5px solid #ef4444;color:#991b1b;border-radius:12px;font-weight:600;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.15);">
+          <div style="font-size:18px;margin-bottom:8px;">⚠️ Không thể hiển thị báo cáo ngày</div>
+          <div style="font-size:13px;opacity:0.9;line-height:1.5;">Module hiển thị (${err.message}) chưa sẵn sàng.<br>Vui lòng ấn Ctrl + F5 để tải lại trang.</div>
+        </div>`;
+      }
+      return false;
+    }
+    return true;
   }
 
   function showEmbedToast(msg) {
@@ -844,6 +862,7 @@
       if (projOverlay) projOverlay.style.display = "none";
       if (logOverlay) logOverlay.style.display = "none";
       if (appShell) appShell.style.display = "block";
+      if (!checkRenderModuleLoaded()) return;
 
       const dateEl = el('f_date');
       if (dateEl && !dateEl.value) {
@@ -851,8 +870,12 @@
         dateEl.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       }
 
-      if (dateEl && typeof loadReportForDate === 'function') {
-        await loadReportForDate(dateEl.value);
+      try {
+        if (dateEl && typeof loadReportForDate === 'function') {
+          await loadReportForDate(dateEl.value);
+        }
+      } catch (e) {
+        console.warn("[PKTTC Warning] Lỗi loadReportForDate:", e);
       }
       if (typeof recalcFromSched === 'function') recalcFromSched();
       if (typeof draw === 'function') draw();
@@ -1033,7 +1056,11 @@
       if (EMBED) {
         loginOverlay.style.display = "none";
         projectOverlay.style.display = "none";
-        appShell.style.display = "none";
+        appShell.style.display = "block";
+        if (window.PENDING_EMBED_PROJECT) {
+          const p = window.PENDING_EMBED_PROJECT;
+          await selectProjectById(p.projectId, p.projName, p.projInfo);
+        }
       } else {
         loginOverlay.style.display = "flex";
         projectOverlay.style.display = "none";
@@ -1237,6 +1264,7 @@
     // Ẩn overlay chọn dự án và hiện app shell
     document.getElementById("project-overlay").style.display = "none";
     document.getElementById("app-shell").style.display = "block";
+    if (!checkRenderModuleLoaded()) return;
 
     // Set ngày mặc định là hôm nay nếu chưa có
     const dateEl = el('f_date');
@@ -1246,9 +1274,14 @@
     }
 
     // Load báo cáo ngày hiện tại
-    if (dateEl) {
-      await loadReportForDate(dateEl.value);
+    try {
+      if (dateEl && typeof loadReportForDate === 'function') {
+        await loadReportForDate(dateEl.value);
+      }
+    } catch (e) {
+      console.warn("[PKTTC Warning] Lỗi loadReportForDate trong handleProjectSelectConfirm:", e);
     }
+    if (typeof draw === 'function') draw();
 
     // Sync KB contractors
     AppCore.postMessage({ type: 'REQUEST_KB_SYNC' });

@@ -12,37 +12,40 @@ function fmtDate(v){
 function imgOrPh(src,cls,phtxt,id){return src?`<img class="${cls}" src="${src}" style="cursor:pointer;transition:0.2s" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="if('${id}')el('${id}').click()" title="Nhấn để đổi ảnh">`:`<div class="${cls} ph" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'" onclick="if('${id}')el('${id}').click()" title="Nhấn để tải ảnh lên">${phtxt||'Ảnh'}</div>`}
 
 /* ---------- Bảng mã WMO chuẩn (N3) dùng chung ---------- */
-const WMO_TABLE = {
-  0:  { label:"Nắng",           emoji:"☀️",  sev:0 },
-  1:  { label:"Ít mây",         emoji:"🌤️", sev:1 },
-  2:  { label:"Nhiều mây",      emoji:"⛅",  sev:2 },
-  3:  { label:"Âm u",           emoji:"☁️",  sev:3 },
-  45: { label:"Sương mù",       emoji:"🌫️", sev:3 },
-  48: { label:"Sương mù",       emoji:"🌫️", sev:3 },
-  51: { label:"Mưa phùn nhẹ",   emoji:"🌦️", sev:4 },
-  53: { label:"Mưa phùn",       emoji:"🌦️", sev:4 },
-  55: { label:"Mưa phùn to",    emoji:"🌧️", sev:5 },
-  56: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
-  57: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
-  61: { label:"Mưa nhẹ",        emoji:"🌦️", sev:5 },
-  63: { label:"Mưa vừa",        emoji:"🌧️", sev:6 },
-  65: { label:"Mưa to",         emoji:"🌧️", sev:7 },
-  66: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
-  67: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
-  71: { label:"Tuyết",          emoji:"🌨️", sev:6 },
-  73: { label:"Tuyết",          emoji:"🌨️", sev:6 },
-  75: { label:"Tuyết",          emoji:"🌨️", sev:6 },
-  77: { label:"Tuyết hạt",      emoji:"🌨️", sev:6 },
-  80: { label:"Mưa rào nhẹ",    emoji:"🌦️", sev:5 },
-  81: { label:"Mưa rào vừa",    emoji:"🌧️", sev:6 },
-  82: { label:"Mưa rào to",     emoji:"⛈️",  sev:8 },
-  85: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
-  86: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
-  95: { label:"Giông bão",      emoji:"⛈️",  sev:9 },
-  96: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 },
-  99: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 }
-};
-function wmoInfo(code){ return WMO_TABLE[code] || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
+window.PKTTC = window.PKTTC || {};
+if (!window.PKTTC.WMO_TABLE) {
+  window.PKTTC.WMO_TABLE = {
+    0:  { label:"Nắng",           emoji:"☀️",  sev:0 },
+    1:  { label:"Ít mây",         emoji:"🌤️", sev:1 },
+    2:  { label:"Nhiều mây",      emoji:"⛅",  sev:2 },
+    3:  { label:"Âm u",           emoji:"☁️",  sev:3 },
+    45: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+    48: { label:"Sương mù",       emoji:"🌫️", sev:3 },
+    51: { label:"Mưa phùn nhẹ",   emoji:"🌦️", sev:4 },
+    53: { label:"Mưa phùn",       emoji:"🌦️", sev:4 },
+    55: { label:"Mưa phùn to",    emoji:"🌧️", sev:5 },
+    56: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+    57: { label:"Mưa phùn lạnh",  emoji:"🌧️", sev:5 },
+    61: { label:"Mưa nhẹ",        emoji:"🌦️", sev:5 },
+    63: { label:"Mưa vừa",        emoji:"🌧️", sev:6 },
+    65: { label:"Mưa to",         emoji:"🌧️", sev:7 },
+    66: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+    67: { label:"Mưa lạnh",       emoji:"🌧️", sev:7 },
+    71: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+    73: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+    75: { label:"Tuyết",          emoji:"🌨️", sev:6 },
+    77: { label:"Tuyết hạt",      emoji:"🌨️", sev:6 },
+    80: { label:"Mưa rào nhẹ",    emoji:"🌦️", sev:5 },
+    81: { label:"Mưa rào vừa",    emoji:"🌧️", sev:6 },
+    82: { label:"Mưa rào to",     emoji:"⛈️",  sev:8 },
+    85: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+    86: { label:"Mưa tuyết rào",  emoji:"🌨️", sev:7 },
+    95: { label:"Giông bão",      emoji:"⛈️",  sev:9 },
+    96: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 },
+    99: { label:"Giông kèm mưa đá", emoji:"⛈️", sev:10 }
+  };
+}
+function wmoInfo(code){ return (window.PKTTC && window.PKTTC.WMO_TABLE && window.PKTTC.WMO_TABLE[code]) || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
 
 function getReportWeatherInfo(r) {
   let code = (r && r.weather_code !== undefined && r.weather_code !== null) ? r.weather_code : (typeof window._repWeatherCode !== 'undefined' ? window._repWeatherCode : null);
@@ -1535,7 +1538,7 @@ el('f_end').addEventListener('change', () => recalcFromSched(true));
 /* đổi BCH -> tự cộng Tổng số */
 el('f_bch').addEventListener('input',recomputeTotal);
 
-renderUnitForm();renderWorkForm();renderPhotoForm();renderDrawForm();loadTerms();recomputeTotal();recalcFromSched();
+renderUnitForm();renderWorkForm();renderPhotoForm();renderDrawForm();loadTerms();recomputeTotal();recalcFromSched();if(typeof draw==='function')draw();
 ['f_weather_m','f_weather_a','f_weather_note'].forEach(id=>{
   const elm = el(id);
   if(elm) elm.addEventListener('change', draw);
@@ -1734,6 +1737,10 @@ async function loadReportForDate(date) {
     }
   } catch (e) {
     console.error("Lỗi khi tải báo cáo ngày:", e);
+    if (typeof draw === 'function') draw();
+    if (typeof showEmbedToast === 'function') {
+      showEmbedToast("⚠️ Không tải được dữ liệu từ máy chủ — Vui lòng kiểm tra kết nối mạng.");
+    }
   }
 }
 window.loadReportForDate = loadReportForDate;
