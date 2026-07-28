@@ -1755,12 +1755,12 @@ async function fetchWeatherFromGPS(auto = false) {
       el('f_weather_display').value = (repCode !== null ? `${repInfo.emoji} ${label}` : "⏳ Đang cập nhật") + (rainHoursCount > 0 ? ` · Mưa ảnh hưởng: ${rainHoursCount} giờ` : '');
     }
 
-    // Generate note
+    // Generate note — Sếp chốt 24/07: dòng ghi chú CHỈ thể hiện số giờ mưa, KHÔNG câu mô tả.
     let note = "";
     if(rainHoursCount > 0) {
-      note = `${label} · Mưa ảnh hưởng: ${rainHoursCount} giờ`;
+      note = `Mưa ảnh hưởng: ${rainHoursCount} giờ`;
     } else {
-      note = label;
+      note = "";
     }
     if (el('f_weather_note')) el('f_weather_note').value = note;
 

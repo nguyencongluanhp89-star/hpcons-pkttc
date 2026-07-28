@@ -138,12 +138,10 @@ function draw(){
   let wTextBox = `<div class="kv" style="justify-content:center; font-weight:700; text-transform:uppercase; letter-spacing:0.5px">
     <span>${wInfo.label}</span>
   </div>`;
-  if (wInfo.rainHours > 0) {
-    wTextBox += `<div style="text-align:center;font-weight:700;color:var(--red);font-size:var(--fs-body);margin-top:6px;background:#fdeaea;padding:4px 8px;border-radius:4px;display:inline-block">Mưa ảnh hưởng: ${wInfo.rainHours} giờ</div>`;
-  }
-  
-  const wnote = el('f_weather_note') ? el('f_weather_note').value.trim() : '';
-  const weatherNoteBox = wnote 
+  // Sếp chốt 24/07: dòng ghi chú CHỈ thể hiện số giờ mưa (không câu mô tả, không "0 giờ").
+  // KHÔNG đọc f_weather_note nữa -> báo cáo cũ có câu mô tả dài cũng tự sạch.
+  const wnote = wInfo.rainHours > 0 ? `Mưa ảnh hưởng: ${wInfo.rainHours} giờ` : '';
+  const weatherNoteBox = wnote
     ? `<div class="kv" style="border-bottom:0; justify-content:center"><div class="w-note">${wnote}</div></div>`
     : `<div class="kv" style="border-bottom:0; justify-content:center"><div class="w-note" style="opacity:0">&nbsp;</div></div>`;
   let workHtml=works.map((w,i)=>{
@@ -476,14 +474,10 @@ async function exportPNG169() {
 
     // Thời tiết (N5)
     const wInfo = getReportWeatherInfo();
-    const wnote = el('f_weather_note') ? el('f_weather_note').value.trim() : '';
-    
+    // Chỉ trạng thái + số giờ mưa (nếu có) — KHÔNG câu mô tả (Sếp chốt 24/07)
     let weatherText = `${wInfo.emoji} ${wInfo.label}`;
     if (wInfo.rainHours > 0) {
-      weatherText += ` (Mưa ${wInfo.rainHours}h)`;
-    }
-    if (wnote) {
-      weatherText += ` - ${wnote}`;
+      weatherText += ` · Mưa ảnh hưởng: ${wInfo.rainHours} giờ`;
     }
 
     const wIconBox = `<div style="font-size: ${FS.weatherIc}px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${wInfo.emoji}</div>`;
@@ -774,8 +768,8 @@ async function exportPNG169() {
     const wInfo169 = getReportWeatherInfo(typeof currentReportData !== 'undefined' ? currentReportData : null);
     const wColor = (wInfo169.code !== null && wInfo169.code >= 51) ? '#2563eb' : '#d97706';
     const statusText1 = wInfo169.label.toUpperCase();
-    const wnote169 = el('f_weather_note') ? el('f_weather_note').value.trim() : '';
-    const statusText2 = wInfo169.rainHours > 0 ? `MƯA ẢNH HƯỞNG: ${wInfo169.rainHours} GIỜ` : (wnote169 ? wnote169.toUpperCase() : '');
+    // Dòng 2 CHỈ thể hiện số giờ mưa; không mưa -> trống (ẩn giữ chỗ, không câu mô tả)
+    const statusText2 = wInfo169.rainHours > 0 ? `MƯA ẢNH HƯỞNG: ${wInfo169.rainHours} GIỜ` : '';
     const wIconBox169 = `<div style="font-size: 60px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${wInfo169.emoji}</div>`;
 
     const manpowerHtml = `
