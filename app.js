@@ -1,7 +1,7 @@
-const SUPABASE_CONFIG = { url: "https://guqttgckrqwvtlpfchws.supabase.co", anonKey: "sb_publishable_eg2mhQLEfcJhi_YmjXq9cg_EcDT8gGc", functionUrl: "https://guqttgckrqwvtlpfchws.supabase.co/functions/v1/consolidate" };
-// CÔNG TẮC SUPABASE — Sếp chốt 2026-07-15 chuyển TOÀN BỘ sang Firebase, tắt Supabase (hết lỗi 503).
-// Đặt false = không dùng Supabase (chỉ Firebase). Bật lại true nếu cần lùi. Giữ nguyên code Supabase bên dưới.
-const SUPABASE_ENABLED = false;
+// SUPABASE ĐÃ GỠ BỎ HOÀN TOÀN 28/07/2026 (Sếp chốt) — hệ thống chạy 100% Firebase từ 15/07.
+// Trước đó chỉ TẮT bằng cờ SUPABASE_ENABLED=false, code + khóa anon vẫn nằm trong mã nguồn.
+// Nay xóa: SUPABASE_CONFIG (kèm khóa anon), SUPABASE_ENABLED, object SupabaseSync (~249 dòng),
+// thư viện supabase-js trong index.html. Cần lùi thì lấy lại từ git history (trước commit này).
 
 // CÔNG TẮC ĐĂNG NHẬP: để false = TẮT đăng nhập (tự vào quyền Admin, thấy mọi tab).
 // Khi hoàn thiện xong, đổi thành true để bật lại màn đăng nhập + phân quyền.
@@ -119,7 +119,8 @@ const DataService = {
 // ---------- SYNC (stub an toàn) ----------
 const SyncEngine = {
   online: navigator.onLine,
-  configured(){ return SUPABASE_ENABLED && !!SUPABASE_CONFIG.url && !!SUPABASE_CONFIG.anonKey; },
+  // Supabase đã gỡ bỏ 28/07 — giữ configured() trả false để mọi nhánh cũ (nếu còn) tự dừng an toàn.
+  configured(){ return false; },
   setPill(){
     const p = document.getElementById("sync-pill"); if(!p) return;
     // Chỉ hiển thị cho tài khoản admin theo yêu cầu
@@ -129,35 +130,18 @@ const SyncEngine = {
     } else {
       p.style.display = "";
     }
-    if (!this.configured()){
-      // Supabase tắt → hệ thống chạy Firebase. Hiển thị theo trạng thái Firebase.
-      p.style.cursor="default"; p.onclick=null;
-      if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED && typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
-        p.textContent = this.online ? "Đã đồng bộ (Firebase)" : "Chờ mạng…";
-        p.className = this.online ? "pill pill-ok" : "pill pill-off";
-      } else {
-        p.textContent="Offline (local)"; p.className="pill pill-off";
-      }
-      return;
+    // Hệ thống chạy 100% Firebase — hiển thị theo trạng thái Firebase.
+    p.style.cursor="default"; p.onclick=null;
+    if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED && typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
+      p.textContent = this.online ? "Đã đồng bộ (Firebase)" : "Chờ mạng…";
+      p.className = this.online ? "pill pill-ok" : "pill pill-off";
+    } else {
+      p.textContent="Offline (local)"; p.className="pill pill-off";
     }
-    p.style.cursor="pointer";
-    p.onclick=()=>SupabaseSync.toggleAuth();
-    if (!SupabaseSync.user){ p.textContent="Đăng nhập"; p.className="pill pill-off"; return; }
-    if (!this.online){ p.textContent="Chờ mạng…"; p.className="pill pill-off"; return; }
-    p.textContent = "Đã đồng bộ · " + (SupabaseSync.userName||"online"); p.className="pill pill-ok";
   },
   async tryPush(){
     this.setPill();
     if(!this.online) return;
-
-    if(this.configured()) {
-      try {
-        await SupabaseSync.pushAllDirty(true);
-      } catch (err) {
-        // Supabase lỗi (vd 503) KHÔNG được chặn việc đẩy lên Firebase — nếu không, app báo cáo (đọc Firebase) sẽ thiếu dữ liệu.
-        console.warn("SupabaseSync pushAllDirty lỗi (bỏ qua, vẫn đẩy Firebase):", err);
-      }
-    }
 
     if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED) {
       try {
@@ -174,12 +158,6 @@ const SyncEngine = {
     if(!this.online) return;
 
     const promises = [];
-    if(this.configured()) {
-      // Bọc catch: Supabase sập (503) KHÔNG được làm chết bước kéo Firebase + làm mới form phía sau.
-      promises.push(SupabaseSync.pull(CUR.project).catch(err => {
-        console.warn("SupabaseSync pull lỗi (bỏ qua, không chặn Firebase):", err && err.message);
-      }));
-    }
     if (typeof FIREBASE_ENABLED !== "undefined" && FIREBASE_ENABLED) {
       if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
         promises.push(FirebaseSync.pull(CUR.project).catch(err => {
@@ -219,259 +197,8 @@ window.addEventListener("offline", ()=>{ SyncEngine.online=false; SyncEngine.set
 // (đổi/mở dự án, sau pull) — thiếu nó là ReferenceError làm đứt cả chuỗi đổi dự án.
 function renderMySubs(){}
 
-// =====================================================================
-// SUPABASE SYNC — sẵn sàng cắm key. Để trống SUPABASE_CONFIG => không kích hoạt.
-// Cần nạp thư viện supabase-js (đã thêm <script> ở <head>) + có mạng + đăng nhập.
-// =====================================================================
-const SupabaseSync = {
-  client:null, user:null, userName:"", realtimeChannel:null,
-  subscribeRealtime(){
-    try {
-      const c = this.init();
-      if (!c) return;
-      if (this.realtimeChannel) {
-        c.removeChannel(this.realtimeChannel);
-        this.realtimeChannel = null;
-      }
-      this.realtimeChannel = c.channel('hpcons-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_meta' }, async (payload) => {
-          console.log('Realtime update on app_meta:', payload);
-          await SyncEngine.pull();
-          const activeTab = document.querySelector(".nav-btn.active, .sub-btn.active")?.dataset.tab;
-          if (activeTab) switchTab(activeTab);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_consolidated' }, async (payload) => {
-          console.log('Realtime update on daily_consolidated:', payload);
-          await SyncEngine.pull();
-          const activeTab = document.querySelector(".nav-btn.active, .sub-btn.active")?.dataset.tab;
-          if (activeTab) switchTab(activeTab);
-        })
-        .subscribe((status) => {
-          console.log("Realtime subscription status:", status);
-        });
-    } catch(err) {
-      console.warn("Lỗi đăng ký Realtime:", err);
-    }
-  },
-  init(){
-    if(!SUPABASE_ENABLED) return null; // Supabase đã tắt -> mọi nơi gọi init() tự dừng an toàn
-    if(this.client) return this.client;
-    if(!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) return null;
-    if(typeof supabase==="undefined" || !supabase.createClient) return null; // chưa nạp được lib (offline)
-    this.client = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-    return this.client;
-  },
-  async refreshUser(){
-    const c=this.init(); if(!c){ this.user=null; return null; }
-    const { data } = await c.auth.getUser();
-    this.user = data?.user || null;
-    this.userName = this.user ? (this.user.email||"") : "";
-    return this.user;
-  },
-  async toggleAuth(){
-    const c=this.init(); if(!c){ alert("Chưa cấu hình Supabase (URL + anon key)."); return; }
-    if(this.user){ if(confirm("Đăng xuất khỏi đồng bộ?")){ await c.auth.signOut(); this.user=null; SyncEngine.setPill(); } return; }
-    const email=prompt("Email đăng nhập Supabase:"); if(!email) return;
-    const pw=prompt("Mật khẩu:"); if(!pw) return;
-    const { error } = await c.auth.signInWithPassword({ email, password: pw });
-    if(error){ alert("Đăng nhập lỗi: "+error.message); return; }
-    await this.refreshUser(); SyncEngine.setPill(); this.subscribeRealtime();
-    await this.pull(CUR.project); renderDashboard(); renderMySubs();
-    alert("Đăng nhập thành công. Đã đồng bộ dữ liệu.");
-  },
-  async pushSubmission(sub){
-    const c=this.init(); if(!c || !this.user) return false;
-    const photoPaths = (sub.photoPaths||[]).slice();
-    for(const id of (sub.photoIds||[])){
-      const blob=await DataService.getPhoto(id); if(!blob) continue;
-      const path=sub.project_id+"/"+sub.client_uuid+"/"+id+".jpg";
-      const up=await c.storage.from("site-photos").upload(path, blob, {upsert:true, contentType:"image/jpeg"});
-      if(!up.error && photoPaths.indexOf(path)<0) photoPaths.push(path);
-    }
-    const data={ shift:sub.shift, area:sub.area, weather:sub.weather, note:sub.note,
-      manpower:sub.manpower||[], completed:sub.completed||[], plans:sub.plans||[],
-      issues:sub.issues||[], milestones:sub.milestones||[], photoPaths, created_at:sub.created_at };
-    const { error } = await c.from("submissions").upsert({
-      client_uuid:sub.client_uuid, project_id:sub.project_id, log_date:sub.log_date,
-      submitted_by:this.user.id, data }, { onConflict:"client_uuid" });
-    if(error){ console.warn("push lỗi:", error.message); return false; }
-    if(SUPABASE_CONFIG.functionUrl){
-      try{ await fetch(SUPABASE_CONFIG.functionUrl, {method:"POST", headers:{"content-type":"application/json"},
-        body:JSON.stringify({project_id:sub.project_id, log_date:sub.log_date})}); }catch(_){}
-    }
-    return true;
-  },
-  async pushDailyReport(r) {
-    const c=this.init(); if(!c || !this.user) return false;
-    const log_date = r.date;
-    const project_id = r.project_id;
-
-    // Kiểm tra xung đột phiên bản (Concurrency Control)
-    let overwrite = true;
-    if (r.updated_at) {
-      try {
-        const { data: remote } = await c.from("daily_consolidated").select("updated_at").eq("project_id", project_id).eq("log_date", log_date).maybeSingle();
-        if (remote && new Date(remote.updated_at).getTime() > new Date(r.updated_at).getTime() + 1000) {
-          const action = confirm(`[XUNG ĐỘT BÁO CÁO NGÀY] Báo cáo ngày ${log_date} đã được người khác cập nhật mới hơn trên máy chủ.\n\n- Nhấn OK để Ghi đè (giữ lại bản sửa của bạn).\n- Nhấn Cancel để Hủy bỏ bản sửa và tải bản mới nhất từ máy chủ.`);
-          if (!action) {
-            overwrite = false;
-            const { data: newest } = await c.from("daily_consolidated").select("*").eq("project_id", project_id).eq("log_date", log_date).maybeSingle();
-            if (newest) {
-              const allDaily = await metaGet('daily_reports', []);
-              const localIdx = allDaily.findIndex(x => x.project_id === project_id && x.date === log_date);
-              let report = newest.data || {
-                date: newest.log_date, project_id: newest.project_id,
-                total_manpower: newest.total_headcount, units: newest.manpower_by_contractor || [],
-                works_full: newest.completed || [], draws: newest.issues || [], status: 'approved'
-              };
-              report.updated_at = newest.updated_at;
-              report.dirty = false;
-              if (localIdx >= 0) allDaily[localIdx] = report;
-              else allDaily.push(report);
-              await idbPut("meta", {key: 'daily_reports', value: allDaily});
-              console.log(`Đã hủy bản sửa local và nạp báo cáo ngày ${log_date} mới nhất.`);
-            }
-          }
-        }
-      } catch(err) {
-        console.warn("Lỗi kiểm tra xung đột báo cáo ngày:", err);
-      }
-    }
-
-    if (!overwrite) return true; // coi như đã hoàn thành xử lý bằng hủy bỏ bản sửa
-
-    const total_headcount = parseInt(r.total_manpower) || 0;
-    const manpower_by_contractor = r.units || [];
-    const completed = r.works_full || [];
-    const { data: res, error } = await c.from("daily_consolidated").upsert({
-      project_id,
-      log_date,
-      total_headcount,
-      manpower_by_contractor,
-      completed,
-      issues: r.draws || [],
-      data: r,
-      updated_at: new Date().toISOString()
-    }, { onConflict: "project_id, log_date" }).select("updated_at").maybeSingle();
-    if (error) {
-      console.warn("push báo cáo ngày lỗi:", error.message);
-      return false;
-    }
-    if (res) {
-      r.updated_at = res.updated_at;
-    }
-    return true;
-  },
-  async pushAllDirty(autoOnly=false){
-    const c=this.init(); if(!c) return;
-    // Phương án A (đồng bộ nội bộ): CHỈ đồng bộ qua app_meta. Bỏ đồng bộ hệ cũ submissions/daily_consolidated
-    // (dữ liệu báo cáo ngày đã nằm trong app_meta key 'daily_reports') — tránh lỗi 403 RLS không cần thiết.
-    try {
-      const dirtyMetaObj = await idbGet("meta", "meta_dirty_keys");
-      const dirtyMetaKeys = dirtyMetaObj ? (dirtyMetaObj.value || []) : [];
-      if (dirtyMetaKeys.length > 0) {
-        const remainingKeys = [];
-        for (const key of dirtyMetaKeys) {
-          // Auto-push (sau mỗi sửa) BỎ QUA key dữ liệu nền/danh mục — giữ dirty để bấm "Đẩy toàn bộ" mới đẩy.
-          if (autoOnly && isManualPushOnlyKey(key)) { remainingKeys.push(key); continue; }
-          const valObj = await idbGet("meta", key);
-          if (valObj) {
-            // GỘP THÔNG MINH cho báo cáo ngày: đọc bản server mới nhất rồi gộp báo cáo của mình vào,
-            // giữ nguyên báo cáo của người khác (chống 2 người nộp gần nhau đè mất nhau).
-            if (key === "daily_reports") {
-              try {
-                const { data: remoteRow } = await c.from("app_meta").select("value").eq("key","daily_reports").maybeSingle();
-                const serverArr = Array.isArray(remoteRow && remoteRow.value) ? remoteRow.value : [];
-                const localArr = Array.isArray(valObj.value) ? valObj.value : [];
-                const rkey = (r)=> (r.project_id||"")+"|"+(r.date||"")+"|"+(r.created_by||"");
-                const byKey = {};
-                serverArr.forEach(r=>{ byKey[rkey(r)] = r; });
-                localArr.forEach(r=>{
-                  const k=rkey(r), ex=byKey[k];
-                  if(!ex) byKey[k]=r;                                                   // báo cáo chưa có trên server -> thêm
-                  else if(r.dirty) byKey[k]=r;                                          // báo cáo mình vừa sửa -> thắng
-                  else if(new Date(r.updated_at||0) > new Date(ex.updated_at||0)) byKey[k]=r; // bản mới hơn -> thắng
-                });
-                const merged = Object.values(byKey).map(r=>({ ...r, dirty:false }));
-                const { data: res, error } = await c.from("app_meta").upsert({ key:"daily_reports", value:merged, updated_at:new Date().toISOString() }, { onConflict:"key" }).select("updated_at").maybeSingle();
-                if(error){ console.warn("push daily_reports (gộp) lỗi:", error.message); remainingKeys.push(key); }
-                else { await idbPut("meta", { key:"daily_reports", value:merged, updated_at: res?res.updated_at:new Date().toISOString() }); }
-              } catch(e){ console.warn("gộp daily_reports lỗi:", e); remainingKeys.push(key); }
-              continue;
-            }
-            let overwrite = true;
-            if (valObj.updated_at) {
-              try {
-                const { data: remote } = await c.from("app_meta").select("updated_at").eq("key", key).maybeSingle();
-                if (remote && new Date(remote.updated_at).getTime() > new Date(valObj.updated_at).getTime() + 1000) {
-                  const action = confirm(`[XUNG ĐỘT DỮ LIỆU] Mục cấu hình "${key}" đã được người khác cập nhật mới hơn trên máy chủ.\n\n- Nhấn OK để Ghi đè (giữ lại bản sửa của bạn).\n- Nhấn Cancel để Hủy bỏ bản sửa và tải bản mới nhất từ máy chủ.`);
-                  if (!action) {
-                    overwrite = false;
-                    const { data: newest } = await c.from("app_meta").select("*").eq("key", key).maybeSingle();
-                    if (newest) {
-                      await idbPut("meta", { key: newest.key, value: newest.value, updated_at: newest.updated_at });
-                      console.log(`Đã hủy bản sửa local và nạp cấu hình "${key}" mới nhất.`);
-                    }
-                  }
-                }
-              } catch(err) {
-                console.warn("Lỗi kiểm tra xung đột app_meta:", err);
-              }
-            }
-            if (overwrite) {
-              const { data: res, error } = await c.from("app_meta").upsert({
-                key: key,
-                value: valObj.value,
-                updated_at: new Date().toISOString()
-              }, { onConflict: "key" }).select("updated_at").maybeSingle();
-              if (error) {
-                console.warn("push app_meta lỗi cho key " + key + ":", error.message);
-                remainingKeys.push(key);
-              } else if (res) {
-                await idbPut("meta", { key, value: valObj.value, updated_at: res.updated_at });
-              }
-            }
-          }
-        }
-        await idbPut("meta", { key: "meta_dirty_keys", value: remainingKeys });
-      }
-    } catch(err) {
-      console.warn("Lỗi push app_meta:", err);
-    }
-    // Tự động đẩy snapshot dữ liệu mới nhất lên cho Bot Telegram sau khi đồng bộ thành công
-    try {
-      if (typeof pushAiSnapshot === "function") {
-        await pushAiSnapshot();
-      }
-    } catch(err) {
-      console.warn("Lỗi tự động đẩy snapshot cho Bot:", err);
-    }
-  },
-  async pull(projectId){
-    const c=this.init(); if(!c) return;
-    // Phương án A (đồng bộ nội bộ): CHỈ kéo app_meta (báo cáo ngày đã nằm trong app_meta key 'daily_reports').
-    // Bỏ kéo hệ cũ submissions/daily_consolidated — tránh lỗi 403 RLS không cần thiết.
-    const { data: metaData, error: metaError } = await c.from("app_meta").select("*");
-    if (metaError) {
-      console.warn("pull app_meta lỗi:", metaError.message);
-    } else if (metaData && metaData.length > 0) {
-      const dirtyMetaObj = await idbGet("meta", "meta_dirty_keys");
-      const dirtyMetaKeys = new Set(dirtyMetaObj ? (dirtyMetaObj.value || []) : []);
-      for (const row of metaData) {
-        if (dirtyMetaKeys.has(row.key)) {
-          // Lưu lại updated_at của server để đối chiếu xung đột sau này
-          const localObj = await idbGet("meta", row.key);
-          if (localObj && !localObj.updated_at) {
-            await idbPut("meta", { key: row.key, value: localObj.value, updated_at: row.updated_at });
-          }
-          continue;
-        }
-        await idbPut("meta", { key: row.key, value: row.value, updated_at: row.updated_at });
-      }
-    }
-  },
-  photoUrl(path){ const c=this.init(); if(!c) return ""; try{ return c.storage.from("site-photos").getPublicUrl(path).data.publicUrl; }catch(e){ return ""; } },
-};
+// SUPABASE SYNC: object SupabaseSync (253 dong: auth/realtime/push/pull/storage Supabase)
+// DA XOA HOAN TOAN 28/07/2026 — he thong chay 100% Firebase (xem FirebaseSync trong firebase-sync.js).
 
 const SYNC_SKIP_KEYS = ["meta_dirty_keys","cur_user","cur_project","meta_dark_mode","session_user"];
 
@@ -496,7 +223,7 @@ window.catalogAutoPushAllowed = catalogAutoPushAllowed;
 // MÁY NGUỒN CHUẨN: đẩy TOÀN BỘ dữ liệu local lên server (ghi đè server). Dùng cho lần thiết lập đầu.
 async function syncPushAll(){
   const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
-  if(!SyncEngine.configured() && !fbReady){ alert("Chưa sẵn sàng đồng bộ (Firebase)."); return; }
+  if(!fbReady){ alert("Chưa sẵn sàng đồng bộ (Firebase)."); return; }
   if(!navigator.onLine){ alert("Cần kết nối mạng."); return; }
   if(!confirm("ĐẨY TOÀN BỘ dữ liệu máy này lên server (sẽ GHI ĐÈ dữ liệu trên server).\nChỉ dùng ở MÁY NGUỒN CHUẨN. Tiếp tục?")) return;
   try{
@@ -507,10 +234,6 @@ async function syncPushAll(){
     let firebasePromise = Promise.resolve({ ok: 0, failed: [] });
     if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
       firebasePromise = FirebaseSync.pushAllDirty();
-    }
-
-    if (SyncEngine.configured()) {
-      try { await SupabaseSync.pushAllDirty(); } catch(err){ console.warn("syncPushAll Supabase lỗi (bỏ qua):", err); }
     }
 
     let fbResult = { ok: 0, failed: [] };
@@ -536,18 +259,13 @@ async function syncPushAll(){
 // MÁY ĐỒNG BỘ THEO: kéo TOÀN BỘ dữ liệu từ server về (ghi đè local).
 async function syncPullAll(){
   const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
-  if(!SyncEngine.configured() && !fbReady){ alert("Chưa sẵn sàng đồng bộ (Firebase)."); return; }
+  if(!fbReady){ alert("Chưa sẵn sàng đồng bộ (Firebase)."); return; }
   if(!navigator.onLine){ alert("Cần kết nối mạng."); return; }
   if(!confirm("KÉO TOÀN BỘ dữ liệu từ server về máy này (sẽ GHI ĐÈ dữ liệu local của máy này).\nDùng ở MÁY ĐỒNG BỘ THEO. Tiếp tục?")) return;
   try{
     await idbPut("meta", { key:"meta_dirty_keys", value:[] }); // bỏ cờ dirty để không chặn việc nhận bản server
 
     const promises = [];
-    if (SyncEngine.configured()) {
-      promises.push(SupabaseSync.pull(CUR.project).catch(err => {
-        console.warn("syncPullAll Supabase lỗi (bỏ qua):", err);
-      }));
-    }
     if (typeof FirebaseSync !== "undefined" && FirebaseSync.ready()) {
       promises.push(FirebaseSync.pull(CUR.project).catch(err => {
         console.warn("syncPullAll FirebaseSync lỗi:", err);
@@ -759,17 +477,10 @@ async function analyzeVoice(){
   const tasks=(await getProgress()).map(t=>t.task).filter(Boolean);           // Tiến độ tổng
   const subsP=(await DataService.listSubmissions()).filter(s=>s.project_id===CUR.project);
   const areas=Array.from(new Set(subsP.map(s=>s.area).filter(Boolean)));        // khu vực đã từng nhập
-  let parsed=null; const base=SUPABASE_CONFIG.functionUrl;
-  if(base && navigator.onLine){
-    if(st)st.textContent="Đang nhờ AI phân tích…";
-    try{
-      const url=base.replace(/consolidate\/?$/,"parse-journal");
-      const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({transcript:text, contractors:known, masterSchedule:tasks, areas:areas, items:dict.items||[]})});
-      const d=await r.json(); if(d && (d.result||d.manpower)){ parsed=normalizeParsed(d.result||d); }
-    }catch(e){}
-  }
-  if(!parsed){ parsed=parseJournalLocal(text,{contractors:known}); if(st)st.textContent=(base?"AI ngoại tuyến — dùng phân tích trên máy.":"Đã phân tích (trên máy)."); }
-  else { if(st)st.textContent="AI đã phân tích."; }
+  // Trước đây gọi Edge Function Supabase "parse-journal" — hàm đó đã NGHỈ HƯU (GĐ7) và Supabase
+  // đã gỡ bỏ 28/07. Nay phân tích hoàn toàn TRÊN MÁY bằng parseJournalLocal (không cần mạng).
+  let parsed = parseJournalLocal(text, { contractors: known });
+  if(st) st.textContent = "Đã phân tích (trên máy).";
   renderVoicePreview(parsed, contractors, tasks);
 }
 function vField(label,id,val,rows){ return '<div style="margin-bottom:6px"><label style="font-size:13px;font-weight:600">'+label+'</label>'
@@ -1347,12 +1058,6 @@ window.addEventListener("load", async ()=>{
     dz.addEventListener("drop", e=>{ e.preventDefault(); dz.classList.remove("drag"); if(e.dataTransfer.files&&e.dataTransfer.files[0]) importProgressFile(e.dataTransfer.files[0]); });
   }
   $("r-date").value=todayISO();
-  // Đồng bộ Supabase chạy NỀN (không chặn hiển thị) — tránh app đứng chờ ~1 phút khi mạng/Supabase chậm
-  // Supabase (nếu còn bật): auth + realtime chạy nền.
-  if(SyncEngine.configured()){
-    SupabaseSync.refreshUser().catch(()=>{});
-    try{ SupabaseSync.subscribeRealtime(); }catch(_){}
-  }
   // Kéo dữ liệu LUÔN chạy (SyncEngine.pull tự lo Firebase + Supabase-nếu-bật + làm mới form) —
   // KHÔNG gate theo Supabase, để tắt Supabase thì Firebase vẫn kéo về lúc khởi động.
   SyncEngine.pull().then(()=>{ SyncEngine.setPill(); if (typeof adoptSharedGeminiKey==='function') adoptSharedGeminiKey(); }).catch(()=>{});
@@ -1587,8 +1292,7 @@ async function pushAiSnapshot(){
     // trước chỉ ghi Supabase — Supabase tắt là thoát sớm -> Firebase KHÔNG BAO GIỜ có snapshot
     // -> bot đói dữ liệu, Gemini tự bịa (Vinhomes/Ecopark...). Nay ghi Firebase là chính.
     const fbReady = (typeof FirebaseSync !== "undefined" && FirebaseSync.ready());
-    const client = SupabaseSync.init(); // null khi SUPABASE_ENABLED=false
-    if(!fbReady && !client) return;
+    if(!fbReady) return; // Supabase đã gỡ bỏ 28/07 — chỉ còn đường Firebase
     const ctx=await buildCompanySnapshot();
     // KHÓA AN TOÀN: không đẩy snapshot "nghèo dữ liệu" đè lên bản tốt trên server.
     // (VD: điện thoại vừa đăng nhập, chưa kéo dữ liệu về xong -> daily_reports còn rỗng.)
@@ -1607,17 +1311,7 @@ async function pushAiSnapshot(){
         }, { merge: true });
       } catch (e) { console.warn("Lỗi push snapshot Firebase:", e && e.message); }
     }
-    // Supabase — chỉ khi còn bật (giữ tương thích giai đoạn chuyển tiếp)
-    if (client) {
-      const { error } = await client.from("ai_snapshot").upsert({
-        project_id: '_company',
-        data: ctx,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "project_id" });
-      if(error) {
-        console.warn("Lỗi push snapshot lên ai_snapshot:", error.message);
-      }
-    }
+    // (Nhánh đẩy snapshot lên Supabase đã xóa 28/07 — bot Telegram đọc từ Firebase.)
   }catch(e){
     console.warn("Lỗi gọi pushAiSnapshot:", e);
   }

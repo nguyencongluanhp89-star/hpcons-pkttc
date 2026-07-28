@@ -1056,28 +1056,10 @@ async function importProgressFile(file){
         }
       }
 
-      // 2. Nếu thất bại hoặc không có key cục bộ, thử gọi qua Edge Function của Supabase (dùng base64)
-      // (Supabase đã TẮT — SUPABASE_ENABLED=false — nên bỏ qua bước này, khỏi chờ endpoint chết)
-      if (!guidanceText && (typeof SUPABASE_ENABLED === "undefined" || SUPABASE_ENABLED) && SUPABASE_CONFIG.functionUrl) {
-        box.innerHTML = "⏳ Đang gửi tệp PDF lên Edge Function để phân tích...";
-        try {
-          const b64 = await fileToBase64(file);
-          const url = SUPABASE_CONFIG.functionUrl.replace(/consolidate\/?$/,"analyze-file");
-          const res = await fetch(url, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ filename: file.name, pdf_base64: b64 })
-          });
-          if (res.ok) {
-            const d = await res.json();
-            guidanceText = d.guidance || d.error || JSON.stringify(d);
-            parsedByAI = true;
-          }
-        } catch (edgeError) {
-          console.warn("Supabase Edge Function failed:", edgeError);
-        }
-      }
-      
+      // (Bước 2 cũ — gửi PDF lên Edge Function "analyze-file" của Supabase — ĐÃ XÓA 28/07:
+      //  hàm đó nghỉ hưu từ GĐ7 vì đã có bộ đọc MS Project offline + Gemini gọi trực tiếp,
+      //  và Supabase gỡ bỏ hoàn toàn. Không còn endpoint chết để chờ.)
+
       // 3. Hiển thị kết quả AI hoặc Fallback offline
       if (guidanceText) {
         // Gỡ khối code ``` nếu AI lỡ bọc kết quả (đã cấm trong prompt, chặn thêm cho chắc)

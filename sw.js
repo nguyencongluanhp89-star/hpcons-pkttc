@@ -1,6 +1,6 @@
 // Từ v58: KHÔNG cần bump tay mỗi lần sửa nữa — fetch dùng no-cache cho file cùng máy (xem handler bên dưới),
 // luôn lấy bản mới khi online; cache chỉ dùng làm dự phòng khi offline.
-const CACHE_NAME = 'hpcons-cache-v98';
+const CACHE_NAME = 'hpcons-cache-v99';
 
 // Danh sách các tệp cơ bản cần thiết để ứng dụng load được khi offline
 // Sẽ dùng chiến thuật Network First
@@ -16,13 +16,9 @@ const urlsToCache = [
   './icon-192.png',
   './icon-512.png',
   './favicon.ico',
-  './icon-ios.png',
-  './TAB BAO CAO NGAY/bao-cao-thi-cong-ngay.html',
-  './TAB BAO CAO NGAY/css/style.css',
-  './TAB BAO CAO NGAY/js/features.js',
-  './TAB BAO CAO NGAY/js/render.js',
-  './TAB BAO CAO NGAY/js/utils.js',
-  './TAB BAO CAO NGAY/js/data.js'
+  './icon-ios.png'
+  // App "Báo cáo ngày" cũ (TAB BAO CAO NGAY) đã hợp nhất vào BAO-CAO-APP (/baocao/) và ĐÃ XÓA
+  // khỏi gói deploy 28/07 — bỏ 6 dòng cache trỏ tới nó (chỉ tạo request 404 vô ích mỗi lần cài SW).
 ];
 
 self.addEventListener('install', event => {

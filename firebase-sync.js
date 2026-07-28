@@ -110,9 +110,10 @@ const FirebaseSync = {
         }
       }
 
-      // Supabase đã tắt (SUPABASE_ENABLED=false) -> Firebase TỰ dọn cờ dirty các key đã đẩy
-      // (trước đây do Supabase.pushAllDirty đảm nhiệm). Không dọn -> đẩy lặp vô hạn.
-      if (typeof SUPABASE_ENABLED !== "undefined" && !SUPABASE_ENABLED && pushedKeys.length) {
+      // Firebase TỰ dọn cờ dirty các key đã đẩy (trước đây do Supabase.pushAllDirty đảm nhiệm).
+      // Không dọn -> đẩy lặp vô hạn. Supabase đã GỠ BỎ hoàn toàn 28/07 nên bỏ điều kiện
+      // SUPABASE_ENABLED (biến không còn tồn tại — giữ điều kiện sẽ khiến cờ dirty không bao giờ dọn).
+      if (pushedKeys.length) {
         const cur = await idbGet("meta", "meta_dirty_keys");
         const remain = ((cur && cur.value) || []).filter(k => !pushedKeys.includes(k));
         await idbPut("meta", { key: "meta_dirty_keys", value: remain });
