@@ -47,6 +47,32 @@ if (!window.PKTTC.WMO_TABLE) {
 }
 function wmoInfo(code){ return (window.PKTTC && window.PKTTC.WMO_TABLE && window.PKTTC.WMO_TABLE[code]) || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
 
+// ===== NỀN THẺ XUẤT ẢNH — BẢN THỬ (Sếp chốt 24/07: báo cáo chỉ gửi Zalo/Telegram, KHÔNG in) =====
+// Mở link kèm ?nen=bp (blueprint 2 cấp) hoặc ?nen=phang (xi măng phẳng) để xuất ảnh xem thử.
+// KHÔNG có tham số => GIỮ NGUYÊN nền hiện tại (#f8fafc) — anh em đang dùng không bị ảnh hưởng.
+function getExportBg() {
+  let mode = '';
+  try { mode = (new URLSearchParams(window.location.search).get('nen') || '').toLowerCase(); } catch (e) {}
+  if (mode === 'phang') {
+    // PA1: xám xi măng phẳng, không hoa văn
+    return { base: '#F1F3F4', image: 'none', size: 'auto', name: 'phang' };
+  }
+  if (mode === 'bp') {
+    // PA3: blueprint 2 cấp — ô lớn xanh thương hiệu + ô nhỏ xám (cỡ đã nhân đôi cho khổ 1920px)
+    return {
+      base: '#F1F3F4',
+      image: 'linear-gradient(rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
+             'linear-gradient(90deg, rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
+             'linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px),' +
+             'linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
+      size: '128px 128px, 128px 128px, 32px 32px, 32px 32px',
+      name: 'bp'
+    };
+  }
+  return { base: '#f8fafc', image: 'none', size: 'auto', name: 'mac-dinh' };
+}
+window.getExportBg = getExportBg;
+
 function getReportWeatherInfo(r) {
   let code = (r && r.weather_code !== undefined && r.weather_code !== null) ? r.weather_code : (typeof window._repWeatherCode !== 'undefined' ? window._repWeatherCode : null);
   let label = (r && r.weather_label) ? r.weather_label : (typeof window._repWeatherLabel !== 'undefined' ? window._repWeatherLabel : '');
@@ -1078,6 +1104,7 @@ async function exportPNG169() {
     `;
 
     // Tạo container tạm offscreen
+    const _bg = getExportBg();
     const tempContainer = document.createElement('div');
     tempContainer.id = 'temp-report-169';
     tempContainer.style.cssText = `
@@ -1086,7 +1113,9 @@ async function exportPNG169() {
       top: -9999px;
       width: 1920px;
       height: 1080px;
-      background-color: #f8fafc;
+      background-color: ${_bg.base};
+      background-image: ${_bg.image};
+      background-size: ${_bg.size};
       box-sizing: border-box;
       padding: 58px 36px 44px 36px;
       display: flex;
@@ -1383,7 +1412,7 @@ async function exportPNG169() {
       html2canvas(tempContainer, {
         scale: 1.25,
         useCORS: true,
-        backgroundColor: '#f8fafc',
+        backgroundColor: getExportBg().base,
         width: finalWidth,
         height: finalHeight
       }).then(canvas => {
