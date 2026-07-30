@@ -1766,8 +1766,14 @@ async function loadReportForDate(date) {
   } catch (e) {
     console.error("Lỗi khi tải báo cáo ngày:", e);
     if (typeof draw === 'function') draw();
+    // Trước đây luôn báo "kiểm tra kết nối mạng" — SAI khi thực chất là lỗi QUYỀN (thiếu phiên
+    // đăng nhập / chưa được gán dự án). Nay dùng explainDataError để nói đúng nguyên nhân.
     if (typeof showEmbedToast === 'function') {
-      showEmbedToast("⚠️ Không tải được dữ liệu từ máy chủ — Vui lòng kiểm tra kết nối mạng.");
+      let msg = "⚠️ Không tải được dữ liệu từ máy chủ — Vui lòng kiểm tra kết nối mạng.";
+      try {
+        if (typeof explainDataError === 'function') msg = await explainDataError(e, 'tải báo cáo');
+      } catch (_) {}
+      showEmbedToast(msg.replace(/\n+/g, ' '));
     }
   }
 }
