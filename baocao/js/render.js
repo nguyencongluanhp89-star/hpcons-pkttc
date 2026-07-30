@@ -183,22 +183,18 @@ function draw(){
   while(displayPhotos.length < numPhotos) displayPhotos.push({tm:'',vi:'',cn:'',img:null});
 
 
+  // Sếp chốt 30/07: BỎ chú thích ảnh khối 03 — cả ô nhập lẫn dòng chú thích khi in/xuất; ảnh thi
+  // công đứng một mình cho gọn. Chú thích BẢN VẼ khối 05 GIỮ NGUYÊN. Dữ liệu cũ (p.vi/p.cn) vẫn
+  // còn trong báo cáo đã lưu, chỉ không hiển thị nữa.
   let photoHtml=displayPhotos.map((p,i)=>{
-    const gộpVal = (p.vi || '') + (p.cn ? `\n${p.cn}` : '');
     const deleteBtn = p.img ? `<button type="button" onclick="window.deletePhotoDirect(event, ${i})" class="no-print delete-photo-btn" title="Xóa ảnh này" style="position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: rgba(239, 68, 68, 0.9); color: white; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: background 0.2s; z-index: 10;">×</button>` : '';
-    
+
     return `<div class="photo">
       <div class="im-wrap" onclick="window.triggerDirectPhotoUpload(${i})" style="cursor:pointer; position:relative;" title="Click để tải ảnh lên">
         ${p.img?`<img class="im" src="${p.img}">`:`<div class="im ph" style="border:1px dashed var(--line); border-radius:4px; height:120px; display:flex; align-items:center; justify-content:center; background:#f8fafc; font-size:var(--fs-micro);">Chọn ảnh ${i+1}</div>`}
         ${deleteBtn}
       </div>
       <input type="file" id="f_photo_direct_${i}" accept="image/*" style="display:none" onchange="window.onDirectPhotoUpload(this, ${i})">
-      
-      <div class="no-print" style="margin-top:6px; text-align:left;">
-        <textarea class="photo-cap-textarea" oninput="window.updatePhotoDirect(${i}, this.value); window.autoGrowTextarea(this);" onblur="window.translatePhotoDirect(${i}, this.value)" placeholder="Nhập chú thích..." style="height: auto; min-height: 38px;">${gộpVal}</textarea>
-      </div>
-      
-      <div class="cap print-only">${p.vi||''}${p.cn?`<br><span>${p.cn}</span>`:''}</div>
     </div>`;
   }).join('');
   let drawHtml=draws.map((d,i)=>{
