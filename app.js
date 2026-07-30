@@ -1071,7 +1071,14 @@ window.addEventListener("load", async ()=>{
   if(LOGIN_ENABLED){
     const sid=await metaGet("session_user", null);
     const su=sid && allUsers.find(u=>u.id===sid);
-    if(su){ setTimeout(()=>startSession(su), 50); }
+    if(su){
+      setTimeout(()=>startSession(su), 50);
+      // Vào app bằng PHIÊN LƯU SẴN (không gõ mật khẩu) => firebaseAuthSync KHÔNG chạy nên có thể
+      // KHÔNG có phiên Firebase Auth (nhất là sau khi mật khẩu Firebase bị đổi -> phiên cũ hết hiệu
+      // lực). Khi đó Firestore CHẶN MỌI truy cập: badge "Offline (local)" + tab Báo cáo ngày báo
+      // "Missing or insufficient permissions". Kiểm sau 4s (đủ để Firebase khôi phục phiên) rồi nhắc.
+      setTimeout(checkFirebaseSessionAfterAutoLogin, 4000);
+    }
     else { initLoginFlow(); $("login-screen").classList.remove("hide"); }
   } else {
     const admin=allUsers.find(u=>u.role==="admin")||allUsers[0];
@@ -1086,6 +1093,40 @@ window.addEventListener("load", async ()=>{
 window.exitProjectMode = function() {
   switchTab(can("dieuhanh") ? "dieuhanh" : "dashboard");
 };
+
+// ===== NHẮC ĐĂNG NHẬP LẠI KHI THIẾU PHIÊN FIREBASE (Sếp gặp lỗi 30/07) =====
+// Bối cảnh: app tự vào bằng session_user (không gõ mật khẩu) -> firebaseAuthSync không chạy ->
+// thiếu phiên Firebase Auth -> Firestore chặn TẤT CẢ: badge "Offline (local)", tab Báo cáo ngày
+// (iframe BCA dùng chung phiên, ẩn màn login) báo "Missing or insufficient permissions".
+// KHÔNG thể tự đăng nhập lại vì app KHÔNG lưu mật khẩu (đúng nguyên tắc bảo mật) -> phải nhắc.
+function checkFirebaseSessionAfterAutoLogin(){
+  try{
+    if (typeof FIREBASE_ENABLED === "undefined" || !FIREBASE_ENABLED) return;
+    const u = (window.fb && window.fb.auth) ? window.fb.auth.currentUser : null;
+    if (u) return;                       // đã có phiên -> bình thường
+    if (document.getElementById("relogin-banner")) return;   // đã hiện rồi
+    const b = document.createElement("div");
+    b.id = "relogin-banner";
+    b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#B3402F;"
+      + "color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
+      + "justify-content:center;font-size:14px;font-weight:600;box-shadow:0 -4px 16px rgba(0,0,0,.25)";
+    b.innerHTML = '<span>⚠️ Chưa kết nối máy chủ — dữ liệu đang chỉ đọc trên máy này. '
+      + 'Cần đăng nhập lại (nhập mật khẩu) để đồng bộ và dùng được tab Báo cáo ngày.</span>'
+      + '<button id="relogin-btn" style="background:#fff;color:#B3402F;border:none;border-radius:6px;'
+      + 'padding:8px 14px;font-weight:800;cursor:pointer">Đăng nhập lại</button>'
+      + '<button id="relogin-close" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);'
+      + 'border-radius:6px;padding:8px 12px;font-weight:600;cursor:pointer">Để sau</button>';
+    document.body.appendChild(b);
+    const btn = document.getElementById("relogin-btn");
+    if (btn) btn.onclick = async function(){
+      try { await metaSet("session_user", null); } catch(e){}
+      location.reload();
+    };
+    const cl = document.getElementById("relogin-close");
+    if (cl) cl.onclick = function(){ b.remove(); };
+  }catch(e){ console.warn("checkFirebaseSessionAfterAutoLogin lỗi:", e && e.message); }
+}
+window.checkFirebaseSessionAfterAutoLogin = checkFirebaseSessionAfterAutoLogin;
 
 
 
