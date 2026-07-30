@@ -2149,9 +2149,49 @@ async function copyYesterdayTemplate() {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   } catch(e) {
-    alert('Lỗi: ' + e.message);
+    alert(await explainDataError(e, 'lấy mẫu báo cáo'));
   }
 }
+
+// ===== CHẨN ĐOÁN LỖI TRUY CẬP DỮ LIỆU (28/07) =====
+// Firestore trả "Missing or insufficient permissions" — thông báo tiếng Anh thô, không nói được
+// NGUYÊN NHÂN. Hàm này tự kiểm và dịch thành thông báo tiếng Việt kèm cách xử lý.
+async function explainDataError(e, hanhDong) {
+  const raw = (e && (e.message || e.code)) ? (e.message || e.code) : String(e);
+  const isPerm = /permission|insufficient|PERMISSION_DENIED/i.test(raw);
+  if (!isPerm) return 'Lỗi khi ' + (hanhDong || 'tải dữ liệu') + ': ' + raw;
+
+  // 1. Còn phiên đăng nhập hệ thống (Firebase Auth) không?
+  let fbUser = null;
+  try {
+    fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+  } catch (_) {}
+  if (!fbUser) {
+    return '⚠️ Phiên đăng nhập hệ thống đã hết hạn nên không đọc được dữ liệu.\n\n'
+         + 'Cách xử lý: bấm "Đăng xuất" rồi đăng nhập lại bằng tài khoản của bạn.';
+  }
+
+  // 2. Còn phiên -> kiểm tài khoản có được gán vào dự án đang mở không
+  const proj = (window.AppCore && window.AppCore.currentProject) ? window.AppCore.currentProject : null;
+  const projName = proj ? (proj.name || proj.id) : 'dự án đang mở';
+  try {
+    const snap = await firebase.firestore().collection('projects').doc(proj ? proj.id : '_').get();
+    const uids = (snap.exists && Array.isArray((snap.data() || {}).member_uids)) ? snap.data().member_uids : [];
+    if (!uids.includes(fbUser.uid)) {
+      return '⚠️ Tài khoản của bạn CHƯA được gán vào dự án "' + projName + '" nên hệ thống chặn đọc dữ liệu.\n\n'
+           + 'Cách xử lý: nhờ Chỉ huy trưởng hoặc Admin gán bạn vào dự án (app chính → Thành viên), '
+           + 'sau đó tải lại trang.';
+    }
+    return '⚠️ Không đọc được dữ liệu dù bạn đã thuộc dự án "' + projName + '".\n\n'
+         + 'Vui lòng thử đăng xuất/đăng nhập lại. Nếu vẫn lỗi, gửi ảnh thông báo này cho quản trị.\n\n'
+         + '(Chi tiết kỹ thuật: ' + raw + ')';
+  } catch (e2) {
+    return '⚠️ Tài khoản của bạn chưa có quyền trên dự án "' + projName + '".\n\n'
+         + 'Cách xử lý: nhờ Chỉ huy trưởng hoặc Admin gán bạn vào dự án (app chính → Thành viên), '
+         + 'sau đó đăng xuất và đăng nhập lại.';
+  }
+}
+window.explainDataError = explainDataError;
 
 // Lưu trữ đám mây
 async function saveToCloud() {
