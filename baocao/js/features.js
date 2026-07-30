@@ -1881,9 +1881,10 @@ function updateActionButtons() {
     }
   }
 
-  // 3. Nút "Mẫu hôm qua" — lấy lại nhân lực + hạng mục + kế hoạch mai từ báo cáo hôm qua (chỉ khi chưa khóa).
+  // 3. Nút "Mẫu gần nhất" — lấy lại nhân lực + hạng mục + kế hoạch mai từ báo cáo GẦN NHẤT CÓ DỮ LIỆU
+  //    (Sếp chốt 28/07: không còn bó buộc đúng hôm qua — quên 1 ngày vẫn lấy được mẫu).
   if (!isLocked) {
-    html += `<button class="act" type="button" style="background:var(--hp-brand-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="copyYesterdayTemplate()" title="Lấy lại nhân lực, hạng mục & kế hoạch từ báo cáo hôm qua">📋 Mẫu hôm qua</button>`;
+    html += `<button class="act" type="button" style="background:var(--hp-brand-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="copyYesterdayTemplate()" title="Lấy lại nhân lực, hạng mục & kế hoạch từ báo cáo gần nhất có dữ liệu (bỏ qua ngày trống)">📋 Mẫu gần nhất</button>`;
   }
 
   // 4. Nút xuất ảnh 16:9 (để gửi Zalo) — luôn hiển thị. (Bỏ Xuất PNG + In/Lưu PDF: trùng/không cần trên điện thoại.)
@@ -2048,13 +2049,55 @@ function localISODate(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-// Sao chép mẫu từ ngày hôm qua
+// ===== TÌM BÁO CÁO GẦN NHẤT CÓ DỮ LIỆU (Sếp chốt 28/07) =====
+// Trước đây chỉ lấy ĐÚNG NGÀY HÔM QUA -> quên báo cáo 1 ngày là mất mẫu, phải nhập lại toàn bộ.
+// Nay lùi dần về quá khứ, lấy báo cáo GẦN NHẤT CÓ NỘI DUNG. Quan trọng: app tự lưu nháp nên ngày
+// "quên báo cáo" vẫn tồn tại bản NHÁP RỖNG — phải BỎ QUA nó, nếu không thì lấy mẫu vẫn ra rỗng.
+const TEMPLATE_LOOKBACK_DAYS = 30; // lùi tối đa 30 ngày (nghỉ lễ/Tết vẫn bao được)
+
+// Báo cáo được coi là "có dữ liệu" khi có nhân lực HOẶC hạng mục thi công.
+function reportHasContent(r) {
+  if (!r) return false;
+  const hasUnits = Array.isArray(r.units) && r.units.length > 0;
+  const hasWorks = Array.isArray(r.works_full) && r.works_full.length > 0;
+  return hasUnits || hasWorks;
+}
+window.reportHasContent = reportHasContent;
+
+// Trả về báo cáo gần nhất TRƯỚC curDate (cùng dự án), ưu tiên bản có dữ liệu.
+// opts.contentOnly = true  -> chỉ nhận bản CÓ dữ liệu (dùng cho nút sao chép mẫu).
+// opts.contentOnly khác    -> nếu không có bản nào có dữ liệu thì trả bản gần nhất (để kế thừa logo/ảnh).
+function findPrevReport(reports, curDate, projectId, opts) {
+  const o = opts || {};
+  if (!Array.isArray(reports) || !curDate) return null;
+  const limitD = new Date(curDate + 'T00:00:00');
+  limitD.setDate(limitD.getDate() - (o.lookbackDays || TEMPLATE_LOOKBACK_DAYS));
+  const limitStr = localISODate(limitD);
+
+  const list = reports
+    .filter(r => r && r.date
+                 && r.date < curDate            // CHỈ quá khứ — không lấy ngày tương lai
+                 && r.date >= limitStr          // trong phạm vi lùi cho phép
+                 && (!projectId || r.project_id === projectId))
+    .sort((a, b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : 0)));
+
+  const withContent = list.find(reportHasContent);
+  if (o.contentOnly) return withContent || null;
+  return withContent || list[0] || null;
+}
+window.findPrevReport = findPrevReport;
+
+// Số ngày cách giữa 2 ngày dạng YYYY-MM-DD
+function dayGap(fromISO, toISO) {
+  const a = new Date(fromISO + 'T00:00:00'), b = new Date(toISO + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+
+// Sao chép mẫu từ BÁO CÁO GẦN NHẤT CÓ DỮ LIỆU (không còn phụ thuộc đúng ngày hôm qua)
 async function copyYesterdayTemplate() {
   const dateEl = el('f_date');
   if (!dateEl || !dateEl.value) { alert('Vui lòng chọn ngày báo cáo trước.'); return; }
-  const cur = new Date(dateEl.value + 'T00:00:00');
-  cur.setDate(cur.getDate() - 1);
-  const yest = localISODate(cur);
+  const curDate = dateEl.value;
 
   try {
     // Lấy dữ liệu qua kênh postMessage chuẩn (requestParent). KHÔNG truy cập window.parent.DataService
@@ -2062,16 +2105,21 @@ async function copyYesterdayTemplate() {
     const res = await requestParent('GET_DAILY_REPORTS');
     const reports = (res && res.reports) || [];
     const proj = res ? res.project : null;
-    const report = reports.find(r => (!proj || r.project_id === proj) && r.date === yest);
+    // Báo cáo GẦN NHẤT CÓ DỮ LIỆU trước ngày đang mở — bỏ qua ngày trống/nháp rỗng
+    const report = findPrevReport(reports, curDate, proj, { contentOnly: true });
 
     if (!report) {
-      alert('Không tìm thấy báo cáo ngày ' + yest.split('-').reverse().join('/') + '.\nVui lòng nhập thủ công.');
+      alert('Không tìm thấy báo cáo nào có dữ liệu trong ' + TEMPLATE_LOOKBACK_DAYS + ' ngày trước đó.\nVui lòng nhập thủ công.');
       return;
     }
 
+    const srcVN = report.date.split('-').reverse().join('/');
+    const gap = dayGap(report.date, curDate);
+    const srcLabel = srcVN + (gap > 1 ? (' (cách ' + gap + ' ngày)') : '');
+
     const hasCurrent = (typeof units !== 'undefined' && units.length > 0) ||
                        (typeof works !== 'undefined' && works.length > 0);
-    if (hasCurrent && !confirm('Báo cáo hôm nay đã có dữ liệu nhân lực / hạng mục.\nGhi đè bằng mẫu từ ' + yest.split('-').reverse().join('/') + '?')) return;
+    if (hasCurrent && !confirm('Báo cáo này đã có dữ liệu nhân lực / hạng mục.\nGhi đè bằng mẫu từ ngày ' + srcLabel + '?')) return;
 
     // Sao chép nhân lực và hạng mục (giữ nguyên số lượng nhưng xóa ảnh/notes ngày cũ)
     if (report.units && Array.isArray(report.units)) {
@@ -2084,14 +2132,14 @@ async function copyYesterdayTemplate() {
       if (typeof renderWorkForm === 'function') renderWorkForm();
       if (typeof draw === 'function') draw();
     }
-    // Kế hoạch ngày mai: hiện lại nội dung đã khai hôm qua (KHÔNG lấy thời tiết + ảnh công trường)
+    // Kế hoạch ngày mai: hiện lại nội dung đã khai ở báo cáo nguồn (KHÔNG lấy thời tiết + ảnh công trường)
     if (report.f_plan && el('f_plan')) { el('f_plan').value = report.f_plan; }
     if (typeof updateProgress === 'function') updateProgress();
     triggerAutoSave();
 
     // Toast thông báo
     const toast = document.createElement('div');
-    toast.textContent = '✓ Đã sao chép mẫu từ ' + yest.split('-').reverse().join('/');
+    toast.textContent = '✓ Đã sao chép mẫu từ ngày ' + srcLabel;
     Object.assign(toast.style, {
       position:'fixed', bottom:'20px', left:'50%', transform:'translateX(-50%)',
       background:'var(--green)', color:'#fff', padding:'10px 20px',

@@ -1614,10 +1614,14 @@ async function applyProjectDefaults() {
     if (!reports || !reports.length) return;
 
     const curDate = el('f_date') ? el('f_date').value : '';
-    // Báo cáo gần nhất KHÁC ngày đang mở (sắp theo ngày giảm dần)
-    const prev = reports
-      .filter(r => r && r.date && r.date !== curDate)
-      .sort((a, b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : 0)))[0];
+    // Báo cáo gần nhất TRƯỚC ngày đang mở, ưu tiên bản CÓ DỮ LIỆU (Sếp chốt 28/07).
+    // Dùng chung findPrevReport với nút "Mẫu gần nhất" -> 2 nơi luôn lấy CÙNG một báo cáo nguồn.
+    // Sửa 2 lỗi của bản cũ: (1) chỉ loại đúng ngày đang mở nên có thể lấy báo cáo NGÀY TƯƠNG LAI
+    // khi kỹ sư mở lại báo cáo cũ; (2) lấy cả ngày nháp RỖNG -> hạng mục không lặp lại được.
+    const prev = (typeof findPrevReport === 'function')
+      ? findPrevReport(reports, curDate, null)
+      : reports.filter(r => r && r.date && r.date < curDate)
+               .sort((a, b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : 0)))[0];
     if (!prev) return;
 
     if (prev.logo_cdt && !logoImgCdt) logoImgCdt = prev.logo_cdt;
@@ -1627,8 +1631,9 @@ async function applyProjectDefaults() {
       draws = prev.draws.map(d => ({ ...d }));
     }
 
-    // Sếp chốt 22/07: HẠNG MỤC 03 tự lặp lại từ hôm trước — GIỮ TÊN, XÓA chi tiết cũ (nhập mới mỗi
-    // ngày, giống nút "Mẫu hôm qua"). Chỉ khi hạng mục đang trống -> không đè dữ liệu đang nhập.
+    // Sếp chốt 22/07: HẠNG MỤC 03 tự lặp lại — GIỮ TÊN, XÓA chi tiết cũ (nhập mới mỗi ngày, giống nút
+    // "Mẫu gần nhất"). Chỉ khi hạng mục đang trống -> không đè dữ liệu đang nhập.
+    // Nguồn = báo cáo gần nhất CÓ DỮ LIỆU (28/07) nên quên báo cáo vài ngày vẫn lặp lại được.
     if (Array.isArray(prev.works_full) && prev.works_full.length && (typeof works !== 'undefined') && (!works || works.length === 0)) {
       works = prev.works_full.map(w => ({ ...w, d: '' }));
       if (typeof renderWorkForm === 'function') renderWorkForm();
