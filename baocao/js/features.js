@@ -836,16 +836,71 @@ function cleanCnOutput(res) {
   return (cn || lines[0] || '').replace(/^["'“”「」]+|["'“”「」]+$/g, '').trim();
 }
 
+// ===== BỘ NHỚ ĐỆM BẢN DỊCH (Sếp chốt 30/07: "tự động dịch, không cần từ điển") =====
+// App TỰ HỌC: câu nào đã dịch một lần thì lưu lại, lần sau dùng luôn — nhanh, không gọi AI lại,
+// không tốn hạn mức, và KHÔNG cần ai nạp từ điển thủ công.
+const CN_CACHE_KEY = 'auto_cn_cache_v1';
+function cnKeyOf(t) { return ('' + t).toUpperCase().replace(/\s+/g, ' ').trim(); }
+function cnCacheGet(text) {
+  try { return (JSON.parse(localStorage.getItem(CN_CACHE_KEY) || '{}'))[cnKeyOf(text)] || ''; }
+  catch (e) { return ''; }
+}
+function cnCacheSet(text, cn) {
+  if (!cn) return;
+  try {
+    const m = JSON.parse(localStorage.getItem(CN_CACHE_KEY) || '{}');
+    m[cnKeyOf(text)] = cn;
+    const ks = Object.keys(m);
+    if (ks.length > 800) delete m[ks[0]];        // giữ tối đa 800 câu, bỏ câu cũ nhất
+    localStorage.setItem(CN_CACHE_KEY, JSON.stringify(m));
+  } catch (e) {}
+}
+window.cnCacheGet = cnCacheGet;
+window.cnCacheSet = cnCacheSet;
+
+// Dịch qua MÁY CHỦ (Cloud Function aiTranslate) — dùng khóa AI của hệ thống nên MỌI máy/điện thoại
+// đều dịch được, không cần cấu hình khóa trên từng máy. Dịch được cả LÔ trong 1 lần gọi.
+window.translateViToCnServer = async (texts) => {
+  const list = (Array.isArray(texts) ? texts : [texts]).map(t => String(t == null ? '' : t));
+  if (!list.length) return [];
+  const base = (typeof FIREBASE_FUNCTIONS_BASE !== 'undefined' && FIREBASE_FUNCTIONS_BASE)
+    ? FIREBASE_FUNCTIONS_BASE : 'https://us-central1-hpcons-pkttc.cloudfunctions.net';
+  // Gom thuật ngữ công ty đã xác minh xuất hiện trong các câu -> gửi kèm làm ràng buộc cho AI.
+  // App tự làm, Sếp/kỹ sư KHÔNG phải nạp từ điển gì.
+  let hints = [];
+  try {
+    const set = new Set();
+    list.forEach(t => collectGlossaryHints(t).forEach(h => set.add(h)));
+    hints = Array.from(set).slice(0, 30);
+  } catch (e) {}
+
+  const res = await fetch(base + '/aiTranslate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texts: list, hints: hints })
+  });
+  if (!res.ok) throw new Error('aiTranslate HTTP ' + res.status);
+  const data = await res.json();
+  return Array.isArray(data.results) ? data.results : [];
+};
+
 window.translateViToCn = async (text) => {
   if (!text || !text.trim()) return '';
 
-  // 1. Từ điển công ty khớp CHÍNH XÁC -> tin tuyệt đối (đã xác minh từ hồ sơ)
-  if (typeof KB_GLOSSARY !== 'undefined') {
-    const k = text.toUpperCase().replace(/\s+/g, ' ').trim();
-    if (KB_GLOSSARY[k]) return KB_GLOSSARY[k];
+  // 1. Đã dịch trước đó -> dùng lại ngay (app tự học, không gọi AI lần nữa)
+  const cached = cnCacheGet(text);
+  if (cached) return cached;
+
+  // 2. MÁY CHỦ dịch bằng AI chuyên ngành (không cần khóa trên máy người dùng)
+  try {
+    const arr = await window.translateViToCnServer([text]);
+    const out = cleanCnOutput(arr && arr[0] ? arr[0] : '');
+    if (out && /[一-鿿]/.test(out)) { cnCacheSet(text, out); return out; }
+  } catch (e) {
+    console.warn("Dịch qua máy chủ lỗi (thử cách khác):", e && e.message);
   }
 
-  // 2. GEMINI — dịch chuyên ngành (ưu tiên chính)
+  // 3. Gemini ngay tại máy — chỉ khi máy này có sẵn khóa AI
   try {
     await window.ensureGeminiKey();
     if (GEMINI_API_KEY) {
@@ -867,14 +922,15 @@ window.translateViToCn = async (text) => {
           : '');
       const res = await callGeminiAI(text, prompt);
       const out = cleanCnOutput(res);
-      if (out && /[\u4e00-\u9fff]/.test(out)) return out;
+      if (out && /[\u4e00-\u9fff]/.test(out)) { cnCacheSet(text, out); return out; }
     }
   } catch (e) {
     console.warn("Dịch bằng Gemini lỗi (chuyển sang dự phòng):", e && e.message);
   }
 
-  // 3. DỰ PHÒNG: Google Translate gtx (miễn phí, không cần khóa) — dịch phổ thông, có thể lệch
-  //    thuật ngữ; chỉ dùng khi không có khóa AI hoặc AI lỗi.
+  // 4. DỰ PHÒNG CUỐI: Google Translate gtx (miễn phí, không cần khóa) — dịch phổ thông, có thể
+  //    lệch thuật ngữ; chỉ dùng khi cả máy chủ và AI tại máy đều không dùng được. KHÔNG lưu vào
+  //    bộ nhớ đệm, để lần sau còn cơ hội dịch lại bằng AI cho đúng.
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`;
     const res = await fetch(url);
