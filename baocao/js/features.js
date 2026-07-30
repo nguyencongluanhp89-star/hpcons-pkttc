@@ -790,17 +790,91 @@ window.autoGrowAllTextareas = () => {
   });
 };
 
-/* Core Translator: Từ điển offline -> Google Translate gtx (100% free, no key) -> Gemini AI (dự phòng) */
+/* ===== Core Translator (Sếp phản hồi 30/07: bản dịch khối 04 sai nghĩa) =====
+   TRƯỚC ĐÂY: từ điển (chỉ khớp CHÍNH XÁC toàn chuỗi) -> Google Translate gtx -> Gemini (dự phòng).
+   Câu thực tế ("Lợp tole vách trục A/1-9 NX") KHÔNG BAO GIỜ khớp từ điển nên luôn rơi xuống Google
+   Translate PHỔ THÔNG -> sai thuật ngữ xây dựng ("vách"→井壁 vách giếng, "Van Phay"→铣削阀门 van
+   cắt gọt kim loại, "nhà xưởng"→房子). Gemini thực tế KHÔNG BAO GIỜ chạy vì Google rất ít lỗi.
+   NAY: từ điển công ty (đã xác minh) -> GEMINI chuyên ngành, RÀNG BUỘC bằng thuật ngữ công ty
+   -> Google Translate chỉ còn là dự phòng cuối. */
+
+// Lấy khóa AI: localStorage -> app chính gửi qua postMessage -> Firestore config/sys_ai_gemini_key
+// (cần cho app báo cáo chạy ĐỘC LẬP trên điện thoại — localStorage máy đó chưa có khóa).
+window.ensureGeminiKey = async () => {
+  if (GEMINI_API_KEY) return GEMINI_API_KEY;
+  try {
+    const snap = await firebase.firestore().collection('config').doc('sys_ai_gemini_key').get();
+    const v = snap.exists ? ((snap.data() || {}).value || '') : '';
+    if (v) { GEMINI_API_KEY = v; localStorage.setItem('sys_gemini_key', v); }
+  } catch (e) {
+    console.warn("Không lấy được khóa AI từ hệ thống:", e && e.message);
+  }
+  return GEMINI_API_KEY;
+};
+
+// Gom các thuật ngữ ĐÃ XÁC MINH của công ty xuất hiện trong câu -> đưa vào prompt làm RÀNG BUỘC,
+// để AI dịch câu mới nhưng vẫn giữ đúng thuật ngữ hồ sơ đã dùng với đối tác Trung Quốc.
+function collectGlossaryHints(text) {
+  if (typeof KB_GLOSSARY === 'undefined') return [];
+  const k = ('' + text).toUpperCase().replace(/\s+/g, ' ').trim();
+  const hits = [];
+  for (const g in KB_GLOSSARY) {
+    if (g.length >= 4 && k.indexOf(g) >= 0) hits.push(g + ' = ' + KB_GLOSSARY[g]);
+  }
+  return hits.slice(0, 12);
+}
+
+// Lọc kết quả AI: bỏ khối code, ngoặc kép, dòng giải thích — chỉ lấy dòng có chữ Trung.
+function cleanCnOutput(res) {
+  let s = '';
+  if (typeof res === 'string') s = res;
+  else if (res && res.translations && res.translations[0]) s = res.translations[0];
+  else if (res) s = String(res);
+  s = s.replace(/```[a-zA-Z]*/g, '').replace(/```/g, '').trim();
+  const lines = s.split('\n').map(x => x.trim()).filter(Boolean);
+  const cn = lines.find(x => /[\u4e00-\u9fff]/.test(x));
+  return (cn || lines[0] || '').replace(/^["'“”「」]+|["'“”「」]+$/g, '').trim();
+}
+
 window.translateViToCn = async (text) => {
   if (!text || !text.trim()) return '';
-  
-  // 1. Kiểm tra từ điển offline trước
+
+  // 1. Từ điển công ty khớp CHÍNH XÁC -> tin tuyệt đối (đã xác minh từ hồ sơ)
   if (typeof KB_GLOSSARY !== 'undefined') {
     const k = text.toUpperCase().replace(/\s+/g, ' ').trim();
     if (KB_GLOSSARY[k]) return KB_GLOSSARY[k];
   }
-  
-  // 2. Gọi Google Translate API miễn phí (client=gtx) - 100% free, không cần key, cực kỳ ổn định
+
+  // 2. GEMINI — dịch chuyên ngành (ưu tiên chính)
+  try {
+    await window.ensureGeminiKey();
+    if (GEMINI_API_KEY) {
+      const hints = collectGlossaryHints(text);
+      const prompt =
+        'Bạn là phiên dịch Việt–Trung chuyên ngành XÂY DỰNG NHÀ XƯỞNG CÔNG NGHIỆP, dịch nội dung ' +
+        'báo cáo thi công cho đối tác Trung Quốc.\n' +
+        'Nhiệm vụ: dịch câu mô tả công tác thi công sang TIẾNG TRUNG GIẢN THỂ.\n' +
+        'QUY TẮC BẮT BUỘC:\n' +
+        '1. CHỈ trả về đúng bản dịch trên MỘT dòng. Không giải thích, không phiên âm, không ngoặc kép, không markdown.\n' +
+        '2. GIỮ NGUYÊN, KHÔNG dịch và KHÔNG bỏ: mã trục/lưới (vd A/1-9, E/1-9), tên viết tắt hạng mục ' +
+        '(vd NX, HMP, M1), số tầng, cao độ, ký hiệu và con số.\n' +
+        '3. Dùng thuật ngữ kỹ thuật xây dựng Trung Quốc chuẩn dùng trên công trường, KHÔNG dịch nghĩa ' +
+        'thông thường của từ (đây là văn bản kỹ thuật, không phải văn nói).\n' +
+        '4. Nếu gặp tên riêng/tên thiết bị không chắc nghĩa, GIỮ NGUYÊN tiếng Việt thay vì dịch sai.\n' +
+        (hints.length
+          ? '5. BẮT BUỘC dùng đúng các thuật ngữ đã được công ty xác minh sau (nếu xuất hiện trong câu):\n   - '
+            + hints.join('\n   - ') + '\n'
+          : '');
+      const res = await callGeminiAI(text, prompt);
+      const out = cleanCnOutput(res);
+      if (out && /[\u4e00-\u9fff]/.test(out)) return out;
+    }
+  } catch (e) {
+    console.warn("Dịch bằng Gemini lỗi (chuyển sang dự phòng):", e && e.message);
+  }
+
+  // 3. DỰ PHÒNG: Google Translate gtx (miễn phí, không cần khóa) — dịch phổ thông, có thể lệch
+  //    thuật ngữ; chỉ dùng khi không có khóa AI hoặc AI lỗi.
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`;
     const res = await fetch(url);
@@ -811,24 +885,7 @@ window.translateViToCn = async (text) => {
   } catch (e) {
     console.error("Lỗi dịch Google Translate:", e);
   }
-  
-  // 3. Fallback bằng Gemini AI nếu có cấu hình Key
-  if (typeof GEMINI_API_KEY !== 'undefined' && GEMINI_API_KEY) {
-    try {
-      const prompt = `Bạn là thông dịch viên Việt - Trung chuyên ngành xây dựng. Hãy dịch cụm từ mô tả công tác thi công này sang tiếng Trung giản thể (chỉ trả về bản dịch ngắn gọn, không giải thích, không định dạng): "${text}"`;
-      const res = await callGeminiAI(text, prompt);
-      if (res) {
-        if (typeof res === 'string') {
-          return res.replace(/```[a-z]*/g, '').replace(/```/g, '').trim();
-        } else if (res.translations && res.translations[0]) {
-          return res.translations[0].trim();
-        }
-      }
-    } catch (e) {
-      console.error("Lỗi dịch Gemini:", e);
-    }
-  }
-  
+
   return '';
 };
 
