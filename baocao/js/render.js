@@ -53,23 +53,27 @@ function wmoInfo(code){ return (window.PKTTC && window.PKTTC.WMO_TABLE && window
 function getExportBg() {
   let mode = '';
   try { mode = (new URLSearchParams(window.location.search).get('nen') || '').toLowerCase(); } catch (e) {}
+
+  // Đường lùi nhanh khi cần (không ai phải sửa code): ?nen=phang = xám trơn, ?nen=cu = nền trắng cũ
   if (mode === 'phang') {
-    // PA1: xám xi măng phẳng, không hoa văn
     return { base: '#F1F3F4', image: 'none', size: 'auto', name: 'phang' };
   }
-  if (mode === 'bp') {
-    // PA3: blueprint 2 cấp — ô lớn xanh thương hiệu + ô nhỏ xám (cỡ đã nhân đôi cho khổ 1920px)
-    return {
-      base: '#F1F3F4',
-      image: 'linear-gradient(rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
-             'linear-gradient(90deg, rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
-             'linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px),' +
-             'linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
-      size: '128px 128px, 128px 128px, 32px 32px, 32px 32px',
-      name: 'bp'
-    };
+  if (mode === 'cu' || mode === 'trang') {
+    return { base: '#f8fafc', image: 'none', size: 'auto', name: 'cu' };
   }
-  return { base: '#f8fafc', image: 'none', size: 'auto', name: 'mac-dinh' };
+
+  // MẶC ĐỊNH (Sếp chốt 31/07): nền Ô LƯỚI kiểu bản vẽ kỹ thuật — xám xi măng + lưới 2 cấp
+  // (ô nhỏ 32px xám mờ, cứ 4 ô có 1 đường xanh thương hiệu ô 128px). Các khối nội dung vẫn TRẮNG
+  // nên chữ/ảnh không bị nhiễu. Cỡ ô tính cho khổ ảnh xuất 1920×1080.
+  return {
+    base: '#F1F3F4',
+    image: 'linear-gradient(rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
+           'linear-gradient(90deg, rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
+           'linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px),' +
+           'linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
+    size: '128px 128px, 128px 128px, 32px 32px, 32px 32px',
+    name: 'oluoi'
+  };
 }
 window.getExportBg = getExportBg;
 
