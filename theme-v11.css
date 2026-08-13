@@ -1,0 +1,622 @@
+/* HPCons Design System V1.1 — global theme profile
+   Base brand/status tokens remain defined in style.css.
+   This file is loaded last and only derives semantic display tokens. */
+
+:root {
+  --hp-comfort-bg: var(--hp-background);
+  --hp-comfort-surface: var(--hp-card);
+  --hp-comfort-raised: var(--hp-elevated);
+  --hp-comfort-text: var(--hp-text-primary);
+  --hp-comfort-body: var(--hp-text-secondary);
+  --hp-comfort-muted: var(--hp-text-muted);
+  --hp-comfort-border: var(--hp-border);
+  --hp-comfort-divider: var(--hp-divider);
+}
+
+/* Personnel cards — semantic surfaces in both Light and Dark Mode. */
+.dept-personnel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.dept-personnel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 0;
+  padding: 16px;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.dept-personnel-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  color: var(--text-strong);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.dept-personnel-name {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+body.dark-mode .dept-personnel-group {
+  background: var(--hp-comfort-surface) !important;
+  border-color: var(--hp-comfort-border) !important;
+}
+
+body.dark-mode .dept-personnel-member {
+  background: var(--hp-comfort-raised);
+  color: var(--hp-comfort-text);
+  border-color: var(--hp-comfort-border);
+}
+
+body.dark-mode .dept-personnel-name {
+  color: var(--hp-comfort-text);
+}
+
+.deep-link-highlight {
+  outline: 2px solid var(--hp-warning);
+  outline-offset: -2px;
+  background: var(--hp-warning-bg, color-mix(in srgb, var(--hp-warning) 12%, transparent)) !important;
+  transition: background .25s ease, outline-color .25s ease;
+}
+
+.notice-warning,
+.notice-success {
+  border: 1px solid var(--border);
+}
+
+.notice-warning {
+  background: var(--hp-warning-bg);
+  color: color-mix(in srgb, var(--hp-warning) 72%, var(--text-strong));
+}
+
+.notice-success {
+  background: var(--hp-success-bg);
+  color: color-mix(in srgb, var(--hp-success) 72%, var(--text-strong));
+}
+
+/* Light Mode V1.1 — khóa cặp nền/chữ để không kế thừa màu của Dark Mode. */
+body:not(.dark-mode) {
+  --bg: var(--hp-background);
+  --surface: var(--hp-card);
+  --surface-2: var(--hp-elevated);
+  --ink: var(--hp-text-secondary);
+  --text-strong: var(--hp-text-primary);
+  --muted: var(--hp-text-muted);
+  --border: var(--hp-border);
+  background: var(--hp-background) !important;
+  color: var(--hp-text-secondary) !important;
+}
+
+body:not(.dark-mode) .main,
+body:not(.dark-mode) .content {
+  background: var(--hp-background) !important;
+  color: var(--hp-text-secondary) !important;
+}
+
+body:not(.dark-mode) .app-header,
+body:not(.dark-mode) .breadcrumb,
+body:not(.dark-mode) .subnav-tabs {
+  background: var(--hp-surface) !important;
+  color: var(--hp-text-secondary) !important;
+  border-color: var(--hp-border) !important;
+}
+
+body:not(.dark-mode) .card,
+body:not(.dark-mode) .statcard,
+body:not(.dark-mode) .kpi-card,
+body:not(.dark-mode) .system-card,
+body:not(.dark-mode) .dept-card,
+body:not(.dark-mode) .panel-bg,
+body:not(.dark-mode) .drawer,
+body:not(.dark-mode) .modal,
+body:not(.dark-mode) .ticket-card {
+  background: var(--hp-card) !important;
+  color: var(--hp-text-secondary) !important;
+  border-color: var(--hp-border) !important;
+}
+
+body:not(.dark-mode) .card h1,
+body:not(.dark-mode) .card h2,
+body:not(.dark-mode) .card h3,
+body:not(.dark-mode) .card h4,
+body:not(.dark-mode) .card strong,
+body:not(.dark-mode) .card b,
+body:not(.dark-mode) .kpi-card strong,
+body:not(.dark-mode) .priority-summary-item strong {
+  color: var(--hp-text-primary) !important;
+}
+
+body:not(.dark-mode) table td,
+body:not(.dark-mode) .table td,
+body:not(.dark-mode) .table-sticky td,
+body:not(.dark-mode) .table-sticky tbody td:first-child {
+  background: var(--hp-card) !important;
+  color: var(--hp-text-secondary) !important;
+  border-color: var(--hp-divider) !important;
+}
+
+body:not(.dark-mode) input,
+body:not(.dark-mode) select,
+body:not(.dark-mode) textarea {
+  background: var(--hp-card) !important;
+  color: var(--hp-text-primary) !important;
+  border-color: var(--hp-border) !important;
+}
+
+body:not(.dark-mode) input::placeholder,
+body:not(.dark-mode) textarea::placeholder {
+  color: var(--hp-text-muted) !important;
+  opacity: 1;
+}
+
+body:not(.dark-mode) .kpi-card .kpi-value {
+  color: var(--hp-text-primary) !important;
+}
+
+body:not(.dark-mode) .kpi-card .kpi-label,
+body:not(.dark-mode) .kpi-card .kpi-desc {
+  color: var(--hp-text-muted) !important;
+}
+
+body:not(.dark-mode) .kpi-card[data-priority="critical"] .kpi-icon,
+body:not(.dark-mode) .kpi-card[data-priority="critical"] .kpi-value {
+  color: var(--hp-danger) !important;
+}
+
+body:not(.dark-mode) .kpi-card[data-priority="warning"] .kpi-icon,
+body:not(.dark-mode) .kpi-card[data-priority="warning"] .kpi-value {
+  color: color-mix(in srgb, var(--hp-warning) 72%, var(--hp-text-primary)) !important;
+}
+
+body.dark-mode {
+  /* Các biến thể đều dẫn xuất từ token V1.1, không tạo bảng màu độc lập. */
+  --hp-comfort-bg: color-mix(in srgb, var(--hp-background) 88%, var(--hp-card));
+  --hp-comfort-surface: color-mix(in srgb, var(--hp-card) 86%, var(--hp-background));
+  --hp-comfort-raised: color-mix(in srgb, var(--hp-elevated) 68%, var(--hp-card));
+  --hp-comfort-text: color-mix(in srgb, var(--hp-text-primary) 72%, var(--hp-text-secondary));
+  --hp-comfort-body: color-mix(in srgb, var(--hp-text-secondary) 84%, var(--hp-text-disabled));
+  --hp-comfort-muted: color-mix(in srgb, var(--hp-text-muted) 82%, var(--hp-text-disabled));
+  --hp-comfort-border: color-mix(in srgb, var(--hp-border) 72%, transparent);
+  --hp-comfort-divider: color-mix(in srgb, var(--hp-divider) 72%, transparent);
+
+  /* Alias tương thích cho app Vanilla JS hiện tại. */
+  --bg: var(--hp-comfort-bg);
+  --surface: var(--hp-comfort-surface);
+  --surface-2: var(--hp-comfort-raised);
+  --ink: var(--hp-comfort-body);
+  --text-strong: var(--hp-comfort-text);
+  --muted: var(--hp-comfort-muted);
+  --border: var(--hp-comfort-border);
+}
+
+body.dark-mode,
+body.dark-mode .main,
+body.dark-mode .content {
+  background: var(--hp-comfort-bg) !important;
+  color: var(--hp-comfort-body) !important;
+}
+
+/* Sidebar giữ đúng màu nhận diện V1.1 #4B4F55. */
+body.dark-mode .sidebar {
+  background: var(--hp-nav-base) !important;
+  border-right-color: var(--hp-comfort-divider) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .side-nav .nav-btn {
+  color: color-mix(in srgb, var(--hp-text-secondary) 82%, var(--hp-text-disabled)) !important;
+}
+
+body.dark-mode .side-nav .nav-btn:hover {
+  background: var(--hp-divider) !important;
+  color: var(--hp-comfort-text) !important;
+}
+
+body.dark-mode .side-nav .nav-btn.active {
+  background: var(--hp-info-bg) !important;
+  color: var(--hp-comfort-text) !important;
+  box-shadow: inset 3px 0 0 var(--hp-primary) !important;
+}
+
+body.dark-mode .side-nav .nav-btn .nav-icon,
+body.dark-mode .side-nav .nav-btn.active .nav-icon {
+  background: transparent !important;
+  color: inherit !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .app-header,
+body.dark-mode .breadcrumb,
+body.dark-mode .subnav-tabs {
+  background: var(--hp-comfort-surface) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-divider) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode strong,
+body.dark-mode b {
+  color: var(--hp-comfort-text);
+}
+
+body.dark-mode p,
+body.dark-mode td,
+body.dark-mode label,
+body.dark-mode .muted {
+  color: var(--hp-comfort-body);
+}
+
+body.dark-mode .card,
+body.dark-mode .statcard,
+body.dark-mode .kpi-card,
+body.dark-mode .system-card,
+body.dark-mode .dept-card,
+body.dark-mode .panel-bg,
+body.dark-mode .drawer,
+body.dark-mode .modal,
+body.dark-mode .ticket-card {
+  background: var(--hp-comfort-surface) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .kpi-card {
+  border-top-width: 2px !important;
+}
+
+body.dark-mode .kpi-card .kpi-value {
+  color: var(--hp-comfort-text) !important;
+  font-weight: 700 !important;
+}
+
+body.dark-mode .kpi-card .kpi-label,
+body.dark-mode .kpi-card .kpi-desc {
+  color: var(--hp-comfort-muted) !important;
+  font-weight: 600 !important;
+}
+
+body.dark-mode table,
+body.dark-mode .table,
+body.dark-mode .table-sticky {
+  background: var(--hp-comfort-surface) !important;
+  border-color: var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode table th,
+body.dark-mode .table th,
+body.dark-mode .table-sticky th {
+  background: var(--hp-comfort-raised) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-divider) !important;
+  font-weight: 600 !important;
+}
+
+body.dark-mode table td,
+body.dark-mode .table td,
+body.dark-mode .table-sticky td,
+body.dark-mode .table-sticky tbody td:first-child {
+  background: var(--hp-comfort-surface) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-divider) !important;
+}
+
+body.dark-mode table tbody tr:hover td,
+body.dark-mode .table tbody tr:hover td,
+body.dark-mode .table-sticky tbody tr:hover td,
+body.dark-mode .table-sticky tbody tr:hover td:first-child {
+  background: var(--hp-comfort-raised) !important;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background: var(--hp-comfort-raised) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  border-color: var(--hp-primary) !important;
+  box-shadow: 0 0 0 2px var(--hp-info-bg) !important;
+}
+
+body.dark-mode .btn:not(.btn-primary):not(.btn-pri):not(.btn-danger):not(.btn-dan),
+body.dark-mode .btn-mut,
+body.dark-mode .sub-tab-btn:not(.active) {
+  background: var(--hp-comfort-raised) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .btn:not(.btn-primary):not(.btn-pri):not(.btn-danger):not(.btn-dan):hover,
+body.dark-mode .sub-tab-btn:hover {
+  filter: none !important;
+  background: var(--hp-comfort-raised) !important;
+}
+
+body.dark-mode .badge,
+body.dark-mode [class*="pill-"] {
+  box-shadow: none !important;
+}
+
+body.dark-mode hr {
+  border-color: var(--hp-comfort-divider) !important;
+}
+
+/* Điều hành Phòng dùng cùng theme toàn app, chỉ giữ quy tắc bố cục V1.1. */
+#tab-dieuhanh {
+  padding: 24px;
+}
+
+body.dark-mode #tab-dieuhanh .exec-dashboard-title {
+  color: var(--hp-comfort-text) !important;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+body.dark-mode #tab-dieuhanh .dash-action-table th {
+  background: var(--hp-comfort-raised) !important;
+  color: var(--hp-comfort-body) !important;
+}
+
+body.dark-mode #tab-dieuhanh #exec-progress-table .exec-proj-grid > div {
+  background: var(--hp-comfort-surface) !important;
+  border-color: var(--hp-comfort-border) !important;
+  border-top-width: 2px !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 1279px) {
+  #tab-dieuhanh { padding: 20px; }
+}
+
+@media (max-width: 767px) {
+  #tab-dieuhanh { padding: 16px; }
+}
+
+/* ===== VISUAL PRIORITY PRINCIPLE — HPCons V1.1 ===== */
+.priority-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.priority-summary:empty {
+  display: none;
+}
+
+.priority-summary-item {
+  position: relative;
+  min-width: 0;
+  padding: 14px 16px 14px 20px;
+  background: var(--hp-comfort-surface);
+  color: var(--hp-comfort-body);
+  border: 1px solid var(--hp-comfort-border);
+  border-radius: var(--hp-radius-lg);
+}
+
+.priority-summary-item::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 8px;
+  width: 3px;
+  border-radius: var(--hp-radius-sm);
+  background: var(--hp-neutral);
+  opacity: .48;
+}
+
+.priority-summary-item[data-priority="critical"]::before {
+  background: var(--hp-danger);
+  opacity: 1;
+}
+
+.priority-summary-item[data-priority="warning"]::before {
+  background: var(--hp-warning);
+  opacity: 1;
+}
+
+.priority-summary-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--hp-comfort-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.priority-summary-item strong {
+  display: block;
+  color: var(--hp-comfort-text) !important;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.priority-summary-action {
+  background: var(--hp-comfort-raised);
+}
+
+/* KPI mặc định trung tính; màu mạnh chỉ xuất hiện khi dữ liệu cần hành động. */
+body.dark-mode .kpi-card,
+body.dark-mode .kpi-card[data-priority="normal"] {
+  border-top-color: var(--hp-comfort-border) !important;
+}
+
+body.dark-mode .kpi-card[data-priority="critical"] {
+  border-top-color: var(--hp-danger) !important;
+}
+
+body.dark-mode .kpi-card[data-priority="warning"] {
+  border-top-color: var(--hp-warning) !important;
+}
+
+body.dark-mode .kpi-card[data-priority="critical"] .kpi-icon,
+body.dark-mode .kpi-card[data-priority="critical"] .kpi-value {
+  color: var(--hp-danger) !important;
+}
+
+body.dark-mode .kpi-card[data-priority="warning"] .kpi-icon,
+body.dark-mode .kpi-card[data-priority="warning"] .kpi-value {
+  color: var(--hp-warning) !important;
+}
+
+/* Trạng thái mạnh chỉ dùng tint nhỏ, không phủ mảng lớn. */
+body.dark-mode .pill-overdue,
+body.dark-mode .badge-overdue,
+body.dark-mode .badge-urgent,
+body.dark-mode .alert-danger,
+body.dark-mode .note-danger,
+body.dark-mode .box-danger,
+body.dark-mode .card-danger {
+  background: var(--hp-danger-bg) !important;
+  color: color-mix(in srgb, var(--hp-danger) 64%, var(--hp-text-primary)) !important;
+  border-color: color-mix(in srgb, var(--hp-danger) 34%, transparent) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .alert-warning,
+body.dark-mode .box-warning,
+body.dark-mode .card-warning {
+  background: var(--hp-warning-bg) !important;
+  color: color-mix(in srgb, var(--hp-warning) 62%, var(--hp-text-primary)) !important;
+  border-color: color-mix(in srgb, var(--hp-warning) 32%, transparent) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .pill-done,
+body.dark-mode .pill-task-done,
+body.dark-mode .box-success,
+body.dark-mode .card-success {
+  background: var(--hp-success-bg) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode tr:has(.pill-overdue) td,
+body.dark-mode tr:has(.badge-overdue) td,
+body.dark-mode tr:has(.badge-urgent) td {
+  background: color-mix(in srgb, var(--hp-danger-bg) 34%, var(--hp-comfort-surface)) !important;
+}
+
+body.dark-mode #exec-urgent-alerts,
+body.dark-mode #exec-lpb-urgent,
+body.dark-mode #exec-extensions,
+body.dark-mode #exec-todo,
+body.dark-mode #dash-risk-card {
+  background: var(--hp-comfort-surface) !important;
+  border-top-width: 1px !important;
+  border-right-color: var(--hp-comfort-border) !important;
+  border-bottom-color: var(--hp-comfort-border) !important;
+}
+
+body.dark-mode #exec-urgent-alerts,
+body.dark-mode #dash-risk-card {
+  border-left: 3px solid var(--hp-danger) !important;
+}
+
+body.dark-mode #exec-lpb-urgent,
+body.dark-mode #exec-extensions,
+body.dark-mode #exec-todo {
+  border-left: 3px solid var(--hp-warning) !important;
+}
+
+/* Chỉ một hành động chính được nổi bật trong mỗi cụm thao tác. */
+body.dark-mode .quick-action:not(.quick-action-primary),
+body.dark-mode .quick-action-accent {
+  background: var(--hp-comfort-surface) !important;
+  color: var(--hp-comfort-body) !important;
+  border-color: var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .quick-action-primary {
+  background: var(--hp-info-bg) !important;
+  color: var(--hp-comfort-text) !important;
+  border-color: color-mix(in srgb, var(--hp-primary) 34%, transparent) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 1100px) {
+  .priority-summary { grid-template-columns: 1fr; }
+}
+
+/* ===== UI CONSISTENCY — TYPOGRAPHY & RHYTHM ===== */
+.main { font-size: 14px; line-height: 1.5; }
+.main h1 { font-size: 24px; line-height: 1.25; font-weight: 700; letter-spacing: -.25px; }
+.main h2 { font-size: 20px; line-height: 1.3; font-weight: 700; letter-spacing: -.15px; }
+.main h3 { font-size: 18px; line-height: 1.35; font-weight: 600; letter-spacing: 0; }
+.main p, .main td, .main label, .main input, .main select, .main textarea, .main button { font-size: max(12px, 1em); }
+.card, .system-card, .statcard { border-radius: var(--hp-radius-lg) !important; }
+.card + .card, .system-card + .system-card { margin-top: 16px; }
+.form-grid, .row, .btnbar, .btn-group { gap: 16px; }
+
+/* ===== DATA TABLE STANDARD ===== */
+.table-sticky-wrapper, [data-table-scroll] { max-width: 100%; overflow: auto; overscroll-behavior: contain; }
+.table-sticky-wrapper .table-sticky thead th, [data-sticky-table] thead th {
+  position: sticky; top: 0; z-index: 4; background: var(--hp-comfort-raised) !important;
+}
+.table-sticky-wrapper .table-sticky thead th:first-child, [data-sticky-table] thead th:first-child { left: 0; z-index: 6; }
+.table-sticky-wrapper .table-sticky tbody td:first-child, [data-sticky-table] tbody td:first-child {
+  position: sticky; left: 0; z-index: 3; background: var(--hp-comfort-surface) !important;
+}
+table td:last-child, table th:last-child { text-align: right; }
+
+/* ===== ACTION HIERARCHY ===== */
+.btnbar > .btn, .btn-group > .btn { min-height: 40px; }
+.btnbar > .btn-pri:not(:first-child), .btnbar > .btn-ok:not(:first-child),
+.btn-group > .btn-pri:not(:first-child), .btn-group > .btn-ok:not(:first-child) {
+  background: var(--hp-comfort-raised) !important;
+  color: var(--hp-comfort-body) !important;
+  border: 1px solid var(--hp-comfort-border) !important;
+  box-shadow: none !important;
+}
+.btn-dan, .btn-danger {
+  background: transparent !important;
+  color: var(--hp-danger) !important;
+  border: 1px solid color-mix(in srgb, var(--hp-danger) 34%, transparent) !important;
+  box-shadow: none !important;
+}
+
+/* ===== OPERATIONAL READINESS ===== */
+.readiness-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+.readiness-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px;
+  background: var(--hp-comfort-surface); border: 1px solid var(--hp-comfort-border); border-radius: var(--hp-radius-md);
+}
+.readiness-dot { width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; flex: 0 0 auto; background: var(--hp-neutral); }
+.readiness-item[data-state="pass"] .readiness-dot { background: var(--hp-success); }
+.readiness-item[data-state="warn"] .readiness-dot { background: var(--hp-warning); }
+.readiness-item[data-state="fail"] .readiness-dot { background: var(--hp-danger); }
+.readiness-item strong { display: block; margin-bottom: 2px; color: var(--hp-comfort-text) !important; font-size: 13px; font-weight: 650; }
+.readiness-item span { display: block; color: var(--hp-comfort-muted); font-size: 12px; line-height: 1.4; }
+.readiness-checklist { margin: 14px 0 0; padding-left: 20px; color: var(--hp-comfort-muted); font-size: 12px; line-height: 1.7; }

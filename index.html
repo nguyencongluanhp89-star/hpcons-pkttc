@@ -11,10 +11,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-init.js?v=3"></script>
-<script src="firebase-sync.js?v=8"></script>
+<script src="core/storage.js?v=1"></script>
+<script src="core/data-service.js?v=1"></script>
+<script src="core/shared.js?v=1"></script>
+<script src="firebase-sync.js?v=9"></script>
+<script src="core/sync-engine.js?v=2"></script>
 <script src="logo.js"></script>
-<link rel="stylesheet" href="style.css?v=1.3">
+<link rel="stylesheet" href="style.css?v=1.6">
 <link rel="stylesheet" href="modules/lpb.css?v=2">
+<link rel="stylesheet" href="modules/inline.css?v=5">
+<link rel="stylesheet" href="theme-v11.css?v=9">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="icon-ios.png">
@@ -42,7 +48,7 @@
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#64748B"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         <span id="header-date"></span>
       </div>
-      <div class="header-user" id="user-chip" style="display:none; padding:4px 8px 4px 4px; border:1px solid transparent; border-radius:24px; transition:all 0.2s; background:#fff" onclick="openAccount()" title="Tài khoản / Đổi mật khẩu">
+      <div class="header-user" id="user-chip" style="display:none; padding:4px 8px 4px 4px; border:1px solid var(--border); border-radius:24px; transition:all 0.2s; background:var(--surface)" onclick="openAccount()" title="Tài khoản / Đổi mật khẩu">
         <div class="ava" id="user-ava" style="width:34px;height:34px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">?</div>
         <div style="text-align:left"><div class="un" id="user-name" style="font-size:13px;font-weight:700;color:var(--text-strong);line-height:1.2;margin-bottom:1px">-</div><div class="ur" id="user-role" style="font-size:11px;color:var(--muted);line-height:1">-</div>      </div>
     </div>
@@ -51,98 +57,7 @@
 
 <div class="layout">
 <aside class="sidebar" id="sidebar">
-  <style>
-    /* Scoped overrides to match the requested simple clean design in the screenshot */
-    #sidebar {
-      background-color: var(--sidebar-bg) !important;
-      height: calc(100vh - 60px) !important;
-      overflow-y: auto !important;
-    }
-    #sidebar .side-brand {
-      padding: 24px 20px 18px !important;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-      margin-bottom: 10px !important;
-    }
-    #sidebar .side-nav {
-      padding: 16px 12px !important;
-      gap: 6px !important;
-    }
-    #sidebar .nav-group {
-      font-size: 11px !important;
-      letter-spacing: 1.5px !important;
-      color: #CBD5E1 !important; /* sidebar nền luôn tối -> chữ sáng cố định cả 2 theme (Sếp: nâng sáng cho dễ nhìn) */
-      padding: 16px 12px 6px !important;
-      font-weight: 700 !important;
-      text-transform: uppercase !important;
-    }
-    #sidebar .nav-btn {
-      display: flex !important;
-      align-items: center !important;
-      gap: 12px !important;
-      width: 100% !important;
-      padding: 10px 14px !important;
-      background: transparent !important;
-      border: none !important;
-      border-radius: 8px !important;
-      color: #E2E8F0 !important; /* sidebar nền luôn tối -> chữ sáng cố định cả 2 theme (Sếp: nâng sáng cho dễ nhìn) */
-      font-size: 14px !important;
-      font-weight: 500 !important;
-      position: relative !important;
-      box-shadow: none !important;
-      border-left: none !important;
-      transition: all 0.2s ease !important;
-    }
-    #sidebar .nav-btn svg,
-    #sidebar .nav-btn .side-icon {
-      width: 18px !important;
-      height: 18px !important;
-      stroke-width: 2px !important;
-      /* Sếp chốt 17/07: icon menu XANH DƯƠNG SÁNG (pha từ token primary, không chế hex mới) */
-      color: color-mix(in srgb, var(--hp-primary) 40%, #ffffff) !important;
-      transition: color 0.2s ease !important;
-    }
-    #sidebar .nav-btn:hover {
-      background: rgba(255, 255, 255, 0.05) !important;
-      color: #F3F4F6 !important;
-    }
-    #sidebar .nav-btn:hover svg,
-    #sidebar .nav-btn:hover .side-icon {
-      color: color-mix(in srgb, var(--hp-primary) 25%, #ffffff) !important; /* hover: xanh sáng hơn nữa */
-    }
-    #sidebar .nav-btn.active {
-      background: rgba(255, 255, 255, 0.08) !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-      box-shadow: none !important;
-    }
-    #sidebar .nav-btn.active svg,
-    #sidebar .nav-btn.active .side-icon {
-      color: color-mix(in srgb, var(--hp-primary) 40%, #ffffff) !important; /* active: cùng tông xanh sáng */
-    }
-    #sidebar .nav-btn::before,
-    #sidebar .nav-btn.active::before {
-      display: none !important;
-    }
-    #sidebar #side-brand-sub {
-      color: color-mix(in srgb, var(--hp-primary) 40%, #ffffff) !important; /* PHÒNG KỸ THUẬT xanh dương sáng (Sếp chốt 17/07) */
-      font-size: 11px !important;
-      font-weight: 700 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 1.5px !important;
-      line-height: 1.2 !important;
-      margin-bottom: 6px !important;
-      transition: color 0.2s ease !important;
-    }
-    #sidebar #side-brand-name {
-      font-size: 24px !important;
-      font-weight: 800 !important;
-      letter-spacing: 0.5px !important;
-      color: #ffffff !important;
-      text-transform: uppercase !important;
-      line-height: 1.15 !important;
-      transition: font-size 0.2s ease !important;
-    }
-  </style>
+
   <div class="side-brand">
     <div id="side-brand-sub">PHÒNG KỸ THUẬT</div>
     <div id="side-brand-name">THI CÔNG</div>
@@ -151,32 +66,32 @@
     <div class="nav-group">Điều hành</div>
     <button class="nav-btn active" data-tab="dieuhanh">
       <i data-lucide="layout-dashboard" class="side-icon"></i>
-      <span class="nav-text">Dashboard</span>
+      <span class="nav-text">Điều hành Phòng</span>
     </button>
     <button class="nav-btn" data-tab="thicong">
       <i data-lucide="hard-hat" class="side-icon"></i>
-      <span class="nav-text">Bộ Phận Thi Công</span>
+      <span class="nav-text">Quản lý Dự án</span>
     </button>
 
-    <div class="nav-group">Chuyên môn</div>
+    <div class="nav-group">Bộ phận chuyên môn</div>
     <button class="nav-btn" data-tab="qaqc">
       <i data-lucide="check-square" class="side-icon"></i>
-      <span class="nav-text">Bộ Phận QA-QC</span>
+      <span class="nav-text">QA-QC</span>
     </button>
     <button class="nav-btn" data-tab="hse">
       <i data-lucide="shield-alert" class="side-icon"></i>
-      <span class="nav-text">Bộ Phận HSE</span>
+      <span class="nav-text">HSE</span>
     </button>
     <button class="nav-btn" data-tab="shopdrawing">
       <i data-lucide="pen-tool" class="side-icon"></i>
-      <span class="nav-text">Bộ Phận Shopdrawing</span>
+      <span class="nav-text">Shopdrawing</span>
     </button>
     <button class="nav-btn" data-tab="baotri">
       <i data-lucide="wrench" class="side-icon"></i>
-      <span class="nav-text">Bộ Phận Bảo Trì</span>
+      <span class="nav-text">Bảo trì</span>
     </button>
 
-    <div class="nav-group">Phân tích</div>
+    <div class="nav-group">Công cụ</div>
     <button class="nav-btn" data-tab="ai-center">
       <i data-lucide="sparkles" class="side-icon"></i>
       <span class="nav-text">AI Center</span>
@@ -195,7 +110,7 @@
       <i data-lucide="download" class="side-icon"></i>
       <span class="nav-text">Tải ứng dụng</span>
     </button>
-    <span id="sync-pill" class="pill pill-sync" style="align-self:flex-start;background:rgba(255,255,255,0.1);color:#fff;border-radius:12px;padding:6px 12px;font-size:12px">Synced</span>
+    <span id="sync-pill" class="pill pill-sync" style="align-self:flex-start;border-radius:12px;padding:6px 12px;font-size:12px">Đang kiểm tra…</span>
   </div>
 </aside>
 
@@ -203,7 +118,6 @@
 <div class="main">
 <div class="breadcrumb" id="breadcrumb" style="display:none">Trang chủ</div>
 <div id="subnav-thicong" class="subnav-tabs hide">
-  <button class="sub-tab-btn" data-tab="tc-dashboard">Dashboard Thi công</button>
   <button class="sub-tab-btn" data-tab="tc-duan">Danh sách Dự án</button>
   <button class="sub-tab-btn" data-tab="tc-nhansu">Nhân sự</button>
   <button class="sub-tab-btn" data-tab="tc-themduan">Thêm Dự án</button>
@@ -212,15 +126,15 @@
 
 <div id="subnav-project" class="subnav-tabs hide">
   <button class="sub-tab-btn" onclick="exitProjectMode()" style="background:var(--danger);color:white;border-radius:4px;padding:4px 12px;margin-right:8px;font-weight:bold">⬅ Quay lại</button>
-  <button class="sub-tab-btn" data-tab="dashboard">Tổng quan dự án</button>
-  
+  <button class="sub-tab-btn" data-tab="dashboard">Tổng quan</button>
+
   <button class="sub-tab-btn" data-tab="baocaongay-new">Báo cáo ngày</button>
-  <button class="sub-tab-btn" data-tab="baocao">Tổng hợp báo cáo</button>
   <button class="sub-tab-btn" data-tab="tiendo">Tiến độ</button>
   <button class="sub-tab-btn" data-tab="thanhtoan">Thanh toán</button>
   <button class="sub-tab-btn" data-tab="lpb"><i data-lucide="handshake" class="sub-icon" style="margin-right:4px"></i> Liên phòng ban</button>
-  <button class="sub-tab-btn" data-tab="thanhvien">Thành viên</button>
   <button class="sub-tab-btn" data-tab="danhmuc">Nhà thầu</button>
+  <button class="sub-tab-btn" data-tab="thanhvien">Thành viên</button>
+  <button class="sub-tab-btn" data-tab="baocao">Tổng hợp</button>
 </div>
 <div id="subnav-shopdrawing" class="subnav-tabs hide">
   <button class="sub-tab-btn" data-tab="sd-dashboard">Dashboard</button>
@@ -247,6 +161,14 @@
   <button class="sub-tab-btn" data-tab="mt-muctieu">Mục tiêu</button>
 </div>
 <div id="page-container">
+
+<section id="mobile-desktop-notice" class="hide" aria-live="polite">
+  <div class="mobile-desktop-notice-card">
+    <i data-lucide="monitor" aria-hidden="true"></i>
+    <h2>Chức năng này dùng trên máy tính</h2>
+    <p>Phiên bản điện thoại của HP CONS chỉ dành cho Báo cáo ngày. Vui lòng mở ứng dụng trên máy tính để sử dụng chức năng theo vai trò của bạn.</p>
+  </div>
+</section>
 
 <!-- Màn đăng nhập -->
 <!-- Màn đăng nhập -->
@@ -333,64 +255,23 @@
 <div id="proj-banner" class="proj-banner hide"></div>
 
 <section id="tab-dashboard">
-    <style>
-      .wrap-dashboard {
-        max-width: 100% !important;
-        padding: 0 24px !important;
-        margin: 16px 0 !important;
-        box-sizing: border-box !important;
-      }
-      @media (max-width: 1366px) {
-        .wrap-dashboard {
-          padding: 0 16px !important;
-        }
-      }
-      @media (max-width: 768px) {
-        .wrap-dashboard {
-          padding: 0 12px !important;
-        }
-      }
-      #tab-dashboard {
-        scroll-margin-top: 80px;
-        --info: #0ea5e9;
-        --warn: var(--warning);
-      }
-      #tab-dashboard #dash-title {
-        color: var(--hp-text-primary) !important;
-      }
-      #tab-dashboard .kpi-card {
-        cursor: pointer;
-        padding: 16px 12px;
-      }
-      #tab-dashboard #dash-kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 12px;
-        margin-bottom: 24px;
-      }
-      @media (max-width: 1400px) {
-        #tab-dashboard #dash-kpi-grid {
-          grid-template-columns: repeat(3, 1fr);
-        }
-      }
-      @media (max-width: 992px) {
-        #tab-dashboard #dash-kpi-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      @media (max-width: 560px) {
-        #tab-dashboard #dash-kpi-grid {
-          grid-template-columns: 1fr !important;
-        }
-      }
-    </style>
+
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
       <h2 id="dash-title" style="margin:0;color:var(--hp-text-primary);font-size:22px;font-weight:800;">Tổng quan dự án</h2>
     </div>
-    
+
     <div id="dash-hero" style="margin-bottom:16px;"></div>
-    
-    
+
+    <div id="dash-priority-summary" class="priority-summary" aria-label="Tóm tắt ưu tiên trong 5 giây"></div>
+
+    <div class="dash-quick-actions" aria-label="Thao tác nhanh dự án">
+      <button class="quick-action quick-action-primary" onclick="switchTab('baocaongay-new')"><i data-lucide="clipboard-plus"></i><span><b>+ Báo cáo ngày</b><small>Ghi nhận hiện trường</small></span></button>
+      <button class="quick-action quick-action-accent" onclick="openLpbCreateFromDashboard()"><i data-lucide="handshake"></i><span><b>+ Yêu cầu liên phòng ban</b><small>Gửi hỗ trợ dưới 30 giây</small></span></button>
+      <button class="quick-action" onclick="switchTab('tiendo')"><i data-lucide="chart-no-axes-combined"></i><span><b>Cập nhật tiến độ</b><small>Kế hoạch và thực tế</small></span></button>
+      <button class="quick-action" onclick="switchTab('thanhtoan')"><i data-lucide="wallet-cards"></i><span><b>Thêm thanh toán</b><small>Chi phí và dòng tiền</small></span></button>
+    </div>
+
+
     <!-- KHỐI 1: 5 THẺ KPI TỔNG QUAN -->
     <div id="dash-kpi-grid">
       <div class="kpi-card" style="border-top:4px solid var(--hp-primary);" onclick="switchTab('tiendo')">
@@ -417,663 +298,68 @@
         <div class="kpi-label" style="color:var(--hp-brand-accent);">NHÂN LỰC HÔM NAY</div>
         <div class="kpi-desc" id="dash-kpi-manpower-desc">--</div>
       </div>
-      <div class="kpi-card" style="border-top:4px solid var(--hp-success);" id="dash-kpi-finance-card" onclick="switchTab('thanhtoan')">
-        <div class="kpi-icon" id="dash-kpi-balance-icon" style="background:var(--hp-success-bg); color:var(--hp-success);"></div>
-        <div class="kpi-value" style="color:var(--hp-success);" id="dash-kpi-balance">--</div>
-        <div class="kpi-label" style="color:var(--hp-success);">DÒNG TIỀN DỰ ÁN</div>
-        <div class="kpi-desc" id="dash-kpi-balance-desc">--</div>
+      <div class="kpi-card kpi-card-action" style="border-top:4px solid var(--hp-warning);" onclick="openLpbFromDashboard('overdue')">
+        <div class="kpi-icon" id="dash-kpi-lpb-icon" style="background:var(--hp-warning-bg); color:var(--hp-warning);"><i data-lucide="handshake"></i></div>
+        <div class="kpi-value" style="color:var(--hp-warning);" id="dash-kpi-lpb">--</div>
+        <div class="kpi-label" style="color:var(--hp-warning);">LPB ĐANG QUÁ HẠN</div>
+        <div class="kpi-desc" id="dash-kpi-lpb-desc">--</div>
+        <span class="card-link-hint">Xem yêu cầu →</span>
       </div>
     </div>
-    
-    <!-- KHỐI 2 & 3: CẢNH BÁO RỦI RO và TÀI CHÍNH -->
+
+    <!-- VIỆC CẦN XỬ LÝ CỦA DỰ ÁN -->
     <div class="row" style="margin-bottom:24px;">
       <!-- KHỐI 2: CẢNH BÁO -->
       <div class="card" id="dash-risk-card" style="flex:1; margin-bottom:0; border-top: 4px solid var(--hp-danger);">
         <h2 style="margin-top:0; color:var(--hp-text-primary); display:flex; align-items:center; gap:8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--hp-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> CẢNH BÁO &amp; RỦI RO
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--hp-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> VIỆC CẦN XỬ LÝ
         </h2>
-        
+
         <div id="dash-alerts-summary-wrapper">
           <div style="margin-bottom:14px;" id="dash-alerts-waiting-approve" class="hide">
               <h3 style="font-size:13px; margin-bottom:6px; color:var(--hp-warning); font-weight:700;">Báo cáo chờ duyệt</h3>
               <div id="dash-waiting-approve-list" class="sublist"></div>
           </div>
-          
+
           <div style="margin-bottom:14px;" id="dash-alerts-delays-group">
               <h3 style="font-size:13px; margin-bottom:6px; color:var(--hp-text-primary); font-weight:700;">Công tác trễ tiến độ</h3>
               <div id="dash-alerts-delays" class="sublist"></div>
           </div>
-          
+
           <div style="margin-bottom:14px;" id="dash-alerts-issues-group">
               <h3 style="font-size:13px; margin-bottom:6px; color:var(--hp-text-primary); font-weight:700;">Vướng mắc chưa xử lý</h3>
               <div id="dash-alerts-issues" class="sublist"></div>
           </div>
-          
+
           <div style="margin-bottom:14px;" id="dash-alerts-payments-group">
               <h3 style="font-size:13px; margin-bottom:6px; color:var(--hp-text-primary); font-weight:700;">Yêu cầu duyệt chi</h3>
               <div id="dash-alerts-payments" class="sublist"></div>
           </div>
-          
+
           <div id="dash-alerts-lpb-group">
               <h3 style="font-size:13px; margin-bottom:6px; color:var(--hp-text-primary); font-weight:700;">Đề xuất liên phòng ban</h3>
               <div id="dash-alerts-lpb" class="sublist"></div>
           </div>
         </div>
       </div>
-      
-      <!-- KHỐI 3: TÀI CHÍNH -->
-      <div class="card" style="flex:1; margin-bottom:0; border-top: 4px solid var(--hp-success);">
-        <h2 style="margin-top:0; color:var(--hp-text-primary); display:flex; align-items:center; gap:8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--hp-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg> TÀI CHÍNH &amp; DÒNG TIỀN
-        </h2>
-        
-        <div style="margin-bottom:16px; position:relative; min-height: 140px;">
-             <canvas id="dash-chart-finance"></canvas>
-        </div>
-        
-        <div>
-            <h3 style="font-size:13px; margin-bottom:8px; color:var(--hp-text-primary); font-weight:700;">Top 3 Nhà thầu chi nhiều nhất</h3>
-            <div id="dash-finance-top" class="sublist"></div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- KHỐI 4: BIỂU ĐỒ THI CÔNG & NHÂN LỰC -->
-    <div class="card" style="border-top: 4px solid var(--hp-brand-accent);">
-      <h2 style="margin-top:0; color:var(--hp-text-primary); display:flex; align-items:center; gap:8px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--hp-brand-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> BIỂU ĐỒ NHÂN LỰC (7 Ngày)
-      </h2>
-      <div style="position:relative; min-height: 140px;">
-         <canvas id="chart-manpower"></canvas>
-      </div>
+
     </div>
 </section>
   </div>
 </section>
 
 <section id="tab-dieuhanh" class="hide">
-  <style>
-    /* Scoped styles for Executive Dashboard tab */
-    #tab-dieuhanh {
-      padding: 8px 0;
-    }
-    
-    #tab-dieuhanh .exec-dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 12px;
-      margin-bottom: 24px;
-    }
-    
-    #tab-dieuhanh .exec-dashboard-title {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--hp-text-primary);
-      margin: 0;
-      letter-spacing: -0.5px;
-      font-family: var(--font-sans);
-    }
-    
-    body.dark-mode #tab-dieuhanh .exec-dashboard-title {
-      color: var(--hp-text-primary);
-    }
 
-    #tab-dieuhanh #exec-kpi {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    #tab-dieuhanh #exec-kpi .kpi-card {
-      padding: 16px 10px;
-    }
-    #tab-dieuhanh #exec-kpi .kpi-card .kpi-value {
-      font-size: 32px;
-    }
-    #tab-dieuhanh #exec-kpi .kpi-card .kpi-icon {
-      width: 36px;
-      height: 36px;
-      font-size: 18px;
-      margin-bottom: 8px;
-    }
-
-    #tab-dieuhanh .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s, border-color 0.25s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    #tab-dieuhanh .kpi-card:hover {
-      box-shadow: var(--shadow-lg);
-      border-color: rgba(0,0,0,0.1);
-    }
-
-    #tab-dieuhanh .kpi-card .kpi-icon {
-      font-size: 22px;
-      margin-bottom: 10px;
-      background: var(--bg);
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 12px;
-      transition: background 0.25s;
-    }
-    
-    #tab-dieuhanh .kpi-card:hover .kpi-icon {
-      background: var(--surface-2);
-    }
-
-    #tab-dieuhanh .kpi-card .kpi-value {
-      font-size: 32px;
-      font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 6px;
-    }
-
-    #tab-dieuhanh .kpi-card .kpi-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    #tab-dieuhanh .table-sticky {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    #tab-dieuhanh .table-sticky th {
-      background: var(--surface-2);
-      color: var(--muted);
-      font-weight: 700;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 12px 18px;
-      border-bottom: 2px solid var(--border);
-      text-align: left;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    #tab-dieuhanh .table-sticky td {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-      color: var(--ink);
-      vertical-align: middle;
-      transition: background 0.15s;
-    }
-
-    #tab-dieuhanh .table-sticky tr {
-      transition: background 0.2s;
-    }
-
-    #tab-dieuhanh .table-sticky tbody tr:hover td {
-      background: var(--tint);
-    }
-
-    body.dark-mode #tab-dieuhanh .table-sticky tbody tr:hover td {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    #tab-dieuhanh td span[style*="var(--success)"] {
-      background: rgba(34, 197, 94, 0.1) !important;
-      color: #16a34a !important;
-      padding: 4px 10px !important;
-      border-radius: 20px !important;
-      font-size: 11px !important;
-      font-weight: 700 !important;
-      display: inline-block !important;
-      border: 1px solid rgba(34, 197, 94, 0.2) !important;
-    }
-
-    #tab-dieuhanh td span[style*="var(--danger)"] {
-      background: rgba(239, 68, 68, 0.1) !important;
-      color: #dc2626 !important;
-      padding: 4px 10px !important;
-      border-radius: 20px !important;
-      font-size: 11px !important;
-      font-weight: 700 !important;
-      display: inline-block !important;
-      border: 1px solid rgba(239, 68, 68, 0.2) !important;
-    }
-
-    #tab-dieuhanh #exec-payment-summary {
-      margin-bottom: 20px;
-    }
-
-    #tab-dieuhanh #exec-payment-summary > div:last-child {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px;
-    }
-
-    #tab-dieuhanh #exec-payment-summary > div:last-child > div {
-      border-radius: 12px !important;
-      padding: 14px 16px !important;
-      border: 1px solid var(--border) !important;
-      background: var(--surface) !important;
-      box-shadow: var(--shadow-sm) !important;
-      transition: transform 0.25s, box-shadow 0.25s;
-    }
-
-    #tab-dieuhanh #exec-payment-summary > div:last-child > div:hover {
-      box-shadow: var(--shadow-md) !important;
-    }
-
-    #tab-dieuhanh .dept-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-      box-shadow: var(--shadow-sm);
-    }
-
-    #tab-dieuhanh .dept-card:hover {
-      box-shadow: var(--shadow-md);
-      border-color: rgba(0,0,0,0.1);
-    }
-
-    #tab-dieuhanh #exec-chuyenmon > div {
-      grid-template-columns: 1fr 1fr !important;
-      display: grid !important;
-      gap: 16px !important;
-    }
-
-    #tab-dieuhanh #exec-chuyenmon .dept-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      height: 100%;
-      padding: 24px 16px;
-    }
-
-    #tab-dieuhanh #exec-hr-list .it {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      margin-bottom: 8px;
-      font-size: 13px;
-      transition: transform 0.2s, background 0.2s;
-    }
-
-    #tab-dieuhanh #exec-hr-list .it:hover {
-      transform: translateX(4px);
-      background: var(--surface-2);
-    }
-
-    #tab-dieuhanh #exec-hr-list .it b {
-      color: var(--text-strong);
-    }
-
-    #tab-dieuhanh #exec-hr-list .it span {
-      background: var(--tint);
-      color: var(--primary);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    body.dark-mode #tab-dieuhanh .kpi-card,
-    body.dark-mode #tab-dieuhanh .dept-card,
-    body.dark-mode #tab-dieuhanh #exec-hr-list .it,
-    body.dark-mode #tab-dieuhanh #exec-payment-summary > div:last-child > div {
-      background: rgba(30, 41, 59, 0.7) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
-    }
-
-    body.dark-mode #tab-dieuhanh .kpi-card .kpi-icon {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    body.dark-mode #tab-dieuhanh .kpi-card:hover .kpi-icon {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    /* Responsive styling for the table on mobile (List/Card view) */
-    @media (max-width: 768px) {
-      #tab-dieuhanh .table-sticky thead,
-      #tab-tc-dashboard #tc-progress-table .table-sticky thead {
-        display: none !important;
-      }
-      
-      #tab-dieuhanh .table-sticky, 
-      #tab-dieuhanh .table-sticky tbody, 
-      #tab-dieuhanh .table-sticky tr, 
-      #tab-dieuhanh .table-sticky td,
-      #tab-tc-dashboard #tc-progress-table .table-sticky, 
-      #tab-tc-dashboard #tc-progress-table .table-sticky tbody, 
-      #tab-tc-dashboard #tc-progress-table .table-sticky tr, 
-      #tab-tc-dashboard #tc-progress-table .table-sticky td {
-        display: block !important;
-        width: 100% !important;
-      }
-      
-      #tab-dieuhanh .table-sticky tr,
-      #tab-tc-dashboard #tc-progress-table .table-sticky tr {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        box-shadow: var(--shadow-sm);
-        position: relative;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      body.dark-mode #tab-dieuhanh .table-sticky tr,
-      body.dark-mode #tab-tc-dashboard #tc-progress-table .table-sticky tr {
-        background: rgba(30, 41, 59, 0.7) !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
-      }
-      
-      #tab-dieuhanh .table-sticky tr:hover,
-      #tab-tc-dashboard #tc-progress-table .table-sticky tr:hover {
-        box-shadow: var(--shadow-md);
-      }
-      
-      #tab-dieuhanh .table-sticky td,
-      #tab-tc-dashboard #tc-progress-table .table-sticky td {
-        padding: 6px 0 !important;
-        border: none !important;
-        background: transparent !important;
-      }
-      
-      #tab-dieuhanh .table-sticky td:first-child,
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:first-child {
-        font-size: 15px;
-        border-bottom: 1px solid var(--border) !important;
-        padding-bottom: 10px !important;
-        margin-bottom: 10px;
-        padding-right: 60px !important;
-      }
-
-      body.dark-mode #tab-dieuhanh .table-sticky td:first-child,
-      body.dark-mode #tab-tc-dashboard #tc-progress-table .table-sticky td:first-child {
-        border-bottom-color: rgba(255, 255, 255, 0.08) !important;
-      }
-      
-      #tab-dieuhanh .table-sticky td:nth-child(2),
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(2) {
-        position: absolute;
-        top: 14px;
-        right: 16px;
-        width: auto !important;
-        text-align: right !important;
-      }
-      
-      #tab-dieuhanh .table-sticky td:nth-child(2) span,
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(2) span {
-        display: inline-flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        font-size: 13px !important;
-        font-weight: 800;
-        background: var(--surface-2);
-        border: 2px solid currentColor;
-        box-shadow: var(--shadow-sm);
-      }
-      
-      #tab-dieuhanh .table-sticky td:nth-child(3),
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(3) {
-        display: flex !important;
-        flex-direction: column;
-        gap: 4px;
-        margin-bottom: 6px;
-      }
-      
-      #tab-dieuhanh .table-sticky td:nth-child(3)::before,
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(3)::before {
-        content: "Tiến độ KH:";
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      #tab-dieuhanh .table-sticky td:nth-child(4),
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(4) {
-        display: flex !important;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 6px;
-      }
-      
-      #tab-dieuhanh .table-sticky td:nth-child(4)::before,
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(4)::before {
-        content: "Báo cáo hôm nay:";
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      #tab-dieuhanh .table-sticky td:nth-child(5),
-      #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(5) {
-        display: flex !important;
-        justify-content: flex-end;
-        font-weight: 700;
-        font-size: 12px;
-        margin-top: 4px;
-        border-top: 1px dashed var(--border) !important;
-        padding-top: 10px !important;
-      }
-
-      body.dark-mode #tab-dieuhanh .table-sticky td:nth-child(5),
-      body.dark-mode #tab-tc-dashboard #tc-progress-table .table-sticky td:nth-child(5) {
-        border-top-color: rgba(255, 255, 255, 0.08) !important;
-      }
-    }
-    
-    /* Thiết kế Grid cho Bộ phận Thi công */
-    .tc-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .tc-grid-2-1-1 {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .tc-grid-1-1-1 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .tc-grid-3-1 {
-      display: grid;
-      grid-template-columns: 3fr 1fr;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    
-    /* Responsive Breakpoints & Polish for #tab-dieuhanh */
-    #tab-dieuhanh #exec-kpi {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    #tab-dieuhanh #exec-todo-list {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    #tab-dieuhanh .dash-action-table {
-      min-width: 580px;
-    }
-
-    @media (max-width: 1600px) {
-      #tab-dieuhanh #exec-kpi {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    @media (max-width: 1100px) {
-      #tab-dieuhanh #exec-progress-table .exec-proj-grid {
-        grid-template-columns: 1fr !important;
-      }
-    }
-
-    @media (max-width: 992px) {
-      #tab-dieuhanh #exec-kpi {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      #tab-dieuhanh .row {
-        flex-direction: column !important;
-      }
-      #tab-dieuhanh .row > .card {
-        width: 100% !important;
-        margin-bottom: 24px !important;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .tc-grid-2-1-1, .tc-grid-1-1-1, .tc-grid-3-1 {
-        grid-template-columns: 1fr !important;
-      }
-      #tab-tc-themduan button {
-        width: 100% !important;
-      }
-      #tab-dieuhanh {
-        padding: 4px 0;
-      }
-      #tab-dieuhanh .exec-dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-        margin-bottom: 16px;
-      }
-      #tab-dieuhanh .exec-dashboard-title {
-        font-size: 22px;
-      }
-      #tab-dieuhanh #exec-payment-summary > div:last-child {
-        grid-template-columns: repeat(2, 1fr) !important;
-      }
-      #tab-dieuhanh .kpi-card {
-        padding: 12px 8px;
-      }
-      #tab-dieuhanh .kpi-card .kpi-value {
-        font-size: 26px !important;
-      }
-      #tab-dieuhanh .btn,
-      #tab-dieuhanh button {
-        min-height: 38px;
-      }
-    }
-
-    #tab-dieuhanh .exec-chart-container {
-      position: relative;
-      width: 100%;
-      height: 300px;
-    }
-    #tab-dieuhanh .exec-chart-container canvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-    }
-
-    #tab-dieuhanh .exec-donut-container {
-      position: relative;
-      width: 100%;
-      height: 220px;
-    }
-    #tab-dieuhanh .exec-donut-container canvas {
-      width: 100% !important;
-      height: 100% !important;
-      display: block;
-    }
-
-    @media (max-width: 768px) {
-      .tc-grid-2-1-1, .tc-grid-1-1-1, .tc-grid-3-1 {
-        grid-template-columns: 1fr !important;
-      }
-      #tab-tc-themduan button {
-        width: 100% !important;
-      }
-      #tab-dieuhanh {
-        padding: 4px 0;
-      }
-      #tab-dieuhanh .exec-dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-        margin-bottom: 16px;
-      }
-      #tab-dieuhanh .exec-dashboard-title {
-        font-size: 22px;
-      }
-      #tab-dieuhanh #exec-payment-summary > div:last-child {
-        grid-template-columns: repeat(2, 1fr) !important;
-      }
-      #tab-dieuhanh .kpi-card {
-        padding: 12px 8px;
-      }
-      #tab-dieuhanh .kpi-card .kpi-value {
-        font-size: 26px !important;
-      }
-      #tab-dieuhanh .btn,
-      #tab-dieuhanh button {
-        min-height: 38px;
-      }
-      #tab-dieuhanh .exec-chart-container {
-        height: 240px !important;
-      }
-    }
-
-    @media (max-width: 560px) {
-      #tab-dieuhanh #exec-kpi {
-        grid-template-columns: 1fr !important;
-      }
-      #tab-dieuhanh #exec-payment-summary > div:last-child {
-        grid-template-columns: 1fr !important;
-      }
-    }
-  </style>
 
   <!-- HERO -->
   <div class="exec-dashboard-header" id="exec-hero">
     <div>
-      <h2 class="exec-dashboard-title">TRUNG TÂM ĐIỀU HÀNH</h2>
+      <h2 class="exec-dashboard-title">ĐIỀU HÀNH PHÒNG</h2>
       <div style="font-size:13px;color:var(--muted);margin-top:4px">Phòng Kỹ thuật Thi công · <span id="exec-date"></span></div>
     </div>
   </div>
+
+  <div id="exec-priority-summary" class="priority-summary" aria-label="Tóm tắt ưu tiên điều hành trong 5 giây"></div>
 
   <!-- KPI tổng quan -->
   <div id="exec-kpi"></div>
@@ -1114,123 +400,8 @@
     <div id="exec-progress-table" style="max-height:420px;overflow:auto"></div>
   </div>
 
-  <!-- Chi phí & thanh toán (full width) -->
-  <div class="card" style="margin-bottom:24px;border-top:4px solid var(--success)">
-    <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg> Chi phí &amp; thanh toán</h2>
-    <div id="exec-payment-summary" style="margin-bottom:16px"></div>
-    <h3 style="margin:0 0 10px;font-size:14px;color:var(--hp-text-primary)">Thu – Chi theo dự án</h3>
-    <div class="exec-chart-container"><canvas id="exec-finance-chart"></canvas></div>
-  </div>
-
-  <!-- Cơ cấu sức khỏe + Khối chuyên môn -->
-  <div class="row" style="margin-bottom:24px">
-    <div class="card" style="flex:1;min-width:240px;margin-bottom:0">
-      <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg> Cơ cấu sức khỏe dự án</h2>
-      <div class="exec-donut-container"><canvas id="exec-status-chart"></canvas></div>
-    </div>
-    <div class="card" style="flex:2;min-width:320px;margin-bottom:0">
-      <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="6" x2="9.01" y2="6"></line><line x1="15" y1="6" x2="15.01" y2="6"></line><line x1="9" y1="10" x2="9.01" y2="10"></line><line x1="15" y1="10" x2="15.01" y2="10"></line><line x1="9" y1="14" x2="9.01" y2="14"></line><line x1="15" y1="14" x2="15.01" y2="14"></line><line x1="9" y1="18" x2="15" y2="18"></line></svg> Khối chuyên môn</h2>
-      <div id="exec-chuyenmon"></div>
-    </div>
-  </div>
-
-  <!-- Nhân sự theo bộ phận (cuối dashboard) -->
-  <div class="card" style="border-top:4px solid var(--accent)">
-    <h2 style="margin-top:0;color:var(--hp-text-primary);display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Nhân sự theo bộ phận</h2>
-    <div id="exec-hr-list" class="sublist"></div>
-  </div>
-
-  <script>
-    // Deep-linking navigation helper
-    async function selectAndOpenProject(projectId, targetTab) {
-      const userProjects = Array.from(document.getElementById("cur-project").options).map(opt => opt.value);
-      if (userProjects.includes(projectId)) {
-        CUR.project = projectId;
-        if (typeof metaSet === 'function') {
-          await metaSet("cur_project", projectId);
-        }
-        const sel = document.getElementById("cur-project");
-        if (sel) {
-          sel.value = projectId;
-          sel.dispatchEvent(new Event('change'));
-        }
-        
-        // Navigation and rendering
-        if (typeof switchTab === 'function') {
-          switchTab(targetTab);
-        }
-        
-        if (typeof renderMySubs === 'function') renderMySubs();
-        if (typeof renderContractors === 'function') renderContractors();
-        if (typeof renderTiendo === 'function') renderTiendo();
-        if (typeof renderCdt === 'function') renderCdt();
-      } else {
-        alert("Dự án này bạn không được phân quyền truy cập!");
-      }
-    }
-
-    // Bind event delegation
-    (function() {
-      const ids = ["exec-progress-table", "tc-progress-table"];
-      ids.forEach(id => {
-        const tableContainer = document.getElementById(id);
-        if (tableContainer) {
-          tableContainer.addEventListener("click", async (e) => {
-            const tr = e.target.closest("tr");
-            const td = e.target.closest("td");
-            if (!tr || !td) return;
-            
-            const onclickAttr = tr.getAttribute("onclick") || "";
-            const match = onclickAttr.match(/openProject\('([^']+)'\)/);
-            if (!match) return;
-            const projectId = match[1];
-            
-            const cells = Array.from(tr.cells);
-            const colIndex = cells.indexOf(td);
-            
-            // Column index 2: Progress Schedule
-            if (colIndex === 2) {
-              e.stopPropagation();
-              e.preventDefault();
-              await selectAndOpenProject(projectId, "tiendo");
-            } 
-            // Column index 3: Today's Report Status
-            else if (colIndex === 3) {
-              e.stopPropagation();
-              e.preventDefault();
-              await selectAndOpenProject(projectId, "baocaongay-new");
-            }
-          });
-        }
-      });
-    })();
-  </script>
 </section>
 
-
-<section id="tab-tc-dashboard" class="hide">
-  <div class="row" style="margin-bottom:12px">
-    <div class="card" style="flex:2;margin-bottom:0">
-      <h2 style="margin-top:0">Tổng số Dự án & Trạng thái</h2>
-      <div id="tc-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:12px"></div>
-    </div>
-    <div class="card" style="flex:1;margin-bottom:0">
-      <h2 style="margin-top:0">Cảnh báo Thi công</h2>
-      <div id="tc-alerts" class="sublist"></div>
-    </div>
-  </div>
-  <div class="row" style="margin-bottom:12px">
-    <div class="card" style="flex:2;margin-bottom:0;overflow:auto">
-      <h2 style="margin-top:0">Tình trạng Tiến độ các Dự án</h2>
-      <div id="tc-progress-table"></div>
-    </div>
-    <div class="card" style="flex:1;margin-bottom:0">
-      <h2 style="margin-top:0">Báo cáo Nhật ký & Nhân sự</h2>
-      <div id="tc-log-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:12px"></div>
-      <div id="tc-log-missing" class="sublist"></div>
-    </div>
-  </div>
-</section>
 <section id="tab-tc-nhansu" class="hide">
   <div class="card">
     <h2 style="margin-top:0">Nhân sự Bộ Phận Thi Công</h2>
@@ -1262,13 +433,13 @@
       <button class="btn btn-mut btn-sm hide" id="btn-cancel-edit" onclick="resetProjectForm()">Hủy sửa</button>
     </div>
     <input type="hidden" id="np-id">
-    
+
     <div class="tc-grid-2-1-1">
       <div><label>Tên công trình</label><input id="np-name" placeholder="VD: Nhà máy ABC - Giai đoạn 1" class="input" style="width:100%"></div>
       <div><label>Ngày bắt đầu</label><input type="date" id="np-start" class="input" style="width:100%"></div>
       <div><label>Ngày kết thúc</label><input type="date" id="np-end" class="input" style="width:100%"></div>
     </div>
-    
+
     <div class="tc-grid-2-1-1">
       <div><label>Chủ đầu tư</label><input id="np-investor" placeholder="Tên chủ đầu tư" class="input" style="width:100%"></div>
       <div><label>Số hợp đồng</label><input id="np-contract" placeholder="VD: 51-ShunHing" class="input" style="width:100%"></div>
@@ -1282,7 +453,7 @@
         </select>
       </div>
     </div>
-    
+
     <div class="tc-grid-2-1-1">
       <div><label>Địa chỉ</label><input id="np-addr" placeholder="VD: KCN VSIP, Bình Dương" class="input" style="width:100%"></div>
       <div><label>Quy mô</label><input id="np-scale" placeholder="VD: Nhà xưởng 1 & 2; hạ tầng phụ trợ" class="input" style="width:100%"></div>
@@ -1296,40 +467,15 @@
         </div>
       </div>
     </div>
-    
+
     <div style="display:flex; justify-content:flex-end; margin-top:16px;">
       <button class="btn btn-ok" id="btn-save-proj" onclick="addProject()" style="padding:10px 24px; font-weight:bold">+ Lưu dự án</button>
     </div>
-    
+
     <p class="muted" style="font-size:12px; margin-top:12px;"><b>Tọa độ là bắt buộc</b> - hệ thống tự lấy thời tiết/gió mưa theo vị trí này. Nhấp nút GPS để lấy nhanh vị trí hiện trường.</p>
   </div>
-  
-  <script>
-    function getCurrentGPS(event) {
-      if (!navigator.geolocation) {
-        alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
-        return;
-      }
-      const btn = event.currentTarget;
-      const originalText = btn.innerHTML;
-      btn.innerHTML = "⌛...";
-      btn.disabled = true;
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          document.getElementById("np-lat").value = position.coords.latitude.toFixed(6);
-          document.getElementById("np-lon").value = position.coords.longitude.toFixed(6);
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-        },
-        (error) => {
-          alert("Lỗi định vị GPS: " + error.message);
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    }
-  </script>
+
+
 </section>
 <section id="tab-tc-muctieu" class="hide">
   <div class="tc-grid-3-1">
@@ -1337,7 +483,7 @@
       <h2 style="margin-top:0">Danh sách Mục tiêu & KPI Thi công</h2>
       <div id="tc-goals-list">Đang tải danh sách mục tiêu...</div>
     </div>
-    
+
     <div class="card" style="margin-bottom:0">
       <h3 style="margin-top:0" id="goal-form-title">Thêm Mục tiêu mới</h3>
       <input type="hidden" id="goal-id">
@@ -1349,7 +495,7 @@
         <label>Dự án liên kết</label>
         <select id="goal-proj" class="input" style="width:100%; height:38px;"></select>
       </div>
-      
+
       <div style="display:flex; gap:12px; margin-bottom:12px">
         <div style="flex:1">
           <label>Chỉ tiêu</label>
@@ -1360,7 +506,7 @@
           <input id="goal-unit" placeholder="VD: m3" class="input" style="width:100%">
         </div>
       </div>
-      
+
       <div style="display:flex; gap:12px; margin-bottom:12px">
         <div style="flex:1">
           <label>Đã đạt</label>
@@ -1371,7 +517,7 @@
           <input type="date" id="goal-deadline" class="input" style="width:100%">
         </div>
       </div>
-      
+
       <div style="display:flex; justify-content:space-between; margin-top:16px;">
         <button class="btn btn-mut btn-sm hide" id="btn-cancel-goal" onclick="resetGoalForm()">Hủy</button>
         <button class="btn btn-ok" onclick="saveTcGoal()" style="font-weight:bold">+ Lưu mục tiêu</button>
@@ -1400,7 +546,7 @@
           </div>
         </div>
       </div>
-    
+
     <!-- DASHBOARD -->
     <div id="report-dashboard" style="display:none; gap:20px; flex-direction:column;">
       <div style="display:flex; gap:20px; flex-wrap:wrap;">
@@ -1600,7 +746,7 @@
       </h2>
       <button class="btn btn-primary" onclick="openContractorModal()" id="btn-add-contractor">+ Thêm mới</button>
     </div>
-    
+
     <p class="muted" style="margin-top:-10px; margin-bottom:20px; font-size:13px;">
       Danh sách các đơn vị và tổ đội tham gia dự án. Tên đã lưu sẽ được AI sử dụng để tự động phân tích và gắn thẻ khi bạn nhập nhật ký bằng giọng nói.
     </p>
@@ -1646,7 +792,7 @@
     </div>
     <div class="modal-body" style="padding:20px; max-height:70vh; overflow-y:auto;">
       <input type="hidden" id="cm-id">
-      
+
       <div style="margin-bottom:16px;">
         <label style="display:block; margin-bottom:6px; font-weight:600;">Phân loại (*)</label>
         <select id="cm-type" class="input" style="width:100%;">
@@ -1706,138 +852,23 @@
 
 <section id="tab-hethong" class="hide">
   <!-- Styles scoped to #tab-hethong to prevent leaking to other modules -->
-  <style>
-    #tab-hethong {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 4px 0 24px 0;
-    }
-    #tab-hethong .system-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md, 10px);
-      padding: 24px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      border-top: 4px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-    #tab-hethong .system-card:hover {
-      box-shadow: var(--shadow-md, 0 4px 10px rgba(0,0,0,0.05));
-    }
-    #tab-hethong .system-card.card-primary {
-      border-top-color: var(--primary);
-    }
-    #tab-hethong .system-card.card-success {
-      border-top-color: var(--success);
-    }
-    #tab-hethong .system-card.card-warning {
-      border-top-color: var(--warning);
-    }
-    #tab-hethong .system-card.card-danger {
-      border-top-color: var(--danger);
-    }
-    #tab-hethong .system-card.card-accent {
-      border-top-color: var(--accent);
-    }
-    #tab-hethong .system-card h2 {
-      margin-top: 0;
-      margin-bottom: 8px;
-      color: var(--primary-dark);
-      font-size: var(--fs-lg, 17px);
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    #tab-hethong .system-card p.muted {
-      margin-top: 0;
-      margin-bottom: 16px;
-      font-size: var(--fs-base, 13px);
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    #tab-hethong .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      align-items: flex-end;
-      margin-bottom: 8px;
-    }
-    #tab-hethong .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    #tab-hethong .form-group label {
-      font-weight: 600;
-      font-size: var(--fs-sm, 12px);
-      color: var(--text-strong);
-    }
-    #tab-hethong .form-group input,
-    #tab-hethong .form-group select,
-    #tab-hethong .form-group textarea {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--r, 8px);
-      font-size: var(--fs-base, 13px);
-      background: var(--surface);
-      color: var(--ink);
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    #tab-hethong .form-group input:focus,
-    #tab-hethong .form-group select:focus,
-    #tab-hethong .form-group textarea:focus {
-      border-color: var(--primary);
-    }
-    #tab-hethong .btn-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    #tab-hethong .sublist {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    #tab-hethong .sublist .it {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      background: var(--surface-2, #fafcff);
-      border: 1px solid var(--border);
-      border-radius: var(--r-sm, 6px);
-      font-size: var(--fs-base, 13px);
-      transition: background-color 0.2s;
-    }
-    #tab-hethong .sublist .it:hover {
-      background: var(--tint-2, #f6f9fc);
-    }
-    #tab-hethong .sublist .it span:first-child {
-      color: var(--ink);
-    }
-    #tab-hethong .sublist .it span:last-child {
-      display: flex;
-      gap: 6px;
-    }
-    /* Dark mode overrides */
-    body.dark-mode #tab-hethong .system-card {
-      background: var(--surface);
-      border-color: var(--border);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
-    }
-    body.dark-mode #tab-hethong .sublist .it {
-      background: var(--bg);
-      border-color: var(--border);
-    }
-    body.dark-mode #tab-hethong .sublist .it:hover {
-      background: var(--surface-2);
-    }
-  </style>
+
+  <div class="system-card card-primary" id="operational-readiness-card">
+    <h2>Sẵn sàng vận hành</h2>
+    <p class="muted">Kiểm tra nhanh dữ liệu local, Firebase, phiên đăng nhập, phân quyền, PWA và chính sách điện thoại. Kiểm tra này chỉ đọc trạng thái, không Push/Pull và không sửa dữ liệu.</p>
+    <div class="btn-group">
+      <button class="btn btn-pri" onclick="runOperationalReadiness()">Kiểm tra lại</button>
+      <span id="readiness-checked-at" class="muted"></span>
+    </div>
+    <div id="readiness-grid" class="readiness-grid"></div>
+    <ul class="readiness-checklist">
+      <li>Máy nguồn và máy theo: đối chiếu cùng một dự án sau khi Push/Pull thủ công.</li>
+      <li>Điện thoại thật: xác nhận chỉ mở được Báo cáo ngày và gửi thành công.</li>
+      <li>Hai tài khoản khác vai trò: xác nhận nhìn đúng dự án và đúng module.</li>
+      <li>Ngắt mạng rồi kết nối lại: xác nhận dữ liệu local còn nguyên trước khi đồng bộ.</li>
+    </ul>
+  </div>
+
 
   <!-- CARD: Lưu phiên bản -->
   <div class="system-card card-primary">
@@ -1903,7 +934,7 @@
   <!-- CARD: Quản lý người dùng -->
   <div class="system-card card-primary">
     <h2>👥 Quản lý người dùng</h2>
-    <p class="muted">Thêm/sửa/xóa người dùng và gán vai trò. <b>Lưu ý:</b> đăng nhập offline chỉ là lớp phân quyền hiển thị, không bảo mật thật — bảo mật cần Supabase Auth.</p>
+    <p class="muted">Thêm/sửa/xóa người dùng và gán vai trò. <b>Lưu ý:</b> đăng nhập local là lớp trải nghiệm; Firebase Auth và Firestore Rules là lớp bảo vệ dữ liệu cloud.</p>
     <div class="form-grid">
       <div class="form-group">
         <label for="um-name">Họ tên</label>
@@ -2016,7 +1047,7 @@
 
 <!-- ===== TIẾN ĐỘ THI CÔNG ===== -->
 <section id="tab-tiendo" class="hide">
-  
+
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom: 20px;">
       <div class="kpi-card" style="flex:1; min-width:200px; border-top: 5px solid var(--hp-primary);">
         <div class="kpi-icon" style="background:var(--hp-info-bg); color:var(--hp-primary);">📋</div>
@@ -2037,7 +1068,7 @@
         <div class="kpi-desc" id="pg-kpi-late-desc">Tiến độ đạt yêu cầu</div>
       </div>
     </div>
-    
+
     <div id="tiendo-project-timeline" style="margin-bottom: 20px;"></div>
 
     <!-- NEW DATA INPUT CARD -->
@@ -2046,7 +1077,7 @@
         <h3 style="color:var(--text-strong); margin:0; text-transform:uppercase; font-size:16px;">⚙️ Nạp Dữ Liệu & Điều Chỉnh</h3>
         <button class="btn btn-ok btn-sm" onclick="window.print()" style="box-shadow: 0 2px 4px rgba(34,197,94,0.3); font-weight:600;">🖨️ In Báo Cáo</button>
       </div>
-      
+
       <div id="td-drop" class="dropzone" style="margin-bottom:20px;">
         <div style="font-size:36px; margin-bottom:12px;">☁️</div>
         <div style="font-weight:600; font-size:16px; margin-bottom:8px; color:var(--text-strong);">Kéo &amp; thả file tiến độ vào đây, hoặc <label class="link" style="color:var(--pri); cursor:pointer;">Chọn file từ máy<input type="file" id="td-file" accept=".csv,.xlsx,.xls,.pdf" hidden onchange="importProgress(event)"></label></div>
@@ -2054,7 +1085,7 @@
       </div>
       <div id="td-fileinfo" class="muted" style="margin-top:8px"></div>
       <div class="aibox hide" id="td-ai" style="margin-top:8px"></div>
-      
+
       <div class="btnbar" style="margin-bottom:16px; display:flex; gap:10px;">
         <button class="btn btn-mut" onclick="loadSampleProgress()">Nạp dữ liệu mẫu</button>
         <button class="btn btn-dan" onclick="clearProgress()">Xóa dữ liệu</button>
@@ -2072,7 +1103,7 @@
         <p class="muted" id="pg-msg" style="min-height:14px; margin:8px 0 0 0; font-size:13px;"></p>
       </div>
     </div>
-  
+
     <!-- 3-WEEK WINDOW CARD -->
     <div class="card" style="padding:0; overflow:hidden; border-radius:8px; margin-bottom:20px;">
       <div class="panel-bg" style="padding:16px 20px;">
@@ -2095,7 +1126,7 @@
         </table>
       </div>
     </div>
-  
+
     <!-- DETAILED LIST CARD -->
     <div class="card" style="padding:0; overflow:hidden; margin-top:16px; border-radius:8px; margin-bottom:20px;">
       <div class="panel-bg" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0px; padding:16px 20px;">
@@ -2225,7 +1256,7 @@
         <div class="kpi-label" style="color:var(--success);">CÂN ĐỐI DÒNG TIỀN</div>
       </div>
       </div>
-      
+
       <!-- PAYMENT ASSIGNEES -->
       <div id="payment-assignees-block" style="background:var(--surface); padding:16px; border-radius:8px; border:1px solid var(--border); margin-bottom:24px; display:flex; align-items:center; justify-content:space-between;">
         <div>
@@ -2236,7 +1267,7 @@
         </div>
         <button id="btn-assign-payment" class="btn btn-ok hide" onclick="openPaymentAssignModal()">Giao quyền</button>
       </div>
-  
+
       <!-- SUB-NAV PILLS -->
     <div class="tc-pills-container">
       <div class="tc-pills">
@@ -2245,7 +1276,7 @@
         <button class="tc-pill-btn" id="tc-btn-phi" onclick="switchTcTab('phi')">Bảng kê chi phí lẻ</button>
       </div>
     </div>
-      
+
     <!-- PHẦN 1: THANH TOÁN CDT -->
     <div id="tc-sec-cdt" class="tc-section">
       <div class="panel-bg" style="padding:16px 20px; border-radius:8px 8px 0 0; border-bottom:1px solid var(--border);">
@@ -2283,7 +1314,7 @@
       <button class="btn btn-mut btn-sm" onclick="clearSubconData()">Làm mới dữ liệu</button>
     </div>
     <div class="card" style="border-top:none; border-radius:0 0 8px 8px;">
-      
+
       <!-- Upload Dropzone (Mock AI) -->
       <div id="subcon-drop" class="dropzone" style="margin-bottom:20px;" onclick="document.getElementById('subcon-file').click()" ondragover="event.preventDefault(); this.classList.add('drag');" ondragleave="this.classList.remove('drag');" ondrop="event.preventDefault(); this.classList.remove('drag'); processSubconDrop(event)">
         <span style="font-size:32px;">📑</span><br>
@@ -2367,7 +1398,7 @@
         </div>
       </div>
       <div class="card" style="border-top:none; border-radius:0 0 8px 8px;">
-        
+
         <!-- Upload Dropzone -->
         <div id="expense-drop" class="dropzone" style="margin-bottom:20px;" onclick="document.getElementById('expense-file').click()" ondragover="event.preventDefault(); this.classList.add('drag');" ondragleave="this.classList.remove('drag');" ondrop="event.preventDefault(); this.classList.remove('drag'); processExpenseDrop(event)">
           <span style="font-size:32px;">🧾</span><br>
@@ -2411,7 +1442,7 @@
               </tr>
             </tfoot>
           </table>
-          
+
           <!-- Chữ ký in ấn (Chỉ hiển thị khi in) -->
           <div class="print-only hide" id="expense-signatures" style="margin-top:30px; display:flex; justify-content:space-between; text-align:center;">
              <div style="flex:1"><b>Người đề nghị</b><br><br><br><br></div>
@@ -2424,12 +1455,12 @@
 
       <!-- Modal Xử lý dữ liệu AI cho Chi phí (SPLIT-VIEW) -->
       <div class="card hide" id="expense-ai-modal" style="border:1px solid var(--primary); position:fixed; top:2%; left:50%; transform:translateX(-50%); width:95%; max-width:1400px; height:96vh; display:flex; flex-direction:column; z-index:9999; box-shadow:0 0 0 100vw rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.3); background:var(--surface, #ffffff);">
-        
+
         <div style="flex-shrink:0; margin-bottom:16px;">
             <h2 style="color:var(--primary-dark); margin-top:0; margin-bottom:4px;">🤖 Đối chiếu dữ liệu Bóc tách AI</h2>
             <p class="muted" style="margin:0;">Kiểm tra đối chiếu với hóa đơn gốc ở màn hình bên trái trước khi lưu vào bảng kê.</p>
         </div>
-        
+
         <div style="display:flex; gap:20px; flex:1; min-height:0;">
             <!-- CỘT TRÁI: PREVIEW HÓA ĐƠN -->
             <div class="ai-preview-pane" style="flex: 0 0 40%;">
@@ -2465,7 +1496,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="btnbar" style="flex-shrink:0; margin-top:20px; border-top:1px solid var(--border); padding-top:16px">
           <button class="btn btn-ok" onclick="saveExpenseAi()">💾 Xác nhận & Lưu vào Bảng kê</button>
           <button class="btn btn-mut" onclick="closeExpenseAiModal()">Hủy bỏ</button>
@@ -2481,9 +1512,9 @@
                 <button class="btn btn-mut btn-sm" onclick="closeExpenseArchive()">Đóng</button>
             </div>
         </div>
-        
+
         <p class="muted">Danh sách chứng từ (ảnh scan) đã được lưu trữ trong tháng. Sắp xếp theo thứ tự thời gian quét.</p>
-        
+
         <div id="expense-archive-print-area">
             <div id="expense-archive-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
                 <!-- JS will populate images here -->
@@ -2692,311 +1723,27 @@
 </div><!-- /.layout -->
 </div><!-- /.app -->
 
-<script>
-function toggleSubNav(id) {
-  const sub = document.getElementById('sub-' + id);
-  const arrow = document.getElementById('arrow-' + id);
-  if(sub.classList.contains('hide')) {
-    sub.classList.remove('hide');
-    arrow.textContent = '▾';
-  } else {
-    sub.classList.add('hide');
-    arrow.textContent = '▸';
-  }
-}
-function updateHeaderDate() {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
-  const el = document.getElementById('header-date');
-  if(el) el.textContent = dateStr;
-}
-setInterval(updateHeaderDate, 60000);
-updateHeaderDate();
-</script>
+
 
 <script src="modules/baocao.js"></script>
 <script src="modules/excel.js"></script>
 <script src="modules/health.js?v=3"></script>
-<script src="modules/dashboard.js?v=1.9"></script>
+<script src="modules/dashboard.js?v=2.2"></script>
 <script src="modules/nhathau.js?v=1"></script>
-<script src="modules/tiendo.js?v=6"></script>
+<script src="modules/tiendo.js?v=8"></script>
 <script src="modules/thanhtoan.js?v=1"></script>
-<script src="modules/dieuhanh.js?v=9"></script>
-<script src="modules/hethong.js?v=7"></script>
-<script src="modules/lpb.js"></script>
-<script src="app.js?v=2.0"></script>
-<script>
-  (function() {
-    const select = document.getElementById("cur-project");
-    if (!select) return;
-    function adjust() {
-      const temp = document.createElement("span");
-      temp.style.visibility = "hidden";
-      temp.style.position = "absolute";
-      temp.style.whiteSpace = "pre";
-      temp.style.font = window.getComputedStyle(select).font;
-      temp.style.fontWeight = window.getComputedStyle(select).fontWeight;
-      temp.style.fontSize = window.getComputedStyle(select).fontSize;
-      temp.textContent = select.options[select.selectedIndex]?.text || "SHUN HING";
-      document.body.appendChild(temp);
-      select.style.width = (temp.getBoundingClientRect().width + 32) + "px";
-      document.body.removeChild(temp);
-    }
-    select.addEventListener("change", adjust);
-    const observer = new MutationObserver(adjust);
-    observer.observe(select, { childList: true, attributes: true });
-    window.addEventListener("load", adjust);
-    setTimeout(adjust, 200);
-    setTimeout(adjust, 800);
-  })();
+<script src="modules/dieuhanh.js?v=10"></script>
+<script src="modules/hethong.js?v=12"></script>
+<script src="modules/lpb.js?v=3"></script>
+<script src="modules/telegram.js?v=1"></script>
+<script src="modules/ai-center.js?v=1"></script>
+<script src="modules/voice.js?v=1"></script>
+<script src="modules/thicong.js?v=1"></script>
+<script src="app.js?v=2.3"></script>
+<script src="modules/migrations.js?v=1"></script>
+<script src="core/app-shell.js?v=7"></script>
 
-  // Wrap global renderExecutive to show real stats for Khối Chuyên môn & Cảnh báo khẩn cấp
-  (function() {
-    const localEsc = (s) => (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-    if (typeof window.renderExecutive === 'function') {
-      const originalRender = window.renderExecutive;
-      window.renderExecutive = async function() {
-        await originalRender();
-        try {
-          const subs = typeof DataService !== 'undefined' ? await DataService.listSubmissions() : [];
-          const depts = typeof metaGet === 'function' ? await metaGet("departments", {}) : {};
-          
-          // 1. QA-QC and HSE Issues
-          const hseIssues = [];
-          const qaqcIssues = [];
-          const urgentIssues = [];
-          
-          const projects = typeof DataService !== 'undefined' ? await DataService.listProjects() : [];
-
-          subs.forEach(s => {
-            const proj = projects.find(p => p.id === s.project_id);
-            const projName = proj ? proj.name : "Dự án không rõ";
-
-            (s.issues || []).forEach(issue => {
-              // Collect urgent issues
-              if (issue.severity === "high") {
-                const isHse = /an toàn|tai nạn|bảo hộ|hse|chấn thương|sự cố|nguy hiểm|cháy nổ/i.test(issue.description || "");
-                urgentIssues.push({
-                  projId: s.project_id,
-                  projName: projName,
-                  desc: issue.description,
-                  date: s.log_date,
-                  reporter: s.submitted_by || "Kỹ sư hiện trường",
-                  sectionId: isHse ? 'grp-07' : 'grp-06'
-                });
-              }
-
-              const isHse = /an toàn|tai nạn|bảo hộ|hse|chấn thương|sự cố|nguy hiểm|cháy nổ/i.test(issue.description || "");
-              if (isHse) {
-                hseIssues.push(issue);
-              } else {
-                qaqcIssues.push(issue);
-              }
-            });
-          });
-          
-          // Quét sự cố nghiêm trọng từ các trường báo cáo chi tiết trong daily_reports
-          const dailyReports = typeof DataService !== 'undefined' ? await DataService.listDailyReports() : [];
-          dailyReports.forEach(r => {
-            const proj = projects.find(p => p.id === r.project_id);
-            const projName = proj ? proj.name : "Dự án không rõ";
-            
-            const fieldsToCheck = [
-              { name: "f_note", label: "Ghi chú", sectionId: "grp-06" },
-              { name: "f_rec", label: "Kiến nghị", sectionId: "grp-06" },
-              { name: "f_safe", label: "An toàn", sectionId: "grp-07" },
-              { name: "f_qual", label: "Chất lượng", sectionId: "grp-07" },
-              { name: "f_sched", label: "Tiến độ", sectionId: "grp-07" }
-            ];
-            
-            fieldsToCheck.forEach(f => {
-              const text = r[f.name];
-              if (text && typeof text === 'string') {
-                const lines = text.split('\n');
-                lines.forEach(line => {
-                  if (line.trim()) {
-                    const hasSiren = line.includes("🚨");
-                    const hasKeywords = /nghiêm trọng|sự cố|khẩn cấp|tai nạn|nguy hiểm/i.test(line);
-                    const isNegative = /(không|ko |chưa|đảm bảo|an toàn|tuân thủ|bình thường|ổn định|đạt yêu cầu)/i.test(line);
-                    if (hasSiren || (hasKeywords && !isNegative)) {
-                      const isDup = urgentIssues.some(x => x.projId === r.project_id && x.date === r.date && x.desc === line.trim());
-                      if (!isDup) {
-                        urgentIssues.push({
-                          projId: r.project_id,
-                          projName: projName,
-                          desc: line.trim(),
-                          date: r.date,
-                          reporter: "Báo cáo ngày",
-                          sectionId: f.sectionId
-                        });
-                      }
-                    }
-                  }
-                });
-              }
-            });
-          });
-          
-          // 2. Shopdrawing
-          const sdCount = (depts.shopdrawing || []).length;
-          const sdTasks = subs.flatMap(s => s.completed || []).filter(c => /bản vẽ|shopdrawing|thiết kế|phê duyệt/i.test(c.description || "")).length;
-          
-          // 3. Bảo trì
-          const mtCount = (depts.baotri || []).length;
-          const mtTasks = subs.flatMap(s => s.completed || []).filter(c => /bảo trì|sửa chữa|bảo dưỡng|thiết bị|máy móc/i.test(c.description || "")).length;
-          
-          // Render Urgent alerts block
-          const urgentAlertsDiv = document.getElementById("exec-urgent-alerts");
-          const urgentListDiv = document.getElementById("exec-urgent-alerts-list");
-          if (urgentAlertsDiv && urgentListDiv) {
-            if (urgentIssues.length > 0) {
-              urgentAlertsDiv.classList.remove("hide");
-              urgentListDiv.innerHTML = urgentIssues.map(issue => `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid rgba(239, 68, 68, 0.15); padding: 10px 14px; border-radius: 8px; font-size: 13px; cursor:pointer; transition: background 0.2s;" onclick="openUrgentAlert('${issue.projId}', '${issue.date}', '${issue.sectionId || ''}')" class="urgent-alert-item">
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-                    <span style="background:var(--danger); color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase">${localEsc(issue.projName)}</span>
-                    <span style="font-weight:600; color:var(--text-strong)">${localEsc(issue.desc)}</span>
-                  </div>
-                  <div style="font-size:11px; color:var(--muted); text-align:right">
-                    <span>📅 ${localEsc(issue.date)}</span> · <span>👤 ${localEsc(issue.reporter)}</span>
-                  </div>
-                </div>
-              `).join("");
-            } else {
-              urgentAlertsDiv.classList.add("hide");
-            }
-          }
-
-          const hasReports = (subs && subs.length > 0) || (dailyReports && dailyReports.length > 0);
-          
-          const cm = [
-            {
-              n: "QA-QC",
-              sub: "Kiểm soát chất lượng",
-              i: window.getDashSvg ? window.getDashSvg('check-circle', 20, qaqcIssues.length > 0 ? 'var(--hp-warning)' : 'var(--hp-success)') : "✓",
-              t: "qaqc",
-              desc: !hasReports ? "Chưa có dữ liệu" : (qaqcIssues.length > 0 ? `${qaqcIssues.length} vấn đề chất lượng` : "0 vấn đề chất lượng"),
-              statusBadge: !hasReports ? "⚪ Chưa có dữ liệu" : (qaqcIssues.length > 0 ? "🔴 Cần xử lý" : "🟢 Tốt"),
-              color: !hasReports ? "var(--muted)" : (qaqcIssues.length > 0 ? "var(--hp-warning)" : "var(--hp-success)"),
-              bg: !hasReports ? "rgba(148,163,184,0.12)" : (qaqcIssues.length > 0 ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.12)")
-            },
-            {
-              n: "HSE",
-              sub: "An toàn lao động",
-              i: window.getDashSvg ? window.getDashSvg('shield', 20, hseIssues.length > 0 ? 'var(--hp-danger)' : 'var(--hp-primary)') : "🛡",
-              t: "hse",
-              desc: !hasReports ? "Chưa có dữ liệu" : (hseIssues.length > 0 ? `${hseIssues.length} cảnh báo an toàn` : "An toàn: Tốt (0 cảnh báo)"),
-              statusBadge: !hasReports ? "⚪ Chưa có dữ liệu" : (hseIssues.length > 0 ? "🔴 Cảnh báo" : "🟢 An toàn"),
-              color: !hasReports ? "var(--muted)" : (hseIssues.length > 0 ? "var(--hp-danger)" : "var(--hp-success)"),
-              bg: !hasReports ? "rgba(148,163,184,0.12)" : (hseIssues.length > 0 ? "rgba(239,68,68,0.12)" : "rgba(34,197,94,0.12)")
-            },
-            {
-              n: "Shopdrawing",
-              sub: "Bản vẽ thi công",
-              i: window.getDashSvg ? window.getDashSvg('pen-tool', 20, 'var(--hp-brand-accent)') : "✏",
-              t: "shopdrawing",
-              desc: (sdCount === 0 && sdTasks === 0) ? "Chưa có dữ liệu" : `${sdCount} nhân sự · ${sdTasks} bản vẽ`,
-              statusBadge: (sdCount === 0 && sdTasks === 0) ? "⚪ Chưa có dữ liệu" : "🟢 Hoạt động",
-              color: (sdCount === 0 && sdTasks === 0) ? "var(--muted)" : "var(--hp-brand-accent)",
-              bg: (sdCount === 0 && sdTasks === 0) ? "rgba(148,163,184,0.12)" : "rgba(14,165,233,0.12)"
-            },
-            {
-              n: "Bảo trì",
-              sub: "Bảo trì & sửa chữa",
-              i: window.getDashSvg ? window.getDashSvg('wrench', 20, 'var(--hp-warning)') : "🔧",
-              t: "baotri",
-              desc: (mtCount === 0 && mtTasks === 0) ? "Chưa có dữ liệu" : `${mtCount} nhân sự · ${mtTasks} lượt bảo trì`,
-              statusBadge: (mtCount === 0 && mtTasks === 0) ? "⚪ Chưa có dữ liệu" : "🟢 Hoạt động",
-              color: (mtCount === 0 && mtTasks === 0) ? "var(--muted)" : "var(--hp-warning)",
-              bg: (mtCount === 0 && mtTasks === 0) ? "rgba(148,163,184,0.12)" : "rgba(245,158,11,0.12)"
-            }
-          ];
-          
-          if (document.getElementById("exec-chuyenmon")) {
-            document.getElementById("exec-chuyenmon").innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">'
-              + cm.map(c => `
-                <div class="dept-card" onclick="switchTab('${c.t}')" style="cursor:pointer; padding:12px 14px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); display:flex; flex-direction:column; justify-content:space-between; transition:transform 0.2s, box-shadow 0.2s;">
-                  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      <div style="width:32px; height:32px; border-radius:8px; background:var(--surface-2); display:flex; align-items:center; justify-content:center;">${c.i}</div>
-                      <div>
-                        <div style="font-weight:700; font-size:13px; color:var(--hp-text-primary); line-height:1.2;">${localEsc(c.n)}</div>
-                        <div style="font-size:11px; color:var(--muted); margin-top:2px;">${localEsc(c.sub)}</div>
-                      </div>
-                    </div>
-                    <span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; background:${c.bg}; color:${c.color}; white-space:nowrap;">${c.statusBadge}</span>
-                  </div>
-                  <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; font-size:11px;">
-                    <span style="color:var(--hp-text-primary); font-weight:600;">${localEsc(c.desc)}</span>
-                    <span style="color:var(--primary); font-weight:700;">Xem ›</span>
-                  </div>
-                </div>
-              `).join("")
-              + '</div>';
-          }
-        } catch (e) {
-          console.error("Lỗi khi cập nhật số liệu chuyên môn:", e);
-        }
-      };
-    }
-
-    // Deep-linking navigation to Daily Report sections
-    async function openUrgentAlert(projId, date, sectionId) {
-      window.PENDING_REPORT_NAV = {
-        date: date,
-        sectionId: sectionId || 'grp-06'
-      };
-      
-      if (typeof selectAndOpenProject === 'function') {
-        await selectAndOpenProject(projId, 'baocaongay-new');
-      }
-      
-      const iframe = document.querySelector('#tab-baocaongay-new iframe');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({
-          type: 'NAVIGATE_TO_REPORT',
-          date: date,
-          sectionId: sectionId || 'grp-06'
-        }, '*');
-      }
-    }
-    window.openUrgentAlert = openUrgentAlert;
-
-    // (Đã gỡ bộ gửi PROJECT_CHANGED trùng ở đây: bản này thiếu projInfo, gửi sau 200ms
-    // nên GHI ĐÈ TRẮNG tên/ngày công trình mà bản đầy đủ trong app.js onchange vừa điền.
-    // Nguồn gửi duy nhất giờ là $("cur-project").onchange trong app.js.)
-
-  })();
-</script>
-<script>
-// Đăng ký Service Worker (PWA + chạy offline). SW dùng no-cache cho file cùng máy nên
-// luôn lấy bản mới khi online, không còn cần gỡ SW hay bump version tay.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js')
-      .then(function(reg) { console.log('SW registered:', reg.scope); })
-      .catch(function(err) { console.warn('SW register failed:', err); });
-  });
-}
-</script>
+<script src="core/inline-ui.js?v=1"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

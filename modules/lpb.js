@@ -62,6 +62,8 @@ async function getRequest(id) {
 
 async function saveRequest(req) {
   const all = await listRequests();
+  req.dirty = true;
+  req.updated_at = new Date().toISOString();
   const idx = all.findIndex(r => r.id === req.id);
   if (idx >= 0) {
     all[idx] = req;
@@ -486,6 +488,23 @@ function lpbHandleFilterChange() {
   renderLpb();
 }
 window.lpbHandleFilterChange = lpbHandleFilterChange;
+
+function openLpbFromDashboard(status = "all") {
+  window.lpbFilters = window.lpbFilters || { search: "", dept: "all", status: "all" };
+  window.lpbFilters.search = "";
+  window.lpbFilters.dept = "all";
+  window.lpbFilters.status = status;
+  switchTab("lpb");
+}
+window.openLpbFromDashboard = openLpbFromDashboard;
+
+function openLpbCreateFromDashboard() {
+  openLpbFromDashboard("all");
+  setTimeout(() => {
+    if (typeof openLpbCreateModal === "function") openLpbCreateModal();
+  }, 0);
+}
+window.openLpbCreateFromDashboard = openLpbCreateFromDashboard;
 
 // --- ĐIỀU KHIỂN FORM TẠO MỚI ---
 let selectedFiles = [];

@@ -310,24 +310,52 @@ async function renderExecutive(){
   const subsToday=subs.filter(s=>s.log_date===tToday);
   const reportedToday=new Set(subsToday.map(s=>s.project_id));
   const hasSubToday = subsToday.length > 0;
+  const activeStats = stats.filter(s=>s.proj.status!=="Đã bàn giao" && s.proj.status!=="Tạm dừng");
+  const missingReportStats = activeStats.filter(s=>!reportedToday.has(s.proj.id));
+  const mostRisky = stats.length ? [...stats].sort((a,b)=>a.health-b.health)[0] : null;
   const mpVal = !hasSubToday ? "Chưa nộp" : (manpowerToday === 0 ? "0 người" : manpowerToday.toLocaleString('vi-VN') + " người");
   const mpColor = !hasSubToday ? "var(--hp-text-muted)" : (manpowerToday === 0 ? "var(--hp-warning)" : "var(--hp-success)");
 
   // KPI tổng quan
   const kpiCards=[
-    {icon: getDashSvg("building", 22, "var(--hp-primary)"), val:total, label:"Tổng dự án", color:"var(--hp-primary)", iconBg:"var(--hp-info-bg)", desc:"Dự án đang quản lý"},
-    {icon: getDashSvg("activity", 22, "var(--hp-brand-accent)"), val:stCounts["Đang thi công"], label:"Đang thi công", color:"var(--hp-brand-accent)", iconBg:"var(--hp-info-bg)", desc:"Đang triển khai thực tế"},
-    {icon: getDashSvg("alert-triangle", 22, risky>0?"var(--hp-danger)":"var(--hp-success)"), val:risky, label:"Cảnh báo rủi ro", color:risky>0?"var(--hp-danger)":"var(--hp-success)", iconBg:risky>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: risky > 0 ? "Dự án điểm < 60đ" : "Các dự án an toàn"},
-    {icon: getDashSvg("users", 22, mpColor), val:mpVal, label:"Nhân lực hôm nay", color:mpColor, iconBg:"var(--hp-info-bg)", desc: !hasSubToday ? "Chưa có báo cáo ngày" : "Tổng thợ & kỹ sư"},
-    {icon: getDashSvg("clock", 22, totalOverdue>0?"var(--hp-danger)":"var(--hp-success)"), val:totalOverdue, label:"Công tác đang trễ", color: totalOverdue>0?"var(--hp-danger)":"var(--hp-success)", iconBg: totalOverdue>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: totalOverdue>0 ? "Việc trễ tiến độ" : "Tiến độ đạt yêu cầu"}
+    {icon: getDashSvg("building", 22, "var(--hp-primary)"), val:total, label:"Tổng dự án", color:"var(--hp-primary)", iconBg:"var(--hp-info-bg)", desc:"Dự án đang quản lý", priority:"normal"},
+    {icon: getDashSvg("activity", 22, "var(--hp-brand-accent)"), val:stCounts["Đang thi công"], label:"Đang thi công", color:"var(--hp-brand-accent)", iconBg:"var(--hp-info-bg)", desc:"Đang triển khai thực tế", priority:"normal"},
+    {icon: getDashSvg("alert-triangle", 22, risky>0?"var(--hp-danger)":"var(--hp-success)"), val:risky, label:"Cảnh báo rủi ro", color:risky>0?"var(--hp-danger)":"var(--hp-success)", iconBg:risky>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: risky > 0 ? "Dự án điểm < 60đ" : "Các dự án an toàn", priority:risky>0?"critical":"normal"},
+    {icon: getDashSvg("users", 22, mpColor), val:mpVal, label:"Nhân lực hôm nay", color:mpColor, iconBg:"var(--hp-info-bg)", desc: !hasSubToday ? "Chưa có báo cáo ngày" : "Tổng thợ & kỹ sư", priority:!hasSubToday?"warning":"normal"},
+    {icon: getDashSvg("clock", 22, totalOverdue>0?"var(--hp-danger)":"var(--hp-success)"), val:totalOverdue, label:"Công tác đang trễ", color: totalOverdue>0?"var(--hp-danger)":"var(--hp-success)", iconBg: totalOverdue>0?"var(--hp-danger-bg)":"var(--hp-success-bg)", desc: totalOverdue>0 ? "Việc trễ tiến độ" : "Tiến độ đạt yêu cầu", priority:totalOverdue>0?"critical":"normal"}
   ];
   if($("exec-kpi")) $("exec-kpi").innerHTML = kpiCards.map(k=>`
-    <div class="kpi-card" style="min-width:0; border-top:4px solid ${k.color}">
+    <div class="kpi-card" data-priority="${k.priority}" style="min-width:0; border-top:4px solid ${k.color}">
       <div class="kpi-icon" style="background:${k.iconBg}; color:${k.color}">${k.icon}</div>
       <div class="kpi-value" style="color:${k.color}; font-size:32px">${k.val}</div>
       <div class="kpi-label" style="color:${k.color}">${k.label}</div>
       <div class="kpi-desc">${k.desc}</div>
     </div>`).join("");
+
+  if($("exec-priority-summary")){
+    const issueText = totalOverdue>0
+      ? `${totalOverdue} công tác đang trễ tại ${stats.filter(s=>s.overdueTasks>0).length} dự án`
+      : risky>0
+        ? `${risky} dự án đang ở mức nguy hiểm`
+        : missingReportStats.length>0
+          ? `${missingReportStats.length} dự án chưa nộp báo cáo hôm nay`
+          : "Chưa ghi nhận vấn đề nghiêm trọng hôm nay";
+    const dangerText = mostRisky
+      ? `${esc(mostRisky.proj.name)} · ${fmtHealth(mostRisky.health)}/100 (${esc(mostRisky.healthStatus)})`
+      : "Chưa có dữ liệu dự án";
+    const firstAction = totalOverdue>0 && mostRisky
+      ? `Ưu tiên xử lý tiến độ tại ${esc(mostRisky.proj.name)}`
+      : missingReportStats.length>0
+        ? `Yêu cầu ${esc(missingReportStats[0].proj.name)} nộp báo cáo ngày`
+        : risky>0 && mostRisky
+          ? `Rà soát nguyên nhân điểm thấp của ${esc(mostRisky.proj.name)}`
+          : "Tiếp tục theo dõi vận hành";
+    const summaryPriority = (totalOverdue>0 || risky>0) ? "critical" : (missingReportStats.length>0 ? "warning" : "normal");
+    $("exec-priority-summary").innerHTML = `
+      <div class="priority-summary-item" data-priority="${summaryPriority}"><span class="priority-summary-label">Hôm nay có vấn đề gì?</span><strong>${issueText}</strong></div>
+      <div class="priority-summary-item" data-priority="${mostRisky && mostRisky.health<60 ? 'critical' : 'normal'}"><span class="priority-summary-label">Dự án nguy hiểm nhất</span><strong>${dangerText}</strong></div>
+      <div class="priority-summary-item priority-summary-action" data-priority="${summaryPriority}"><span class="priority-summary-label">Xử lý trước</span><strong>${firstAction}</strong></div>`;
+  }
 
   // Bảng tình trạng dự án (Tiến độ kế hoạch theo thời gian + hạng mục quá hạn)
   if($("exec-progress-table")){
@@ -732,39 +760,19 @@ async function renderExecutive(){
   // VIỆC CẦN XỬ LÝ HÔM NAY (Bảng điều hành hành động)
   try {
     const todo = [];
-    const allReports = await metaGet("daily_reports", []);
-    const pendingReports = (allReports||[]).filter(r => r.status === "pending" || r.approval === "pending").length;
-    if (pendingReports>0) todo.push({
-      projName: "Toàn công ty",
-      text: `Có <b>${pendingReports} Báo cáo ngày</b> đang chờ duyệt`,
-      commander: "BCH / KTS",
-      sev: { label: "🟡 Vừa", color: "var(--hp-warning)" },
-      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="switchTab('baocaongay-new')">Duyệt ›</button>`
-    });
-
-    let pendingPay = 0;
-    for (const p of projects) {
-      const sc = await metaGet("subcon_payments:"+p.id, []);
-      const ex = await metaGet("expenses:"+p.id, []);
-      pendingPay += (sc||[]).filter(x=>x.status==="pending").length + (ex||[]).filter(x=>x.status==="pending").length;
-    }
-    if (pendingPay>0) todo.push({
-      projName: "Toàn công ty",
-      text: `Có <b>${pendingPay} Yêu cầu thanh toán / duyệt chi</b> đang chờ xử lý`,
-      commander: "P.KTTC",
-      sev: { label: "🔴 Cao", color: "var(--hp-danger)" },
-      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="switchTab('thanhtoan')">Chi tiết ›</button>`
-    });
-
     const lpbAll = await metaGet("lpb_requests", []);
-    const lpbUrgent = (lpbAll||[]).filter(r => r.status!=="completed" && (r.urgent || (r.due && new Date()>new Date(r.due)))).length;
-    if (lpbUrgent>0) todo.push({
-      projName: "Liên phòng ban",
-      text: `Có <b>${lpbUrgent} Đề xuất liên phòng ban khẩn/quá hạn</b>`,
-      commander: "Các Phòng Ban",
+    const lpbUrgentItems = (lpbAll||[]).filter(r => r.status!=="completed" && (r.urgent || (r.due && new Date()>new Date(r.due))));
+    const firstLpb = lpbUrgentItems[0];
+    if (firstLpb) {
+      const firstLpbProject = projects.find(p => p.id === firstLpb.project_id);
+      todo.push({
+      projName: firstLpbProject ? firstLpbProject.name : "Dự án chưa xác định",
+      text: `<b>${lpbUrgentItems.length} yêu cầu LPB khẩn/quá hạn</b> · ưu tiên ${esc(firstLpb.id)}`,
+      commander: firstLpb.dept || "Phòng ban nhận",
       sev: { label: "🔴 Khẩn", color: "var(--hp-danger)" },
-      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="switchTab('lpb')">Xử lý ›</button>`
+      action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="selectAndOpenLpbRequest('${firstLpb.project_id}','${firstLpb.id}')">Xử lý ›</button>`
     });
+    }
 
     stats.forEach(s => {
       if ((s.proj.status!=="Đã bàn giao" && s.proj.status!=="Tạm dừng") && !reportedToday.has(s.proj.id)) {
@@ -773,7 +781,7 @@ async function renderExecutive(){
           text: `Chưa nộp <b>Báo cáo thi công ngày hôm nay</b>`,
           commander: s.proj.commander || "Chỉ huy trưởng",
           sev: { label: "🟡 Vừa", color: "var(--hp-warning)" },
-          action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="openProject('${s.proj.id}')">Xem ›</button>`
+          action: `<button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="selectAndOpenProject('${s.proj.id}','baocaongay-new')">Mở báo cáo ›</button>`
         });
       }
     });

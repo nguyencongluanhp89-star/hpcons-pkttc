@@ -1,9 +1,8 @@
 // =====================================================================
-// FIREBASE SYNC — chạy song song SupabaseSync khi FIREBASE_ENABLED=true.
-// Cùng format {key, value} với IndexedDB local, nhưng ghi vào cấu trúc Firestore
-// đã thiết kế ở firebase/schema-mapping.md (KHÔNG phải bảng phẳng như app_meta).
-// KHÔNG BAO GIỜ được thay thế/chặn SupabaseSync — chỉ cộng thêm, luôn bọc try/catch.
-// GIAI ĐOẠN NÀY (FB-M4): viết xong, tự test thủ công — CHƯA gọi tự động ở đâu cả.
+// FIREBASE SYNC — đường đồng bộ cloud hiện hành khi FIREBASE_ENABLED=true.
+// Nhận dữ liệu local dạng {key, value}, rồi map sang cấu trúc Firestore được mô tả
+// tại firebase/schema-mapping.md. SyncEngine trong core/sync-engine.js gọi các hàm push/pull này.
+// Supabase đã được gỡ khỏi app chính ngày 28/07/2026.
 // =====================================================================
 const FIREBASE_LEGACY_SKIP_PREFIXES = ["hr_fixed_", "hr_migrated_", "hr_dedupe_", "hr_imported_", "users_seed_v"];
 
@@ -147,6 +146,7 @@ const FirebaseSync = {
 
     for (const r of (arr || [])) {
       if (!r || !r.project_id || !r.date) continue;
+      if (r.dirty !== true) continue;
 
       // Tách ảnh base64 (photos/draws) lên Storage -> URL
       if (Array.isArray(r.photos)) {
@@ -175,12 +175,15 @@ const FirebaseSync = {
 
       const rStr = JSON.stringify(r);
       if (rStr.length > 900 * 1024) {
-        console.warn(`[FirebaseSync] Bo qua push daily_report lon (${Math.round(rStr.length/1024)}KB) de tranh loi payload size.`);
-        continue;
+        throw new Error(`Báo cáo ${r.date} quá lớn (${Math.round(rStr.length/1024)}KB), chưa thể đồng bộ.`);
       }
 
       const id = [r.project_id, r.date].join("_").replace(/[^a-zA-Z0-9_.-]/g, "-");
-      await db.collection("daily_reports").doc(id).set({ ...r, updated_at: new Date().toISOString() }, { merge: true });
+      const syncedAt = new Date().toISOString();
+      await db.collection("daily_reports").doc(id).set({ ...r, dirty: false, updated_at: syncedAt }, { merge: true });
+      r.dirty = false;
+      r.updated_at = syncedAt;
+      localChanged = true;
     }
 
     // Cập nhật lại local (ảnh -> URL) để lần sau KHÔNG upload lại + app chính hiển thị bằng URL
@@ -194,8 +197,13 @@ const FirebaseSync = {
     const db = window.fb.db;
     for (const r of (arr || [])) {
       if (!r || !r.id || !r.project_id) continue;
-      await db.collection("lpb_requests").doc(String(r.id)).set({ ...r, updated_at: new Date().toISOString() }, { merge: true });
+      if (r.dirty !== true) continue;
+      const syncedAt = new Date().toISOString();
+      await db.collection("lpb_requests").doc(String(r.id)).set({ ...r, dirty: false, updated_at: syncedAt }, { merge: true });
+      r.dirty = false;
+      r.updated_at = syncedAt;
     }
+    await idbPut("meta", { key: "lpb_requests", value: arr });
   },
 
   async pull(projectId) {
@@ -236,7 +244,12 @@ const FirebaseSync = {
           lpbSnap.docs.forEach(doc => {
             const r = doc.data();
             const idx = allLpb.findIndex(x => x.id === r.id);
-            if (idx >= 0) allLpb[idx] = r; else allLpb.push(r);
+            if (idx >= 0) {
+              const local = allLpb[idx];
+              const localTime = new Date(local.updated_at || 0).getTime();
+              const remoteTime = new Date(r.updated_at || 0).getTime();
+              if (!local.dirty && remoteTime > localTime) allLpb[idx] = r;
+            } else allLpb.push(r);
           });
           await idbPut("meta", { key: "lpb_requests", value: allLpb });
         }

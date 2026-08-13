@@ -52,7 +52,7 @@ const WMO_TABLE = {
 };
 function wmoInfo(code){ return WMO_TABLE[code] || { label:"Bình thường", emoji:"🌤️", sev:1 }; }
 
-function getWeatherSvgIcon(code, size = 16, color = "rgba(255,255,255,0.85)") {
+function getWeatherSvgIcon(code, size = 16, color = "var(--hp-text-secondary)") {
   const info = wmoInfo(code);
   return { label: info.label, icon: info.emoji };
 }
@@ -100,7 +100,7 @@ async function renderDashboard() {
       if (!isNaN(endD.getTime())) {
         const dLeft = Math.ceil((endD - new Date()) / (1000*60*60*24));
         const endFmt = endD.getDate().toString().padStart(2,'0') + '/' + (endD.getMonth()+1).toString().padStart(2,'0') + '/' + endD.getFullYear();
-        const dColor = dLeft < 0 ? 'var(--hp-danger)' : dLeft <= 30 ? 'var(--hp-warning)' : 'rgba(255,255,255,0.85)';
+        const dColor = dLeft < 0 ? 'var(--hp-danger)' : dLeft <= 30 ? 'var(--hp-warning)' : 'var(--hp-text-secondary)';
         const dLabel = dLeft < 0 ? `Trễ ${Math.abs(dLeft)} ngày` : `Còn ${dLeft} ngày`;
         const calSvg = getSvg('calendar', 14, dColor);
         endDateInfo = `<div style="font-size:13px;color:${dColor};display:flex;align-items:center;gap:4px">${calSvg}<span>HT: ${endFmt} · ${dLabel}</span></div>`;
@@ -109,8 +109,8 @@ async function renderDashboard() {
 
     let commanderInfo = '';
     if (proj.commander) {
-      const userSvg = getSvg('user-check', 14, 'rgba(255,255,255,0.85)');
-      commanderInfo = `<div style="font-size:13px;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:4px">${userSvg}<span>CHT: <b>${esc(proj.commander)}</b></span></div>`;
+      const userSvg = getSvg('user-check', 14, 'var(--hp-text-secondary)');
+      commanderInfo = `<div style="font-size:13px;color:var(--hp-text-secondary);display:flex;align-items:center;gap:4px">${userSvg}<span>CHT: <b>${esc(proj.commander)}</b></span></div>`;
     }
 
     dashHero.innerHTML = `
@@ -225,6 +225,7 @@ async function renderDashboard() {
     elLate.textContent = activeOverdue;
     elLate.style.color = activeOverdue > 0 ? "var(--hp-danger)" : "var(--hp-success)";
     elLate.style.fontSize = "32px";
+    elLate.closest('.kpi-card')?.setAttribute('data-priority', activeOverdue > 0 ? 'critical' : 'normal');
   }
   const elLateDesc = document.getElementById("dash-kpi-late-desc");
   if(elLateDesc) {
@@ -241,6 +242,7 @@ async function renderDashboard() {
     elReport.textContent = todaySubs.length > 0 ? "Đã nộp" : "Chưa nộp";
     elReport.style.color = todaySubs.length > 0 ? "var(--hp-success)" : "var(--hp-warning)";
     elReport.style.fontSize = "24px";
+    elReport.closest('.kpi-card')?.setAttribute('data-priority', todaySubs.length > 0 ? 'normal' : 'warning');
   }
   const elReportDesc = document.getElementById("dash-kpi-report-desc");
   if(elReportDesc) {
@@ -604,6 +606,7 @@ async function renderDashboard() {
     if (effEnd && effEnd < tToday && it.status !== 'done') {
       const dDiff = Math.ceil((new Date(tToday) - new Date(effEnd)) / (1000 * 60 * 60 * 24));
       overdueItems.push({
+        id: it.id,
         task: it.task,
         effEnd: effEnd,
         delayDays: dDiff > 0 ? dDiff : 1
@@ -622,7 +625,7 @@ async function renderDashboard() {
       if (elDelaysGroup) elDelaysGroup.style.display = "block";
       const top5 = overdueItems.slice(0, 5);
       let html = top5.map(it => {
-        return `<div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('tiendo')">
+        return `<div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="openProgressTask('${it.id}')">
           <span style="color:var(--hp-text-primary); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:65%;" title="${esc(it.task)}">${esc(it.task)}</span>
           <span style="color:var(--hp-danger); font-weight:700; font-size:11px; white-space:nowrap;">Trễ ${it.delayDays} ngày · Hạn ${fmtVN(it.effEnd)}</span>
         </div>`;
@@ -657,7 +660,7 @@ async function renderDashboard() {
       elIssues.innerHTML = recentIssues.map(iss => {
         const iconColor = iss.sev === 'high' ? 'var(--hp-danger)' : (iss.sev === 'medium' ? 'var(--hp-warning)' : 'var(--hp-text-secondary)');
         const iconSvg = getSvg(iss.sev === 'high' ? 'alert-triangle' : (iss.sev === 'medium' ? 'alert-triangle' : 'clock'), 14, iconColor);
-        return `<div class="subitem" style="padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="switchTab('baocaongay-new')">
+        return `<div class="subitem" style="padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer; display:flex; align-items:center; gap:6px;" onclick="selectAndApproveDailyReport('${iss.date}')">
           ${iconSvg} <span style="color:var(--hp-text-primary);"><b>${iss.date.substring(5).replace('-','/')}</b>: ${esc(iss.desc)}</span>
         </div>`;
       }).join("");
@@ -700,6 +703,19 @@ async function renderDashboard() {
     projLpbReqs = lpbReqs.filter(r => r.project_id === CUR.project && r.status !== "completed");
   } catch (err) {}
 
+  const lpbOverdue = projLpbReqs.filter(r => {
+    if (typeof isRequestOverdue === "function") return isRequestOverdue(r);
+    return r.due && new Date() > new Date(r.due);
+  });
+  const lpbUrgent = projLpbReqs.filter(r => r.urgent === true || r.priority === "urgent");
+  const elLpbKpi = document.getElementById("dash-kpi-lpb");
+  const elLpbKpiDesc = document.getElementById("dash-kpi-lpb-desc");
+  if (elLpbKpi) elLpbKpi.textContent = String(lpbOverdue.length);
+  if (elLpbKpi) elLpbKpi.closest('.kpi-card')?.setAttribute('data-priority', lpbOverdue.length > 0 ? 'critical' : (lpbUrgent.length > 0 ? 'warning' : 'normal'));
+  if (elLpbKpiDesc) {
+    elLpbKpiDesc.textContent = `${projLpbReqs.length} đang mở · ${lpbUrgent.length} khẩn`;
+  }
+
   const elLpbGroup = document.getElementById("dash-alerts-lpb-group");
   const elLpb = document.getElementById("dash-alerts-lpb");
   if (elLpb) {
@@ -708,8 +724,8 @@ async function renderDashboard() {
     } else {
       if (elLpbGroup) elLpbGroup.style.display = "block";
       const totalPending = projLpbReqs.length;
-      const totalUrgent = projLpbReqs.filter(r => r.urgent === true).length;
-      const totalOverdue = projLpbReqs.filter(r => r.due && new Date() > new Date(r.due)).length;
+      const totalUrgent = lpbUrgent.length;
+      const totalOverdue = lpbOverdue.length;
 
       elLpb.innerHTML = `
         <div class="subitem" style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="switchTab('lpb')">
@@ -766,6 +782,36 @@ async function renderDashboard() {
       </div>`;
     }
   }
+
+  const prioritySummary = document.getElementById("dash-priority-summary");
+  if (prioritySummary) {
+    const highIssues = recentIssues.filter(x => x.sev === "high");
+    const issueCount = overdueItems.length + highIssues.length + lpbOverdue.length;
+    const problemText = issueCount > 0
+      ? `${overdueItems.length} việc trễ · ${highIssues.length} vướng mắc nghiêm trọng · ${lpbOverdue.length} LPB quá hạn`
+      : (todaySubs.length === 0 ? "Chưa nộp báo cáo thi công hôm nay" : "Chưa ghi nhận vấn đề nghiêm trọng hôm nay");
+    const riskText = H
+      ? `${esc(proj.name)} · ${fmtHealth(H.healthScore)}/100 (${esc(H.healthStatus)})`
+      : `${esc(proj.name)} · đang cập nhật điểm sức khỏe`;
+    const firstAction = overdueItems.length > 0
+      ? `Xử lý “${esc(overdueItems[0].task)}” đang trễ ${overdueItems[0].delayDays} ngày`
+      : highIssues.length > 0
+        ? `Xử lý vướng mắc: ${esc(highIssues[0].desc)}`
+        : lpbOverdue.length > 0
+          ? `Đôn đốc ${lpbOverdue.length} yêu cầu liên phòng ban quá hạn`
+          : pendingReports.length > 0
+            ? `Duyệt ${pendingReports.length} báo cáo đang chờ`
+            : todaySubs.length === 0
+              ? "Nộp báo cáo thi công ngày"
+              : "Tiếp tục theo dõi vận hành";
+    const summaryPriority = issueCount > 0 || (H && H.healthScore < 60)
+      ? "critical"
+      : (todaySubs.length === 0 || pendingReports.length > 0 ? "warning" : "normal");
+    prioritySummary.innerHTML = `
+      <div class="priority-summary-item" data-priority="${summaryPriority}"><span class="priority-summary-label">Hôm nay có vấn đề gì?</span><strong>${problemText}</strong></div>
+      <div class="priority-summary-item" data-priority="${H && H.healthScore < 60 ? 'critical' : 'normal'}"><span class="priority-summary-label">Mức nguy hiểm dự án</span><strong>${riskText}</strong></div>
+      <div class="priority-summary-item priority-summary-action" data-priority="${summaryPriority}"><span class="priority-summary-label">Xử lý trước</span><strong>${firstAction}</strong></div>`;
+  }
 }
 
 async function selectAndApproveDailyReport(date) {
@@ -778,3 +824,16 @@ async function selectAndApproveDailyReport(date) {
   }, 300);
 }
 window.selectAndApproveDailyReport = selectAndApproveDailyReport;
+
+async function openProgressTask(taskId) {
+  switchTab("tiendo");
+  if (typeof renderTiendo === "function") await renderTiendo();
+  setTimeout(() => {
+    const row = document.querySelector(`[data-progress-task-id="${CSS.escape(String(taskId))}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    row.classList.add("deep-link-highlight");
+    setTimeout(() => row.classList.remove("deep-link-highlight"), 2600);
+  }, 80);
+}
+window.openProgressTask = openProgressTask;

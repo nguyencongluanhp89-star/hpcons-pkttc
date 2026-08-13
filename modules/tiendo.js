@@ -374,7 +374,7 @@ async function renderTiendo(){
       actionsHtml += `<button class="btn btn-mut btn-sm" onclick="progEdit('${it.id}')">Sửa</button> `;
       actionsHtml += `<button class="btn btn-dan btn-sm" onclick="progDelete('${it.id}')">✕</button>`;
 
-      return `<tr style="border-bottom:1px solid var(--border); transition:background 0.2s;">
+      return `<tr data-progress-task-id="${esc(it.id)}" style="border-bottom:1px solid var(--border); transition:background 0.2s;">
                 <td style="text-align:center; color:var(--muted);">${i+1}</td>
                 <td style="font-weight:700; color:var(--text-strong); font-size:12px; text-transform:uppercase;">${esc(obj.area)}</td>
                 <td style="font-weight:600; color:var(--text-strong);">${esc(obj.taskName)}</td>
@@ -1081,7 +1081,7 @@ async function importProgressFile(file){
         
         box.innerHTML = `
           <div style="white-space:pre-wrap; font-family:monospace; font-size:13px; line-height:1.6; background:var(--bg); border:1px solid var(--border); padding:12px; border-radius:6px; margin-bottom:12px; max-height:200px; overflow-y:auto;">📄 Bộ lọc cục bộ (Offline):\n${offlineResultText}</div>
-          <div style="background:#fffbeb; border:1px solid #fef3c7; padding:12px; border-radius:6px; margin-bottom:12px; color:#92400e; font-size:13px; line-height:1.5;">
+          <div class="notice-warning" style="padding:12px; border-radius:6px; margin-bottom:12px; font-size:13px; line-height:1.5;">
             💡 <b>Gợi ý:</b> Hãy cấu hình <b>API Key Gemini</b> tại <b>Tab Hệ thống -> Cấu hình AI</b> (hoàn toàn miễn phí tại <a href="https://aistudio.google.com" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:underline;">aistudio.google.com</a>) để AI tự động nhận diện và phân tích bảng biểu PDF chính xác hơn 100%!
           </div>
         `;
@@ -1091,8 +1091,8 @@ async function importProgressFile(file){
       if (parsedItems.length > 0) {
         const importBtnId = "btn-import-pdf-" + new Date().getTime();
         box.innerHTML += `
-          <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:6px; display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
-            <span style="color:#166534; font-weight:600; font-size:13px;">💡 Phát hiện ${parsedItems.length} hạng mục tiến độ trong file PDF!</span>
+          <div class="notice-success" style="padding:12px; border-radius:6px; display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+            <span style="font-weight:600; font-size:13px;">💡 Phát hiện ${parsedItems.length} hạng mục tiến độ trong file PDF!</span>
             <button class="btn btn-ok btn-sm" id="${importBtnId}" style="margin:0;">📥 Nạp vào Tiến độ</button>
           </div>
         `;
@@ -1115,7 +1115,7 @@ async function importProgressFile(file){
       
     } catch(e) {
       box.innerHTML = `<span style="color:var(--red)">❌ Lỗi phân tích PDF: ${e.message || e}</span>
-        <div style="background:#fffbeb; border:1px solid #fef3c7; padding:12px; border-radius:6px; margin-top:12px; color:#92400e; font-size:13px; line-height:1.5;">
+        <div class="notice-warning" style="padding:12px; border-radius:6px; margin-top:12px; font-size:13px; line-height:1.5;">
           💡 <b>Hướng dẫn xử lý:</b> Vào <b>Tab Hệ thống -> Cấu hình AI</b> để nhập <b>API Key Gemini</b> (nhận key miễn phí tại <a href="https://aistudio.google.com" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:underline;">aistudio.google.com</a>). Việc này giúp tệp PDF được phân tích trực tiếp ngay tại trình duyệt của bạn mà không cần máy chủ trung gian.
         </div>`;
     }

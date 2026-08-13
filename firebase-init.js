@@ -1,10 +1,9 @@
 // firebase-init.js
-// Script khởi tạo Firebase chạy song song với Supabase dưới dạng feature flag
+// Khởi tạo Firebase — backend cloud duy nhất của app chính từ 28/07/2026.
 
 const FIREBASE_ENABLED = true; // Bật thật 2026-07-08: cho phép firebaseAuthSync (FB-M3) tạo tài khoản
-// Firebase Auth song song khi người dùng đăng nhập bình thường — mục đích DUY NHẤT lúc này là thu thập
-// uid Firebase thật để gán member_uids cho từng dự án (điều kiện của FB-M5). CHƯA đồng bộ dữ liệu dự án
-// nào cả (FirebaseSync chưa được nối vào luồng tự động) — rủi ro production ở mức tối thiểu.
+// Firebase Auth cung cấp uid thật để áp Firestore Rules và gán member_uids theo dự án.
+// Đồng bộ dữ liệu được điều phối bởi SyncEngine (app.js) và FirebaseSync (firebase-sync.js).
 
 const firebaseConfig = {
   apiKey: "AIzaSyAL-qFpea0U6qe5DLYpJJw2kulVKGxDQqE",

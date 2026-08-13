@@ -28,7 +28,63 @@ async function renderAuditList(){
 
 async function clearAudit(){ if(confirm("Xóa nhật ký thao tác?")){ await metaSet("audit_log", []); renderAuditList(); } }
 
-async function renderHethong(){ renderAuditList(); renderKB(); const n=(await idbAll("submissions")).length; const b=$("backup-info"); if(b) b.textContent="Hiện có "+n+" nhật ký trên thiết bị này."; }
+async function renderHethong(){
+  renderAuditList();
+  renderKB();
+  const n=(await idbAll("submissions")).length;
+  const b=$("backup-info");
+  if(b) b.textContent="Hiện có "+n+" nhật ký trên thiết bị này.";
+  await runOperationalReadiness();
+}
+
+async function runOperationalReadiness(){
+  const grid=$("readiness-grid");
+  if(!grid) return;
+  const checks=[];
+  const add=(state,title,detail)=>checks.push({state,title,detail});
+
+  try{
+    await db();
+    const [projects, users, submissions]=await Promise.all([
+      DataService.listProjects(), DataService.listUsers(), DataService.listSubmissions()
+    ]);
+    add("pass","Dữ liệu local",`${projects.length} dự án · ${users.length} người dùng · ${submissions.length} báo cáo`);
+  }catch(err){
+    add("fail","Dữ liệu local","Không đọc được IndexedDB: "+(err&&err.message?err.message:"lỗi chưa xác định"));
+  }
+
+  const online=typeof navigator!=="undefined" && navigator.onLine;
+  add(online?"pass":"warn","Kết nối mạng",online?"Thiết bị đang online":"Đang offline — app tiếp tục dùng dữ liệu local");
+
+  const fbReady=!!(window.fb && window.fb.db && window.fb.auth);
+  add(fbReady?"pass":"fail","Firebase SDK",fbReady?"Firestore và Auth đã khởi tạo":"Firebase chưa sẵn sàng trên phiên này");
+
+  const fbUser=fbReady && window.fb.auth.currentUser;
+  add(fbUser?"pass":"warn","Phiên cloud",fbUser?`Đã xác thực ${fbUser.email||fbUser.uid}`:"Chưa có phiên Firebase Auth — chưa nên Push/Pull");
+
+  if(CUR_USER){
+    const tabs=roleTabs(CUR_USER.role);
+    add(tabs.length?"pass":"fail","Phân quyền",`${CUR_USER.full_name} · ${CUR_USER.role} · ${tabs.length} module được cấp`);
+  }else add("fail","Phân quyền","Chưa có người dùng đăng nhập");
+
+  const swSupported="serviceWorker" in navigator;
+  const swActive=swSupported && !!navigator.serviceWorker.controller;
+  add(swActive?"pass":swSupported?"warn":"fail","Offline/PWA",swActive?"Service Worker đang kiểm soát trang":swSupported?"Trình duyệt hỗ trợ nhưng Service Worker chưa active":"Trình duyệt không hỗ trợ Service Worker");
+
+  const isMobile=window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
+  const mobileLocked=document.body.classList.contains("mobile-report-only");
+  add(!isMobile||mobileLocked?"pass":"warn","Chính sách điện thoại",isMobile?(mobileLocked?"Đã giới hạn vào Báo cáo ngày":"Chưa kích hoạt khóa mobile"):
+    "Đang dùng màn hình máy tính");
+
+  grid.innerHTML=checks.map(c=>`
+    <div class="readiness-item" data-state="${c.state}">
+      <span class="readiness-dot" aria-hidden="true"></span>
+      <div><strong>${esc(c.title)}</strong><span>${esc(c.detail)}</span></div>
+    </div>`).join("");
+  const checkedAt=$("readiness-checked-at");
+  if(checkedAt) checkedAt.textContent="Kiểm tra lúc "+new Date().toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+window.runOperationalReadiness=runOperationalReadiness;
 
 
 
@@ -758,8 +814,12 @@ async function startSession(user){
     }
   }
 
-  // Khôi phục tab cũ nếu được phân quyền
-  if (lastTab && tabs.includes(lastTab)) {
+  // Điện thoại chỉ dùng Báo cáo ngày; các chức năng quản trị/điều hành dùng máy tính.
+  if (typeof isMobileReportMode === "function" && isMobileReportMode()) {
+    if (tabs.includes("baocaongay-new")) switchTab("baocaongay-new");
+    else if (typeof showMobileDesktopNotice === "function") showMobileDesktopNotice();
+  // Khôi phục tab cũ nếu được phân quyền trên máy tính
+  } else if (lastTab && tabs.includes(lastTab)) {
     switchTab(lastTab);
   } else {
     if (tabs.indexOf("dieuhanh")>=0) {
@@ -847,12 +907,12 @@ async function renderDeptPersonnel(elementId, deptKey, deptName) {
       grouped[pos].push(m);
     });
 
-    html += '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">';
+    html += '<div class="dept-personnel-grid">';
 
     Object.keys(grouped).forEach(pos => {
       const list = grouped[pos];
       html += `
-        <div class="card" style="padding: 16px; margin-bottom: 0; display: flex; flex-direction: column; gap: 10px; background: rgba(255,255,255,0.9); border-radius: var(--r-md); box-shadow: var(--shadow-sm);">
+        <div class="card dept-personnel-group">
           <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
             <span>💼 ${esc(pos)}</span>
             <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(30, 58, 138, 0.1); color: var(--primary); font-weight: 700;">${list.length} người</span>
@@ -862,8 +922,8 @@ async function renderDeptPersonnel(elementId, deptKey, deptName) {
 
       list.forEach(m => {
         html += `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #F8FAFC; border-radius: 6px; font-size: 13px; border: 1px solid rgba(226, 232, 240, 0.5);">
-            <span style="font-weight: 600; color: var(--ink);">${esc(m.name)}</span>
+          <div class="dept-personnel-member">
+            <span class="dept-personnel-name">${esc(m.name)}</span>
         `;
         if (editable) {
           html += `

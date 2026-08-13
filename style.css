@@ -342,7 +342,7 @@ th.today-col{background:var(--primary);color:var(--on-primary)}
 }
 
 /* ===== HORIZONTAL SUBNAV ===== */
-.subnav-tabs { display: flex; flex-wrap: wrap; background: #fff; border-bottom: 1px solid var(--border); padding: 0 16px; position: sticky; top: 0; z-index: 100; flex-shrink: 0; min-height: 48px; }
+.subnav-tabs { display: flex; flex-wrap: wrap; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; position: sticky; top: 0; z-index: 100; flex-shrink: 0; min-height: 48px; }
 .subnav-tabs::-webkit-scrollbar { display: none; }
 .sub-tab-btn { background: none; border: none; font-size: 13px; font-weight: 600; color: var(--muted); padding: 14px 16px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
 .sub-tab-btn:hover { color: var(--primary); }
@@ -415,9 +415,9 @@ body.dark-mode .control-panel {
   justify-content: center;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--surface);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
 }
 body.dark-mode .kpi-card {
   background: var(--surface) !important;
@@ -440,7 +440,7 @@ body.dark-mode .kpi-card {
 
 /* 3. Ticket Cards cho Vấn đề / Kiến nghị */
 .ticket-card {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 12px;
@@ -468,13 +468,13 @@ body.dark-mode .ticket-card { background: var(--surface); box-shadow: 0 1px 3px 
 .gallery-container::-webkit-scrollbar-thumb { background-color: var(--muted); border-radius: 10px; }
 .gallery-item {
   flex: 0 0 180px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
 }
 body.dark-mode .gallery-item { background: var(--surface); border-color: var(--border); }
 .gallery-item:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 10; }
@@ -493,13 +493,13 @@ body.dark-mode .gallery-img { border-color: var(--border); }
 }
 body.dark-mode .table-sticky-wrapper { border-color: var(--border); }
 .table-sticky { border-collapse: separate; border-spacing: 0; width: 100%; margin: 0; }
-.table-sticky th, .table-sticky td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; white-space: nowrap; }
+.table-sticky th, .table-sticky td { padding: 12px 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; }
 body.dark-mode .table-sticky th, body.dark-mode .table-sticky td { border-color: var(--border); }
-.table-sticky thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; color: var(--navy); border-bottom: 2px solid #cbd5e1; }
+.table-sticky thead th { position: sticky; top: 0; z-index: 20; background: var(--surface-2); color: var(--text-strong); border-bottom: 2px solid var(--border); }
 body.dark-mode .table-sticky thead th { background: var(--surface-2); border-color: var(--border); }
-.table-sticky tbody th, .table-sticky tbody td:first-child { position: sticky; left: 0; z-index: 10; background: #ffffff; font-weight: 600; color: var(--navy); border-right: 2px solid #e2e8f0; }
+.table-sticky tbody th, .table-sticky tbody td:first-child { position: sticky; left: 0; z-index: 10; background: var(--surface); font-weight: 600; color: var(--text-strong); border-right: 2px solid var(--border); }
 body.dark-mode .table-sticky tbody th, body.dark-mode .table-sticky tbody td:first-child { background: var(--surface); color: var(--text-strong); border-color: var(--border); }
-.table-sticky thead th:first-child { z-index: 30; background: #f8fafc; border-right: 2px solid #cbd5e1; left: 0; }
+.table-sticky thead th:first-child { z-index: 30; background: var(--surface-2); border-right: 2px solid var(--border); left: 0; }
 body.dark-mode .table-sticky thead th:first-child { background: var(--surface-2); border-color: var(--border); }
 .table-sticky tbody tr:hover td { background-color: #f1f5f9; }
 body.dark-mode .table-sticky tbody tr:hover td { background-color: var(--bg); }
@@ -622,7 +622,7 @@ body.dark-mode .tc-pills { background: var(--bg); box-shadow: inset 0 2px 4px rg
 body.dark-mode .tc-pill-btn:hover { color: var(--text-strong); }
 
 .tc-pill-btn.active {
-  background: #ffffff;
+  background: var(--surface);
   color: var(--primary-dark);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
@@ -867,7 +867,6 @@ body.dark-mode .ai-preview-pane { background: var(--bg); }
   border: 2px solid var(--border);
   border-radius: 12px;
   padding: 16px 18px;
-  background: #fff;
   border: 1px solid var(--border);
   border-radius: 8px;
   width: 300px;
@@ -1155,8 +1154,8 @@ body { font-family: var(--font-sans); background: var(--bg); color: var(--ink); 
 /* Layer 2: Alerts */
 .alert-center { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
 .alert-row { display: flex; align-items: center; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; }
-.alert-danger { background: #FEF2F2; color: #991B1B; border-left: 4px solid var(--danger); }
-.alert-warning { background: #FFFBEB; color: #92400E; border-left: 4px solid var(--warning); }
+.alert-danger { background: var(--hp-danger-bg); color: var(--hp-danger); border-left: 4px solid var(--danger); }
+.alert-warning { background: var(--hp-warning-bg); color: color-mix(in srgb, var(--hp-warning) 72%, var(--text-strong)); border-left: 4px solid var(--warning); }
 
 /* Layer 3: Project Health */
 .health-table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -1276,8 +1275,8 @@ body { font-family: var(--font-sans); background: var(--bg); color: var(--ink); 
 
 /* Modern inputs, select and textareas */
 input, select, textarea {
-  border: 1px solid #CBD5E1 !important;
-  background: #FFFFFF !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
   transition: all 0.2s ease !important;
   outline: none !important;
 }
@@ -1706,5 +1705,3 @@ td:last-child {
   margin: 0 auto;
   line-height: 1.4;
 }
-
-
