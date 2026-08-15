@@ -62,15 +62,19 @@ function getExportBg() {
     return { base: '#f8fafc', image: 'none', size: 'auto', name: 'cu' };
   }
 
-  // MẶC ĐỊNH (Sếp chốt 31/07): nền Ô LƯỚI kiểu bản vẽ kỹ thuật — xám xi măng + lưới 2 cấp
-  // (ô nhỏ 32px xám mờ, cứ 4 ô có 1 đường xanh thương hiệu ô 128px). Các khối nội dung vẫn TRẮNG
-  // nên chữ/ảnh không bị nhiễu. Cỡ ô tính cho khổ ảnh xuất 1920×1080.
+  // MẶC ĐỊNH: nền Ô LƯỚI kiểu bản vẽ kỹ thuật — xám xi măng + lưới 2 cấp (ô nhỏ 32px xám, cứ 4 ô
+  // có 1 đường xanh thương hiệu ô 128px). Các khối nội dung vẫn TRẮNG nên chữ/ảnh không bị nhiễu.
+  // Cỡ ô tính cho khổ ảnh xuất 1920×1080.
+  // 14/08 Sếp yêu cầu TĂNG ĐỘ ĐẬM cho nổi nền (bản đầu quá nhạt, in ra gần như không thấy lưới).
+  // Đã thử 4 mức ở đúng khổ 1920 rồi xem ảnh thu nhỏ như trên điện thoại; mức dưới đây là mức
+  // NỔI RÕ nhất mà vẫn không át nội dung: nền đậm hơn (#F1F3F4 -> #D5DEE6), đường xanh 0.10->0.75
+  // và dày 1.5px->3px, đường xám 0.05->0.40 và dày 1px->1.5px (3px cũng chịu được nén ảnh Zalo).
   return {
-    base: '#F1F3F4',
-    image: 'linear-gradient(rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
-           'linear-gradient(90deg, rgba(9,106,167,0.10) 1.5px, transparent 1.5px),' +
-           'linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px),' +
-           'linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px)',
+    base: '#D5DEE6',
+    image: 'linear-gradient(rgba(9,106,167,0.75) 3px, transparent 3px),' +
+           'linear-gradient(90deg, rgba(9,106,167,0.75) 3px, transparent 3px),' +
+           'linear-gradient(rgba(15,23,42,0.40) 1.5px, transparent 1.5px),' +
+           'linear-gradient(90deg, rgba(15,23,42,0.40) 1.5px, transparent 1.5px)',
     size: '128px 128px, 128px 128px, 32px 32px, 32px 32px',
     name: 'oluoi'
   };
