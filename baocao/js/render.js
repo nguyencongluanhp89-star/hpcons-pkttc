@@ -955,11 +955,12 @@ async function exportPNG169() {
         }
         const t_cn = t_cn_val || ((typeof workCN === 'function') ? workCN(t_vi) : '');
         
-        const ROW_H = 210;
+        // Chiều cao vùng ảnh do fitDrawRows() tính lại theo TỈ LỆ THẬT của từng bản vẽ (Sếp yêu cầu
+        // 15/08). Giá trị 150px chỉ là tạm cho lần dựng đầu.
         drawItemsHtml += `
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04); height: 100%;">
-            <div style="flex: 1 1 auto; min-height: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
-              <img src="${d.img}" class="draw-im-169" style="width: 100%; height: 100%; object-fit: contain; background: #ffffff; display: block;">
+          <div class="draw-cell-169" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+            <div class="draw-imbox-169" style="height: 150px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+              <img src="${d.img}" class="draw-im-169" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; background: #ffffff; display: block;">
             </div>
             <div style="padding: 6px 8px; text-align: center; line-height: 1.3; font-size: ${FS.bodySmall}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
               <div style="font-weight: ${FW.body}; color: #0f172a; text-transform: uppercase; line-height: 1.25;">${t_vi}</div>
@@ -969,11 +970,13 @@ async function exportPNG169() {
         `;
       });
       
-      const ROW_H = 210;
+      // Bỏ grid-auto-rows CỐ ĐỊNH (trước là 210px): bản vẽ mặt bằng rất dài ngang (4:1, 5:1) bị co
+      // nhỏ lọt thỏm giữa khung, thừa mảng trắng lớn. Nay chiều cao mỗi HÀNG do fitDrawRows() tính
+      // theo tỉ lệ thật của ảnh (2 ô cùng hàng vẫn bằng nhau để caption thẳng hàng).
       drawsCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
           ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: ${ROW_H}px; gap: 10px;">
+          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; gap: 10px;">
             ${drawItemsHtml}
           </div>
         </div>
@@ -1331,6 +1334,31 @@ async function exportPNG169() {
       const PHOTO_ROWS = 4;              // khối 03: LUÔN giữ chỗ 4 hàng × 2 cột = đủ 8 hình
       const CHROME = () => headerHeight + footerHeight + 142; // padding dọc 58+44 + 2 gap 20 = 142
 
+      // Khối 05 — chiều cao ô bản vẽ theo TỈ LỆ THẬT của ảnh (Sếp yêu cầu 15/08: "chỉnh lại tỉ lệ
+      // cho tương xứng"). Trước đây ô cao cứng 210px nên bản vẽ mặt bằng dài (4:1, 5:1) co nhỏ lọt
+      // thỏm, thừa mảng trắng lớn. Nay: cao ảnh = bề rộng ô ÷ tỉ lệ ảnh, giới hạn 70–170px để không
+      // làm tràn cột; 2 ô CÙNG HÀNG lấy chung chiều cao lớn hơn để caption thẳng hàng, nhìn gọn.
+      function fitDrawRows() {
+        const g = document.getElementById('draws-grid-169');
+        if (!g || !g.children.length) return;
+        const cells = Array.from(g.children);
+        const cw = cells[0].getBoundingClientRect().width;
+        if (!cw) return;
+        const need = cells.map(c => {
+          const im = c.querySelector('.draw-im-169');
+          const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 2;
+          return Math.max(70, Math.min(170, Math.round(cw / r)));
+        });
+        for (let i = 0; i < cells.length; i += 2) {
+          const h = Math.max(need[i], (need[i + 1] !== undefined ? need[i + 1] : 0));
+          [cells[i], cells[i + 1]].forEach(c => {
+            if (!c) return;
+            const box = c.querySelector('.draw-imbox-169');
+            if (box) box.style.height = h + 'px';
+          });
+        }
+      }
+
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
       function fillGrid(id, forceRows) {
         const g = document.getElementById(id);
@@ -1353,6 +1381,8 @@ async function exportPNG169() {
         tempContainer.querySelectorAll('.ov-sub-img').forEach(b => { const w=b.getBoundingClientRect().width; if(w>0) b.style.height=Math.round(w*120/262)+'px'; });
         // ảnh khối 03 (cột 2): LUÔN chia đủ 4 hàng — ít ảnh cũng không phình to, chỗ vẫn giữ cho đủ 8 hình
         fillGrid('photos-grid-169', PHOTO_ROWS);
+        // bản vẽ khối 05 (cột 3): ô cao theo TỈ LỆ THẬT của từng bản vẽ (hết cảnh ảnh dài lọt thỏm)
+        fitDrawRows();
 
         // Đo khung biểu đồ rồi vẽ lại bằng toạ độ pixel thật
         const chartBox = tempContainer.querySelector('.chart-container-169');
@@ -1393,7 +1423,13 @@ async function exportPNG169() {
       console.log("exportPNG169 completed. finalH:", finalH);
 
       // Chờ reflow 100ms RỒI đợi TẤT CẢ ảnh (Storage URL) tải xong mới chụp — tránh ảnh trống (vd phần 05).
-      setTimeout(() => waitAllImages(tempContainer).then(captureAndDownload), 100);
+      // Tính lại chiều cao ô bản vẽ SAU KHI ảnh tải xong (lúc dựng khung ảnh chưa có kích thước
+      // thật nên naturalWidth = 0). Chiều cao tối đa 170px < 210px cũ nên khối 05 chỉ thấp đi,
+      // không bao giờ làm tràn cột.
+      setTimeout(() => waitAllImages(tempContainer).then(() => {
+        try { fitDrawRows(); } catch (e) { console.warn('fitDrawRows lỗi (bỏ qua):', e && e.message); }
+        return captureAndDownload();
+      }), 100);
     }, 400);
 
     // Đợi mọi <img> trong container tải xong; lỗi/timeout vẫn tiếp để không treo.
