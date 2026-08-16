@@ -219,6 +219,14 @@ const FirebaseSync = {
         await this._mergeLocal(doc.id, doc.data().value);
       }
 
+      // Dự án được lưu theo từng document tại projects/{pid}, không nằm trong config/projects.
+      // Phải kéo danh sách này trước để máy mới có CUR.project và tiếp tục nhận dữ liệu con.
+      const projectsSnap = await db.collection("projects").get();
+      const projects = projectsSnap.docs
+        .map(doc => ({ ...doc.data(), id: doc.id }))
+        .filter(project => project.name || project.code || project.status);
+      await this._mergeLocal("projects", projects);
+
       if (projectId) {
         const dataSnap = await db.collection("projects").doc(projectId).collection("data").get();
         for (const doc of dataSnap.docs) {
