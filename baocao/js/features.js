@@ -2222,7 +2222,30 @@ async function copyYesterdayTemplate() {
     const report = findPrevReport(reports, curDate, proj, { contentOnly: true });
 
     if (!report) {
-      alert('Không tìm thấy báo cáo nào có dữ liệu trong ' + TEMPLATE_LOOKBACK_DAYS + ' ngày trước đó.\nVui lòng nhập thủ công.');
+      // Nói RÕ vì sao không lấy được (Sếp báo 16/08 "không load lại dữ liệu" mà không rõ nguyên nhân)
+      const all = Array.isArray(reports) ? reports.filter(r => r && r.date && (!proj || r.project_id === proj)) : [];
+      const truoc = all.filter(r => r.date < curDate).sort((a, b) => (a.date < b.date ? 1 : -1));
+      let ly;
+      if (!all.length) {
+        ly = 'Dự án này chưa có báo cáo nào trên hệ thống.';
+      } else if (!truoc.length) {
+        ly = 'Chưa có báo cáo nào TRƯỚC ngày đang mở (' + curDate.split('-').reverse().join('/') + ').';
+      } else {
+        const gan = truoc[0];
+        const cach = dayGap(gan.date, curDate);
+        const ngayVN = gan.date.split('-').reverse().join('/');
+        if (cach > TEMPLATE_LOOKBACK_DAYS) {
+          ly = 'Báo cáo gần nhất là ngày ' + ngayVN + ', cách ' + cach + ' ngày — quá giới hạn '
+             + TEMPLATE_LOOKBACK_DAYS + ' ngày nên app không lấy.';
+        } else if (!reportHasContent(gan)) {
+          ly = 'Báo cáo gần nhất là ngày ' + ngayVN + ' nhưng ngày đó CHƯA CÓ nhân lực và hạng mục '
+             + '(chỉ là bản nháp trống) nên không có gì để chép.';
+        } else {
+          ly = 'Báo cáo gần nhất là ngày ' + ngayVN + ' — chưa rõ nguyên nhân, vui lòng báo quản trị.';
+        }
+      }
+      console.warn('[Mẫu gần nhất] Không lấy được. Đã quét', all.length, 'báo cáo. Lý do:', ly);
+      alert('Không lấy được mẫu.\n\n' + ly + '\n\n(Đã quét ' + all.length + ' báo cáo của dự án này.)');
       return;
     }
 
