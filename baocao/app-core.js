@@ -24,6 +24,7 @@
     storage,
     currentUser: null, // Lưu thông tin {uid, email, full_name, role, app_user_id}
     currentProject: null, // Lưu dự án đang chọn
+    _lastFailedImages: [], // Ảnh tải lên KHÔNG được ở lần lưu gần nhất (để báo người dùng biết)
     projectsList: [], // Danh sách dự án người dùng thấy
     
     // Đối tượng giả lập CUR & DataService giống app chính để đánh lừa form báo cáo
@@ -231,6 +232,7 @@
       const projectId = AppCore.currentProject.id;
       const date = reportData.date;
       const createdBy = AppCore.currentUser.app_user_id || "x";
+      AppCore._lastFailedImages = [];   // đếm ảnh tải lên KHÔNG được của lần lưu này
 
       // 1. Kiểm tra mạng
       if (!navigator.onLine) {
@@ -260,8 +262,12 @@
             p.img = downloadUrl;
             console.log(`Đã upload thành công ảnh ${i + 1}/${photos.length}: ${downloadUrl}`);
           } catch (uploadErr) {
+            // 16/08 — TRƯỚC ĐÂY throw ở đây làm MẤT TRẮNG cả báo cáo (kể cả phần chữ) chỉ vì 1 ảnh
+            // lỗi mạng. Thực tế: báo cáo HOWELL 14/08 (91 nhân lực) không hề lên hệ thống.
+            // NAY: bỏ qua đúng ảnh lỗi, VẪN LƯU phần còn lại, và đếm lại để báo cho người dùng.
             console.error(`Lỗi upload ảnh ${i + 1}:`, uploadErr);
-            throw new Error(`Lỗi upload ảnh: ${uploadErr.message}`);
+            AppCore._lastFailedImages.push('ảnh công trường ' + (i + 1));
+            p.img = null;
           }
         }
         updatedPhotos.push(p);
@@ -290,8 +296,10 @@
             d.img = downloadUrl;
             console.log(`Đã upload thành công bản vẽ ${i + 1}/${draws.length}: ${downloadUrl}`);
           } catch (uploadErr) {
+            // Như trên: KHÔNG để 1 bản vẽ lỗi làm mất cả báo cáo
             console.error(`Lỗi upload bản vẽ ${i + 1}:`, uploadErr);
-            throw new Error(`Lỗi upload bản vẽ: ${uploadErr.message}`);
+            AppCore._lastFailedImages.push('bản vẽ ' + (i + 1));
+            d.img = null;
           }
         }
         updatedDraws.push(d);
@@ -300,12 +308,19 @@
       // Nén + upload 1 ảnh đơn (logo/ảnh tổng quan) nếu là dataURL; nếu đã là URL cũ thì giữ nguyên
       const uploadField = async (val, name) => {
         if (val && typeof val === "string" && val.startsWith("data:image/")) {
-          const blob = await AppCore.compressImage(val);
-          const filename = `${name}_${Date.now()}_${Math.round(Math.random()*1000)}.jpg`;
-          const storagePath = `reports/${projectId}/${date}/${createdBy}/${filename}`;
-          const ref = storage.ref().child(storagePath);
-          const up = await ref.put(blob, { contentType: 'image/jpeg' });
-          return await up.ref.getDownloadURL();
+          try {
+            const blob = await AppCore.compressImage(val);
+            const filename = `${name}_${Date.now()}_${Math.round(Math.random()*1000)}.jpg`;
+            const storagePath = `reports/${projectId}/${date}/${createdBy}/${filename}`;
+            const ref = storage.ref().child(storagePath);
+            const up = await ref.put(blob, { contentType: 'image/jpeg' });
+            return await up.ref.getDownloadURL();
+          } catch (e) {
+            // Logo / ảnh tổng quan lỗi cũng KHÔNG được làm hỏng cả báo cáo
+            console.error("Lỗi upload " + name + ":", e);
+            AppCore._lastFailedImages.push(name);
+            return null;
+          }
         }
         return val || null;
       };

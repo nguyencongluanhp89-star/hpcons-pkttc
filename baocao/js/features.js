@@ -2007,10 +2007,15 @@ function updateActionButtons() {
 }
 
 async function saveReportData(targetStatus) {
+  // 16/08 — LỖI MẤT BÁO CÁO: trạng thái được đặt NGAY ĐẦU hàm, nhưng nếu lưu lên hệ thống THẤT BẠI
+  // thì KHÔNG trả lại trạng thái cũ -> nút "Xuất ảnh" vẫn mở -> người lập xuất ảnh gửi Zalo và tưởng
+  // đã xong, trong khi hệ thống KHÔNG có gì (đúng ca báo cáo HOWELL 14/08, 91 nhân lực).
+  // Nay: nhớ trạng thái cũ, lưu hỏng thì TRẢ LẠI + khoá nút Xuất ảnh + báo rõ.
+  const prevStatus = window._reportStatus;
   try {
     const role = window.CURRENT_USER_ROLE || 'admin';
     let finalStatus = targetStatus;
-    
+
     // CHT nộp duyệt hoặc tự tạo -> tự duyệt luôn thành approved
     if (['admin', 'director', 'pm', 'site_manager'].includes(role) && targetStatus === 'pending') {
       finalStatus = 'approved';
@@ -2079,10 +2084,29 @@ async function saveReportData(targetStatus) {
     draw();
     
     if (window.AppCore) window.AppCore.postMessage({ type: 'DAILY_REPORT_SAVED' });
-    showToast("💾 Đã lưu dữ liệu báo cáo!");
+
+    // Có ảnh nào tải lên KHÔNG được thì phải nói rõ — trước đây 1 ảnh lỗi là mất trắng cả báo cáo,
+    // nay báo cáo vẫn lưu nhưng người lập cần biết để bổ sung ảnh.
+    const failed = (window.AppCore && Array.isArray(window.AppCore._lastFailedImages))
+      ? window.AppCore._lastFailedImages : [];
+    if (failed.length) {
+      alert('✅ Đã lưu báo cáo lên hệ thống.\n\n'
+          + '⚠️ NHƯNG có ' + failed.length + ' ảnh chưa tải lên được (' + failed.join(', ') + ').\n'
+          + 'Vui lòng kiểm tra mạng rồi chọn lại các ảnh đó và bấm lưu/nộp duyệt lần nữa.');
+    } else {
+      showToast("💾 Đã lưu báo cáo lên hệ thống!");
+    }
   } catch (err) {
     console.error("Lỗi lưu báo cáo:", err);
-    alert("❌ Lỗi lưu báo cáo: " + err.message);
+    // TRẢ LẠI trạng thái cũ: báo cáo CHƯA lên hệ thống thì không được coi là đã nộp
+    window._reportStatus = prevStatus;
+    try { if (typeof updateActionButtons === 'function') updateActionButtons(); } catch (e) {}
+    try { if (typeof draw === 'function') draw(); } catch (e) {}
+    alert('❌ CHƯA LƯU ĐƯỢC BÁO CÁO LÊN HỆ THỐNG!\n\n'
+        + 'Lý do: ' + (err && err.message ? err.message : 'không rõ') + '\n\n'
+        + '⚠️ Dữ liệu mới chỉ nằm trên máy này. ĐỪNG tắt trang.\n'
+        + 'Hãy kiểm tra mạng / đăng nhập lại rồi bấm "Nộp duyệt" lần nữa.\n'
+        + '(Nút Xuất ảnh đã khoá lại để tránh gửi báo cáo mà hệ thống chưa có dữ liệu.)');
   }
 }
 
