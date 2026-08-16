@@ -120,9 +120,13 @@
     --green:     var(--hp-success);              /* #60BB46 — xanh lá success */
     --green-d:   var(--hp-success-dark);
     --line: #E2E8F0; --grey: #64748B;             /* giữ: viền + chữ phụ trung tính */
-    background: #fff !important; color: #1c2733 !important;   /* GIỮ nền trắng + chữ thân đen */
+    color: #1c2733 !important;                    /* GIỮ chữ thân đen (kể cả khi bật nền tối) */
   }
-  #report{width:1000px;font-size:14px}
+  /* 16/08 — THỦ PHẠM khiến nền Ô LƯỚI không lên trong ảnh xuất: trước đây dòng trên có
+     "background:#fff !important" áp cho CẢ #temp-report-169 (thẻ dựng ảnh xuất). !important
+     THẮNG cả style inline nên nền ô lưới bị ép về trắng. Nay chỉ ép nền trắng cho #report
+     (bản xem trên màn hình); thẻ xuất ảnh để JS getExportBg() quyết định. */
+  #report{width:1000px;font-size:14px;background:#fff !important}
   .r-head{display:flex;background:#fff;border-bottom:4px solid var(--navy2);align-items:stretch}
   .r-logo{width:180px;padding:14px;text-align:center;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;align-items:center}
   .r-logo .lg{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:1px;line-height:1}
