@@ -105,19 +105,36 @@ window.CUR = CUR;
 // thiếu phiên Firebase Auth -> Firestore chặn TẤT CẢ: badge "Offline (local)", tab Báo cáo ngày
 // (iframe BCA dùng chung phiên, ẩn màn login) báo "Missing or insufficient permissions".
 // KHÔNG thể tự đăng nhập lại vì app KHÔNG lưu mật khẩu (đúng nguyên tắc bảo mật) -> phải nhắc.
-function checkFirebaseSessionAfterAutoLogin(){
+// Ẩn dải nhắc — gọi ngay khi có phiên Firebase (firebase-init.js gọi qua onAuthStateChanged).
+function hideReloginBanner(){
+  const b = document.getElementById("relogin-banner");
+  if (b) b.remove();
+}
+window.hideReloginBanner = hideReloginBanner;
+
+// 16/08 — Sếp báo "đã đăng nhập lại nhưng vẫn hiện". Hai lỗi của bản trước, đã sửa:
+//  (1) chỉ kiểm ĐÚNG 1 LẦN ở giây thứ 4, trong khi firebaseAuthSync chạy NỀN (doLogin không await)
+//      -> mạng chậm là báo oan. Nay kiểm lại nhiều lần, tổng ~22 giây rồi mới kết luận.
+//  (2) hiện rồi thì KHÔNG TỰ ẨN dù sau đó kết nối được -> nay onAuthStateChanged tự gỡ dải.
+// Đồng thời hiện LÝ DO thật (window._fbAuthErr do firebaseAuthSync ghi lại) để biết đường xử.
+function checkFirebaseSessionAfterAutoLogin(tries){
   try{
     if (typeof FIREBASE_ENABLED === "undefined" || !FIREBASE_ENABLED) return;
     const u = (window.fb && window.fb.auth) ? window.fb.auth.currentUser : null;
-    if (u) return;                       // đã có phiên -> bình thường
+    if (u) { hideReloginBanner(); return; }              // đã có phiên -> gỡ dải nếu đang hiện
+    const n = (typeof tries === "number") ? tries : 0;
+    if (n < 3) { setTimeout(function(){ checkFirebaseSessionAfterAutoLogin(n + 1); }, 6000); return; }
     if (document.getElementById("relogin-banner")) return;   // đã hiện rồi
+    const why = window._fbAuthErr ? (' (Lý do: ' + window._fbAuthErr + ')') : '';
     const b = document.createElement("div");
     b.id = "relogin-banner";
     b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#B3402F;"
       + "color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
       + "justify-content:center;font-size:14px;font-weight:600;box-shadow:0 -4px 16px rgba(0,0,0,.25)";
     b.innerHTML = '<span>⚠️ Chưa kết nối máy chủ — dữ liệu đang chỉ đọc trên máy này. '
-      + 'Cần đăng nhập lại (nhập mật khẩu) để đồng bộ và dùng được tab Báo cáo ngày.</span>'
+      + 'Cần đăng nhập lại (nhập mật khẩu) để đồng bộ và dùng được tab Báo cáo ngày.'
+      + (why ? '<br><span style="font-weight:400;font-size:12.5px;opacity:.9">' + esc(why) + '</span>' : '')
+      + '</span>'
       + '<button id="relogin-btn" style="background:#fff;color:#B3402F;border:none;border-radius:6px;'
       + 'padding:8px 14px;font-weight:800;cursor:pointer">Đăng nhập lại</button>'
       + '<button id="relogin-close" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);'

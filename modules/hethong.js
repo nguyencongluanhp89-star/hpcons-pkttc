@@ -563,7 +563,10 @@ async function firebaseAuthSync(user, plainPassword) {
   try {
     if (typeof FIREBASE_ENABLED === "undefined" || !FIREBASE_ENABLED) return;
     if (!window.fb || !window.fb.auth || !window.fb.db) return;
-    const email = (user.username || user.id) + "@hpcons.local";
+    // toLowerCase() cho KHỚP Cloud Function bcaAuth (nó tạo/cập nhật tài khoản Firebase bằng
+    // username.toLowerCase() + "@hpcons.local"); tên đăng nhập có chữ hoa mà không hạ xuống thì
+    // dễ thành 2 tài khoản khác nhau -> đăng nhập Firebase trượt.
+    const email = String(user.username || user.id).toLowerCase() + "@hpcons.local";
     const auth = window.fb.auth;
     try {
       const cred = await auth.signInWithEmailAndPassword(email, plainPassword);
@@ -574,7 +577,11 @@ async function firebaseAuthSync(user, plainPassword) {
         app_user_id: user.id,
         updated_at: new Date().toISOString()
       }, { merge: true });
+      window._fbAuthErr = "";                      // kết nối được -> xoá lý do lỗi cũ
+      if (typeof window.hideReloginBanner === "function") window.hideReloginBanner();
     } catch (err) {
+      // Ghi lại LÝ DO để dải nhắc hiện đúng nguyên nhân thay vì chỉ nói chung chung
+      window._fbAuthErr = (err && (err.code || err.message)) ? String(err.code || err.message) : "không rõ";
       const code = err && err.code;
       if (code === "auth/user-not-found" || code === "auth/invalid-credential" || code === "auth/invalid-login-credentials") {
         const cred = await auth.createUserWithEmailAndPassword(email, plainPassword);
@@ -586,6 +593,8 @@ async function firebaseAuthSync(user, plainPassword) {
           updated_at: new Date().toISOString()
         }, { merge: true });
         console.log("Firebase Auth: đã tạo tài khoản mới cho", user.full_name);
+        window._fbAuthErr = "";                    // tạo tài khoản xong = đã có phiên -> hết lỗi
+        if (typeof window.hideReloginBanner === "function") window.hideReloginBanner();
       } else if (code === "auth/wrong-password") {
         console.warn("Firebase Auth: mật khẩu không khớp tài khoản Firebase hiện có của", user.full_name, "— bỏ qua, không chặn đăng nhập cục bộ.");
       } else {

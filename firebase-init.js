@@ -40,8 +40,11 @@ const firebaseConfig = {
     // (async, xong sau 1-2s) nên lúc vẽ chưa có currentUser -> kẹt "Offline (local)" dù Firebase đã kết nối.
     // onAuthStateChanged bắt cả: signIn nền xong + phiên tự khôi phục khi mở lại app -> vẽ lại badge đúng.
     try {
-      auth.onAuthStateChanged(function () {
+      auth.onAuthStateChanged(function (u) {
         if (typeof SyncEngine !== "undefined" && SyncEngine.setPill) SyncEngine.setPill();
+        // 16/08: có phiên rồi thì GỠ NGAY dải nhắc "Chưa kết nối máy chủ" (trước đây dải hiện xong
+        // là nằm lì, dù sau đó đăng nhập Firebase đã xong -> Sếp tưởng đăng nhập lại không ăn thua).
+        if (u && typeof window.hideReloginBanner === "function") window.hideReloginBanner();
       });
     } catch (e) { console.warn("onAuthStateChanged (badge) lỗi:", e); }
   } catch (error) {
