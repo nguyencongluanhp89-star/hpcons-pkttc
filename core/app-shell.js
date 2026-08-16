@@ -148,7 +148,12 @@ function switchTab(tab){
     if (iframe) {
       if (!iframe.getAttribute('data-src-set')) {
         const base = location.hostname.includes('netlify') ? 'baocao/' : 'BAO-CAO-APP/';
-        iframe.src = base + 'index.html?embed=1';
+        // 16/08: thêm mốc NGÀY vào địa chỉ để trình duyệt không dùng lại bản cũ đã nhớ.
+        // Trước đây địa chỉ cố định 'index.html?embed=1' -> máy nhớ bản cũ, cập nhật xong mà tab
+        // Báo cáo ngày vẫn chạy bản cũ (Sếp xuất ảnh 16/08 thiếu nền ô lưới). Mỗi ngày tải mới 1 lần.
+        const _d = new Date();
+        const _stamp = _d.getFullYear() + String(_d.getMonth() + 1).padStart(2, '0') + String(_d.getDate()).padStart(2, '0');
+        iframe.src = base + 'index.html?embed=1&d=' + _stamp;
         iframe.setAttribute('data-src-set', '1');
         iframe.onload = async () => {
           if (typeof syncKBToIframe === 'function') syncKBToIframe();
