@@ -1793,6 +1793,12 @@ async function loadReportForDate(date) {
         if (typeof updateProgress === 'function') updateProgress();
       }
 
+      // Còn phần nhập dở trên máy chưa lên được hệ thống (mất mạng/hết phiên/lỗi ảnh) -> hỏi khôi phục.
+      // Đặt sau khi đã nạp xong bản trên hệ thống để so mốc thời gian, chỉ hỏi khi bản tạm MỚI HƠN.
+      try {
+        if (typeof offerLocalDraft === 'function') offerLocalDraft(report || null);
+      } catch (e) { console.warn('offerLocalDraft lỗi (bỏ qua):', e && e.message); }
+
       // TỰ ĐỘNG lấy thời tiết thực tế (tới giờ hiện tại) khi mở app / đổi ngày — CHỈ khi báo cáo
       // còn NHÁP (draft/rejected). Báo cáo đã nộp (pending/approved) giữ nguyên số liệu đã chốt
       // tại thời điểm nộp. Hàm tự bỏ qua nếu dự án chưa khai tọa độ GPS.

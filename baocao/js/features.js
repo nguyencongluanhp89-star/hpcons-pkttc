@@ -2096,15 +2096,19 @@ async function saveReportData(targetStatus) {
     } else {
       showToast("💾 Đã lưu báo cáo lên hệ thống!");
     }
+    setSaveState(true, new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+    clearLocalDraft();          // đã lên hệ thống -> bỏ bản tạm trên máy
   } catch (err) {
     console.error("Lỗi lưu báo cáo:", err);
+    saveLocalDraft();           // GIỮ CHẮC bản tạm trên máy trước khi báo lỗi
+    setSaveState(false);
     // TRẢ LẠI trạng thái cũ: báo cáo CHƯA lên hệ thống thì không được coi là đã nộp
     window._reportStatus = prevStatus;
     try { if (typeof updateActionButtons === 'function') updateActionButtons(); } catch (e) {}
     try { if (typeof draw === 'function') draw(); } catch (e) {}
     alert('❌ CHƯA LƯU ĐƯỢC BÁO CÁO LÊN HỆ THỐNG!\n\n'
         + 'Lý do: ' + (err && err.message ? err.message : 'không rõ') + '\n\n'
-        + '⚠️ Dữ liệu mới chỉ nằm trên máy này. ĐỪNG tắt trang.\n'
+        + '⚠️ Dữ liệu đã được GIỮ TẠM trên máy này (mở lại app sẽ hỏi khôi phục), nhưng ẢNH thì không giữ được.\n'
         + 'Hãy kiểm tra mạng / đăng nhập lại rồi bấm "Nộp duyệt" lần nữa.\n'
         + '(Nút Xuất ảnh đã khoá lại để tránh gửi báo cáo mà hệ thống chưa có dữ liệu.)');
   }
@@ -2467,6 +2471,95 @@ function updateProgress() {
 window.updateProgress = updateProgress;
 
 // ====== AUTO-SAVE DEBOUNCE ======
+// ===================== LƯU TẠM NGAY TRÊN MÁY (Sếp duyệt 16/08) =====================
+// Lý do: app chỉ lưu lên hệ thống; mất mạng / hết phiên / lỗi ảnh là dữ liệu nhập cả buổi bay sạch
+// (đúng ca báo cáo HOWELL 14/08). Nay mỗi lần gõ là ghi ngay 1 bản tạm vào bộ nhớ trình duyệt —
+// KHÔNG cần mạng, KHÔNG cần đăng nhập. Mở lại app là hỏi khôi phục.
+// KHÔNG lưu ảnh (base64 rất nặng, dễ tràn bộ nhớ trình duyệt) — chỉ đếm để nhắc chọn lại ảnh.
+function draftKey() {
+  const pid = (window.AppCore && window.AppCore.currentProject) ? window.AppCore.currentProject.id : 'x';
+  const d = el('f_date') ? el('f_date').value : '';
+  return 'bca_draft_' + pid + '_' + d;
+}
+function _v(id) { return el(id) ? el(id).value : ''; }
+function saveLocalDraft() {
+  try {
+    const d = _v('f_date');
+    if (!d) return;
+    const data = {
+      date: d,
+      units: (typeof units !== 'undefined' ? units : []),
+      works: (typeof works !== 'undefined' ? works : []),
+      f_bch: _v('f_bch'), f_total: _v('f_total'), f_prog: _v('f_prog'), f_plan: _v('f_plan'),
+      f_note: _v('f_note'), f_rec: _v('f_rec'), f_safe: _v('f_safe'), f_qual: _v('f_qual'), f_sched: _v('f_sched'),
+      soAnh: (typeof photos !== 'undefined' ? photos.filter(p => p && p.img).length : 0),
+      soBanVe: (typeof draws !== 'undefined' ? draws.filter(x => x && x.img).length : 0),
+      luc: new Date().toISOString()
+    };
+    localStorage.setItem(draftKey(), JSON.stringify(data));
+  } catch (e) { console.warn('Lưu tạm trên máy lỗi:', e && e.message); }
+}
+function readLocalDraft() {
+  try { const s = localStorage.getItem(draftKey()); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+}
+function clearLocalDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
+window.saveLocalDraft = saveLocalDraft;
+
+// Chip trạng thái lưu — cho người lập biết dữ liệu ĐÃ lên hệ thống hay mới nằm trên máy
+window._chuaLenHeThong = false;
+function setSaveState(daLen, gio) {
+  window._chuaLenHeThong = !daLen;
+  let c = document.getElementById('save-state-chip');
+  if (!c) {
+    c = document.createElement('div');
+    c.id = 'save-state-chip';
+    c.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:9998;font-size:12px;font-weight:700;'
+      + 'padding:6px 11px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.18);pointer-events:none;'
+      + 'max-width:78vw;line-height:1.35';
+    document.body.appendChild(c);
+  }
+  if (daLen) {
+    c.style.background = '#DFF3E4'; c.style.color = '#15803D';
+    c.textContent = '✓ Đã lưu lên hệ thống' + (gio ? ' ' + gio : '');
+  } else {
+    c.style.background = '#FDEAEA'; c.style.color = '#B3402F';
+    c.textContent = '⚠ Chưa lên hệ thống — đang giữ tạm trên máy';
+  }
+}
+window.setSaveState = setSaveState;
+
+// Mở lại app: nếu bản tạm trên máy MỚI HƠN bản trên hệ thống -> hỏi khôi phục
+function offerLocalDraft(reportTuHeThong) {
+  try {
+    const dr = readLocalDraft();
+    if (!dr) return;
+    const tHeThong = reportTuHeThong ? (reportTuHeThong.updated_at || reportTuHeThong.timestamp || '') : '';
+    if (tHeThong && new Date(tHeThong).getTime() >= new Date(dr.luc).getTime()) { clearLocalDraft(); return; }
+    const coGi = (dr.units || []).length || (dr.works || []).length
+              || [dr.f_plan, dr.f_note, dr.f_rec, dr.f_safe, dr.f_qual, dr.f_sched].some(x => x && String(x).trim());
+    if (!coGi) { clearLocalDraft(); return; }
+    const gio = new Date(dr.luc).toLocaleString('vi-VN');
+    const anh = (dr.soAnh || 0) + (dr.soBanVe || 0);
+    if (!confirm('Máy này còn phần nhập dở LÚC ' + gio + ' chưa lên được hệ thống.\n\n'
+        + 'Khôi phục lại phần đó?\n'
+        + (anh ? ('(Lưu ý: ' + anh + ' ảnh/bản vẽ KHÔNG giữ tạm được — cần chọn lại ảnh.)') : ''))) return;
+    if (Array.isArray(dr.units)) { units = dr.units; if (typeof renderUnitForm === 'function') renderUnitForm(); if (typeof recomputeTotal === 'function') recomputeTotal(); }
+    if (Array.isArray(dr.works)) { works = dr.works; if (typeof renderWorkForm === 'function') renderWorkForm(); }
+    ['f_bch','f_total','f_prog','f_plan','f_note','f_rec','f_safe','f_qual','f_sched'].forEach(id => {
+      if (el(id) && dr[id] !== undefined && dr[id] !== '') el(id).value = dr[id];
+    });
+    if (typeof updateProgress === 'function') updateProgress();
+    if (typeof draw === 'function') draw();
+    triggerAutoSave();   // thử đẩy lên hệ thống ngay
+  } catch (e) { console.warn('offerLocalDraft lỗi:', e && e.message); }
+}
+window.offerLocalDraft = offerLocalDraft;
+
+// Có mạng trở lại -> tự thử lưu lên hệ thống lần nữa
+window.addEventListener('online', function () {
+  if (window._chuaLenHeThong && typeof _silentSave === 'function') _silentSave();
+});
+
 let _autoSaveTimer = null;
 async function _silentSave() {
   const date = el('f_date') ? el('f_date').value : '';
@@ -2525,10 +2618,19 @@ async function _silentSave() {
       window.CURRENT_REPORT = _saved || reportData;
       if (typeof updateActionButtons === 'function') updateActionButtons();
     }
-  } catch(e) {}
+    // Đã lên hệ thống -> báo xanh + dọn bản tạm (không cần giữ nữa)
+    setSaveState(true, new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+    clearLocalDraft();
+  } catch(e) {
+    // 16/08: TRƯỚC ĐÂY nuốt lỗi hoàn toàn (catch rỗng) -> người lập tưởng đã lưu, thực tế mất trắng.
+    // Nay báo đỏ ngay trên màn hình; bản tạm trên máy VẪN GIỮ để khôi phục khi mở lại.
+    console.warn('Tự lưu lên hệ thống chưa được (đã giữ tạm trên máy):', e && e.message);
+    setSaveState(false);
+  }
 }
 let _progressTimer = null;
 function triggerAutoSave() {
+  saveLocalDraft();   // ghi bản tạm NGAY (không chờ 2 giây, không cần mạng) — phao cứu sinh
   if (_progressTimer) clearTimeout(_progressTimer);
   _progressTimer = setTimeout(updateProgress, 400);
   if (_autoSaveTimer) clearTimeout(_autoSaveTimer);
