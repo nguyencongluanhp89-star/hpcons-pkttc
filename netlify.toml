@@ -19,3 +19,27 @@
   for = "/manifest.json"
   [headers.values]
     Cache-Control = "no-cache"
+
+# 16/08 — APP BÁO CÁO (/baocao/) TRƯỚC ĐÂY BỊ BỎ SÓT: chỉ khai báo cho app chính ở gốc, nên
+# /baocao/index.html và /baocao/sw.js dùng cache mặc định -> máy người dùng giữ bản CŨ, cập nhật
+# xong mà anh em không thấy đổi (Sếp xuất ảnh 16/08 vẫn ra nền trắng dù nền ô lưới đã lên web).
+# sw.js là file quyết định cách lấy các file khác — nó mà cũ thì cả app đóng băng ở bản cũ.
+[[headers]]
+  for = "/baocao/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/baocao/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/baocao/manifest.json"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/baocao/"
+  [headers.values]
+    Cache-Control = "no-cache"
