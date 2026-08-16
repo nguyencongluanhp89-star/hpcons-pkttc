@@ -808,8 +808,8 @@ async function exportPNG169() {
         <div style="grid-row: 1; font-size: ${FS.body}px; font-weight: 700; color: var(--navy); text-transform: uppercase; text-align: center; letter-spacing: 0.3px; display: flex; align-items: center; justify-content: center; height: 24px;">NHÂN LỰC <span style="font-size: ${FS.bodySmall}px; font-weight: 400; opacity: 0.85; font-family: Arial; text-transform: none; margin-left: 5px;">/ 人员资源</span></div>
         
         <!-- Hàng 2 (Vùng nội dung chính) -->
-        <div style="grid-row: 2; display: flex; align-items: center; justify-content: center; min-height: 0;">
-          <div style="font-size: ${FS.manpower}px; font-weight: 800; color: var(--navy2); line-height: 1; font-family: 'Outfit', sans-serif; text-align: center; transform: translateY(4px);">${totalManpower}</div>
+        <div class="mp-box-169" style="grid-row: 2; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden;">
+          <div class="mp-num-169" style="font-size: ${FS.manpower}px; font-weight: 800; color: var(--navy2); line-height: 1; font-family: 'Outfit', sans-serif; text-align: center;">${totalManpower}</div>
         </div>
         
         <!-- Hàng 3 (Hàng thông tin 1) -->
@@ -1334,6 +1334,17 @@ async function exportPNG169() {
       const PHOTO_ROWS = 4;              // khối 03: LUÔN giữ chỗ 4 hàng × 2 cột = đủ 8 hình
       const CHROME = () => headerHeight + footerHeight + 142; // padding dọc 58+44 + 2 gap 20 = 142
 
+      // Khối 02 — SỐ NHÂN LỰC phải co theo khung (Sếp báo 16/08: chữ "NHÂN LỰC" bị số đè lên).
+      // Số vốn để cứng 120px; khi khung thấp đi (khối 05 nay gọn hơn nên cả khổ ảnh co lại) thì ô
+      // chứa số hụt chỗ -> số tràn ra ngoài, chồng lên tiêu đề. Nay đo ô rồi hạ cỡ chữ cho vừa.
+      function fitManpowerNumber() {
+        const box = tempContainer.querySelector('.mp-box-169');
+        const num = tempContainer.querySelector('.mp-num-169');
+        if (!box || !num) return;
+        const h = box.getBoundingClientRect().height;
+        if (h > 0) num.style.fontSize = Math.max(38, Math.min(FS.manpower, Math.floor(h * 0.86))) + 'px';
+      }
+
       // Khối 05 — chiều cao ô bản vẽ theo TỈ LỆ THẬT của ảnh (Sếp yêu cầu 15/08: "chỉnh lại tỉ lệ
       // cho tương xứng"). Trước đây ô cao cứng 210px nên bản vẽ mặt bằng dài (4:1, 5:1) co nhỏ lọt
       // thỏm, thừa mảng trắng lớn. Nay: cao ảnh = bề rộng ô ÷ tỉ lệ ảnh, giới hạn 70–170px để không
@@ -1383,6 +1394,8 @@ async function exportPNG169() {
         fillGrid('photos-grid-169', PHOTO_ROWS);
         // bản vẽ khối 05 (cột 3): ô cao theo TỈ LỆ THẬT của từng bản vẽ (hết cảnh ảnh dài lọt thỏm)
         fitDrawRows();
+        // số nhân lực khối 02: hạ cỡ chữ cho vừa ô, tránh đè lên tiêu đề
+        fitManpowerNumber();
 
         // Đo khung biểu đồ rồi vẽ lại bằng toạ độ pixel thật
         const chartBox = tempContainer.querySelector('.chart-container-169');
@@ -1428,6 +1441,7 @@ async function exportPNG169() {
       // không bao giờ làm tràn cột.
       setTimeout(() => waitAllImages(tempContainer).then(() => {
         try { fitDrawRows(); } catch (e) { console.warn('fitDrawRows lỗi (bỏ qua):', e && e.message); }
+        try { fitManpowerNumber(); } catch (e) { console.warn('fitManpowerNumber lỗi (bỏ qua):', e && e.message); }
         return captureAndDownload();
       }), 100);
     }, 400);
