@@ -1,4 +1,10 @@
 /* === js/render.js (dung bao cao + tab + khoi tao) === Tu dong tach tu app goc. Cac file nap theo thu tu: data -> utils -> features -> render === */
+
+// MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
+// đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
+// ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
+const APP_BUILD = 'b3.3';
+window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
   const dt=new Date(v+'T00:00:00');
@@ -1295,7 +1301,7 @@ async function exportPNG169() {
         <span>HỆ THỐNG QUẢN LÝ THI CÔNG HP CONS © 2026</span>
         <span style="font-weight: 400; color: var(--navy); display: flex; align-items: center; gap: 6px;">
           <span style="width: 9px; height: 9px; background: var(--navy2); border-radius: 50%;"></span>
-          ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP
+          ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP • ${APP_BUILD}
         </span>
       </div>
     `;
