@@ -1994,10 +1994,10 @@ function updateActionButtons() {
     }
   }
 
-  // 3. Nút "Mẫu gần nhất" — lấy lại nhân lực + hạng mục + kế hoạch mai từ báo cáo GẦN NHẤT CÓ DỮ LIỆU
+  // 3. Nút "Mẫu gần nhất" — lấy TOÀN BỘ nội dung (trừ ảnh) từ báo cáo GẦN NHẤT CÓ DỮ LIỆU
   //    (Sếp chốt 28/07: không còn bó buộc đúng hôm qua — quên 1 ngày vẫn lấy được mẫu).
   if (!isLocked) {
-    html += `<button class="act" type="button" style="background:var(--hp-brand-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="copyYesterdayTemplate()" title="Lấy lại nhân lực, hạng mục & kế hoạch từ báo cáo gần nhất có dữ liệu (bỏ qua ngày trống)">📋 Mẫu gần nhất</button>`;
+    html += `<button class="act" type="button" style="background:var(--hp-brand-primary); box-shadow:0 4px 12px rgba(9,106,167,0.25)" onclick="copyYesterdayTemplate()" title="Lấy TOÀN BỘ nội dung báo cáo gần nhất (nhân lực, hạng mục kèm chi tiết, ghi chú, kế hoạch...) về đây để sửa. KHÔNG lấy ảnh và thời tiết.">📋 Mẫu gần nhất</button>`;
   }
 
   // 4. Nút xuất ảnh 16:9 (để gửi Zalo) — luôn hiển thị. (Bỏ Xuất PNG + In/Lưu PDF: trùng/không cần trên điện thoại.)
@@ -2283,27 +2283,38 @@ async function copyYesterdayTemplate() {
 
     const hasCurrent = (typeof units !== 'undefined' && units.length > 0) ||
                        (typeof works !== 'undefined' && works.length > 0);
-    if (hasCurrent && !confirm('Báo cáo này đã có dữ liệu nhân lực / hạng mục.\nGhi đè bằng mẫu từ ngày ' + srcLabel + '?')) return;
+    if (hasCurrent && !confirm('Lấy TOÀN BỘ nội dung báo cáo ngày ' + srcLabel + ' về đây để sửa?\n\n'
+        + '• Lấy: nhân lực/tổ đội, hạng mục (cả phần chi tiết), BCH, kế hoạch mai, ghi chú, kiến nghị, an toàn, chất lượng\n'
+        + '• KHÔNG lấy: ảnh công trường, bản vẽ, thời tiết\n\n'
+        + 'Nội dung đang nhập ở báo cáo này sẽ bị thay thế.')) return;
 
-    // Sao chép nhân lực và hạng mục (giữ nguyên số lượng nhưng xóa ảnh/notes ngày cũ)
+    // Sếp chốt 16/08: lấy TOÀN BỘ nội dung của báo cáo gần nhất để người lập SỬA rồi nộp bản mới.
+    // GIỮ NGUYÊN cả phần chi tiết hạng mục (trước đây xoá trắng ô chi tiết, phải gõ lại từ đầu).
+    // KHÔNG lấy: ảnh công trường, bản vẽ, thời tiết, ngày — mỗi ngày một khác, app tự lo.
     if (report.units && Array.isArray(report.units)) {
       units = report.units.map(u => ({ ...u }));
       if (typeof renderUnitForm === 'function') renderUnitForm();
       if (typeof recomputeTotal === 'function') recomputeTotal();
     }
     if (report.works_full && Array.isArray(report.works_full)) {
-      works = report.works_full.map(w => ({ ...w, d: '' })); // giữ tên, xóa chi tiết cũ
+      works = report.works_full.map(w => ({ ...w }));   // giữ CẢ tên lẫn nội dung chi tiết để sửa
       if (typeof renderWorkForm === 'function') renderWorkForm();
-      if (typeof draw === 'function') draw();
     }
-    // Kế hoạch ngày mai: hiện lại nội dung đã khai ở báo cáo nguồn (KHÔNG lấy thời tiết + ảnh công trường)
-    if (report.f_plan && el('f_plan')) { el('f_plan').value = report.f_plan; }
+    // Toàn bộ phần chữ: BCH, kế hoạch mai, ghi chú, kiến nghị, an toàn, chất lượng, tiến độ
+    const chepChu = ['f_bch', 'f_plan', 'f_note', 'f_rec', 'f_safe', 'f_qual', 'f_sched'];
+    chepChu.forEach(id => {
+      if (el(id) && report[id] !== undefined && report[id] !== null && report[id] !== '') {
+        el(id).value = report[id];
+      }
+    });
+    if (typeof recomputeTotal === 'function') recomputeTotal();   // tổng nhân lực tính lại theo tổ đội
     if (typeof updateProgress === 'function') updateProgress();
+    if (typeof draw === 'function') draw();
     triggerAutoSave();
 
     // Toast thông báo
     const toast = document.createElement('div');
-    toast.textContent = '✓ Đã sao chép mẫu từ ngày ' + srcLabel;
+    toast.textContent = '✓ Đã lấy nội dung ngày ' + srcLabel + ' — sửa lại rồi bấm Nộp duyệt';
     Object.assign(toast.style, {
       position:'fixed', bottom:'20px', left:'50%', transform:'translateX(-50%)',
       background:'var(--green)', color:'#fff', padding:'10px 20px',
