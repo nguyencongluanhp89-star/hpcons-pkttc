@@ -3,8 +3,57 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.1';
+const APP_BUILD = 'b5.2';
 window.APP_BUILD = APP_BUILD;
+
+/* =============================================================================
+   QUY TẮC HIỂN THỊ ẢNH DÙNG CHUNG CHO TOÀN APP        (Sếp chốt 17/08/2026)
+       CENTER  →  SCALE UNIFORM  →  COVER  →  CROP SYMMETRIC
+   -----------------------------------------------------------------------------
+   Xử lý hoàn toàn theo HÌNH HỌC, không dựa vào nội dung bên trong ảnh: không căn
+   theo nhà xưởng / mái / người, không nhận diện vật thể, không hard-code
+   object-position riêng cho từng dự án. Nhờ vậy quy tắc ổn định cho MỌI ảnh đầu
+   vào của MỌI dự án.
+
+   Vì sao phải tự tính pixel thay vì để object-fit:cover lo? Vì html2canvas 1.4.1
+   (thư viện chụp ảnh xuất) KHÔNG hỗ trợ object-fit — trình duyệt vẽ đúng nhưng
+   ảnh xuất bị kéo giãn thành méo. Hàm này tái tạo đúng hành vi
+   "object-fit: cover; object-position: center center" bằng pixel:
+     · tỉ lệ ảnh giữ nguyên (scale đồng đều, không méo)
+     · ảnh phủ kín 100% ô chứa (không khoảng trắng)
+     · phần dư cắt ĐỐI XỨNG quanh tâm — ô để overflow:hidden + flex center
+   Trước đây logic này bị nhân bản 3 chỗ (khối 01, khối 05, bộ phân trang) nên dễ
+   lệch nhau; nay dùng chung một hàm.                                            */
+function coverTamChung(im, wO, hO) {
+  if (!im || !wO || !hO) return null;
+  const r = (im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
+  // SCALE UNIFORM: phủ kín theo bề ngang trước, thiếu bề dọc thì phủ theo bề dọc
+  let w = Math.max(wO, Math.round(hO * r));
+  let h = Math.round(w / r);
+  if (h < hO) { h = hO; w = Math.round(h * r); }
+  im.style.width = w + 'px';
+  im.style.height = h + 'px';
+  im.style.maxWidth = 'none';
+  im.style.maxHeight = 'none';
+  im.style.flexShrink = '0';
+  im.style.objectFit = 'fill';        // kích thước đã đúng tỉ lệ gốc nên fill = KHÔNG méo
+  im.style.objectPosition = 'center center';
+  return { w: w, h: h, cropNgang: Math.max(0, w - wO), cropDoc: Math.max(0, h - hO) };
+}
+// Ô chứa: bắt buộc để crop đối xứng quanh tâm (không lệch phía nào)
+function oCoverTam(hop, wO, hO) {
+  if (!hop) return null;
+  hop.style.width = Math.round(wO) + 'px';
+  hop.style.height = Math.round(hO) + 'px';
+  hop.style.overflow = 'hidden';
+  hop.style.display = 'flex';
+  hop.style.alignItems = 'center';       // tâm ảnh trùng tâm ô theo chiều dọc
+  hop.style.justifyContent = 'center';   // và theo chiều ngang
+  hop.style.padding = '0';
+  return coverTamChung(hop.querySelector('img'), wO, hO);
+}
+window.coverTamChung = coverTamChung;
+window.oCoverTam = oCoverTam;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
   const dt=new Date(v+'T00:00:00');
@@ -1437,14 +1486,7 @@ async function exportPNG169() {
           if (box) { box.style.height = hO + 'px'; box.style.padding = '0'; }
           const im = c.querySelector('.draw-im-169');
           if (im) {
-            let aw = Math.max(cw, Math.round(hO * ratio[k]));
-            let ah = Math.round(aw / ratio[k]);
-            if (ah < hO) { ah = hO; aw = Math.round(ah * ratio[k]); }
-            im.style.width = aw + 'px';
-            im.style.height = ah + 'px';
-            im.style.maxWidth = 'none';
-            im.style.flexShrink = '0';
-            im.style.objectFit = 'fill';   // kích thước đã đúng tỉ lệ nên fill = không méo
+            coverTamChung(im, cw, hO);   // quy tắc hình học dùng chung toàn app
           }
         });
 
@@ -1635,11 +1677,12 @@ async function exportPNG169() {
       //     Nay đảo lại: ảnh LẤP HẾT BỀ RỘNG, chấp nhận crop nhẹ mép trên/dưới (ảnh render công
       //     trình có trời ở trên và đường/cây ở dưới — cắt mép không mất phần chính), nhưng crop
       //     không vượt CROP_TOI_DA. Sàn ảnh vì thế tính ĐỘNG theo bề rộng thật và tỉ lệ ảnh thật.
-      const imTQ = anh ? anh.querySelector('img') : null;
-      const rAnh = (imTQ && imTQ.naturalWidth && imTQ.naturalHeight)
-        ? (imTQ.naturalWidth / imTQ.naturalHeight) : 1.6;
-      const CROP_TOI_DA = 0.35;
-      const sanAnh = Math.max(MIN_ANH_01, Math.round((wKhaDung / rAnh) * (1 - CROP_TOI_DA)));
+      // Ô ảnh tổng quan có TỈ LỆ CỐ ĐỊNH do layout quyết định — KHÔNG phụ thuộc tỉ lệ ảnh
+      // đầu vào. Bản b5.1 lấy sàn = (bề rộng ÷ tỉ lệ ảnh) × 0.65 nên mỗi dự án có ảnh tỉ lệ
+      // khác nhau lại ra ô cao thấp khác nhau -> đúng hiện tượng "crop không ổn định" Sếp báo.
+      // 2.4:1 được chọn để giữ nguyên chiều cao khối 01 đang có, không đổi layout.
+      const TI_LE_O_ANH_TQ = 2.4;
+      const sanAnh = Math.max(MIN_ANH_01, Math.round(wKhaDung / TI_LE_O_ANH_TQ));
       const min01 = Math.round(phanChu01 + sanAnh);
       const min02 = VO_KHOI_02 + MIN_TANG_A + MIN_BIEU_DO;
 
@@ -1658,32 +1701,13 @@ async function exportPNG169() {
       // (d) Ô ảnh tổng quan: chiều cao theo ngân sách, BỀ RỘNG SUY RA TỪ TỈ LỆ ẢNH GỐC.
       //     Ô đúng tỉ lệ ảnh -> ảnh lấp kín ô mà KHÔNG cắt, KHÔNG méo, không viền trắng lạ.
       if (anh) {
-        const im = imTQ;
-        const r = rAnh;
+        // Ô: bề rộng dùng hết chỗ khả dụng, chiều cao theo TỈ LỆ CỐ ĐỊNH của layout (không
+        // phụ thuộc ảnh). Ngân sách rộng hơn thì ô cao thêm, nhưng tỉ lệ ô vẫn do layout định.
         const nganSach = Math.max(sanAnh, Math.round(h01 - phanChu01));
-        // Ô ảnh LUÔN lấp hết bề rộng khả dụng; chiều cao lấy theo ngân sách nhưng không để crop
-        // vượt CROP_TOI_DA (sàn ảnh ở trên đã bảo đảm điều này). Ảnh vào ô theo cover thủ công,
-        // canh giữa -> chỉ mất mép trên/dưới, phần công trình chính giữa hình còn nguyên.
-        const hFull = wKhaDung / r;                 // chiều cao cần để ảnh không bị cắt gì
-        const wAnh = Math.round(wKhaDung);
-        const hAnh = Math.round(Math.min(hFull, Math.max(nganSach, hFull * (1 - CROP_TOI_DA))));
-        anh.style.width = wAnh + 'px';
-        anh.style.height = hAnh + 'px';
+        const hO = Math.max(sanAnh, Math.min(nganSach, Math.round(wKhaDung / TI_LE_O_ANH_TQ * 1.35)));
         anh.style.alignSelf = 'stretch';
-        anh.style.overflow = 'hidden';
-        anh.style.display = 'flex';
-        anh.style.alignItems = 'center';
-        anh.style.justifyContent = 'center';
         anh.style.borderRadius = '8px';
-        if (im) {   // html2canvas bỏ qua object-fit -> tự đặt pixel theo tỉ lệ gốc (không méo)
-          let iw = wAnh, ih = Math.round(wAnh / r);
-          if (ih < hAnh) { ih = hAnh; iw = Math.round(hAnh * r); }   // phủ kín ô, phần thừa ô cắt
-          im.style.width = iw + 'px';
-          im.style.height = ih + 'px';
-          im.style.maxWidth = 'none';
-          im.style.flexShrink = '0';
-          im.style.objectFit = 'fill';
-        }
+        oCoverTam(anh, wKhaDung, hO);   // CENTER -> SCALE UNIFORM -> COVER -> CROP SYMMETRIC
       }
 
       // (e) KHÔNG ép height khối 01 (ép là che nội dung — lỗi của b4.8). Để nó cao tự nhiên.

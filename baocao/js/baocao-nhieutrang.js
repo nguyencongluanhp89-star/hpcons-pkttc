@@ -52,17 +52,18 @@
      html2canvas 1.4.1 KHÔNG hỗ trợ object-fit: trình duyệt vẽ đúng nhưng ảnh
      xuất bị kéo giãn -> méo. Nên tự tính width/height ảnh ra pixel sao cho phủ
      kín ô mà vẫn đúng tỉ lệ gốc; phần thừa để ô overflow:hidden cắt đều.        */
+  // Dùng CHUNG hàm hình học của app (render.js): CENTER -> SCALE UNIFORM -> COVER -> CROP
+  // SYMMETRIC. Trước đây bộ này giữ một bản sao công thức riêng nên dễ lệch với khối 01/05.
   function coverThuCong(im, wO, hO) {
-    if (!im || !wO || !hO) return;
+    if (typeof window.coverTamChung === 'function') return window.coverTamChung(im, wO, hO);
+    if (!im || !wO || !hO) return;                     // dự phòng nếu render.js chưa nạp
     var r = (im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
     var aw = Math.max(wO, Math.round(hO * r));
     var ah = Math.round(aw / r);
     if (ah < hO) { ah = hO; aw = Math.round(ah * r); }
-    im.style.width = aw + 'px';
-    im.style.height = ah + 'px';
-    im.style.maxWidth = 'none';
-    im.style.flexShrink = '0';
-    im.style.objectFit = 'fill';   // kích thước đã đúng tỉ lệ nên fill = không méo
+    im.style.width = aw + 'px'; im.style.height = ah + 'px';
+    im.style.maxWidth = 'none'; im.style.flexShrink = '0';
+    im.style.objectFit = 'fill'; im.style.objectPosition = 'center center';
   }
 
   // Ô ảnh trong lưới: chiều cao = bề rộng ô ÷ tỉ lệ chuẩn -> MỌI ô cùng cỡ, cùng tỉ lệ
