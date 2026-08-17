@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.0';
+const APP_BUILD = 'b4.1';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1350,7 +1350,7 @@ async function exportPNG169() {
         <span>HỆ THỐNG QUẢN LÝ THI CÔNG HP CONS © 2026</span>
         <span style="font-weight: 400; color: var(--navy); display: flex; align-items: center; gap: 6px;">
           <span style="width: 9px; height: 9px; background: var(--navy2); border-radius: 50%;"></span>
-          ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP • ${APP_BUILD}
+          ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP • ${APP_BUILD}<span id="dau-k05-169"></span>
         </span>
       </div>
     `;
@@ -1454,13 +1454,37 @@ async function exportPNG169() {
           hs = hs.map(h => Math.max(60, Math.round(h * k)));
         }
 
+        // Sếp báo 17/08 (lần 2): "chiều dài hình dài nhiều lần so với chiều rộng" — ảnh BỊ BÓP MÉO
+        // trên ảnh xuất trong khi xem trong app vẫn đúng. Gốc: html2canvas 1.4.1 KHÔNG hỗ trợ
+        // object-fit. Trình duyệt thì tôn trọng contain (nên xem trong app đúng), còn html2canvas
+        // vẽ ảnh KÉO GIÃN lấp đầy đúng width×height của thẻ <img> -> hễ ô không cùng tỉ lệ với ảnh
+        // là méo. Cách chữa: tự tính sẵn width/height của ảnh ra PIXEL theo tỉ lệ thật, không giao
+        // việc canh tỉ lệ cho object-fit nữa. Ô vẫn flex center nên ảnh nằm giữa.
+        const VIEN = 10;   // padding 4×2 + border 1×2 của .draw-imbox-169
         rows.forEach((r, ri) => {
           r.idx.forEach(k => {
             cells[k].style.gridColumn = r.full ? 'span 2' : '';
             const box = cells[k].querySelector('.draw-imbox-169');
             if (box) box.style.height = hs[ri] + 'px';
+            const im = cells[k].querySelector('.draw-im-169');
+            if (im) {
+              const wBox = Math.max(20, (r.full ? cwFull : cw) - VIEN);
+              const hBox = Math.max(20, hs[ri] - 8);
+              let aw = Math.min(wBox, Math.round(hBox * ratio[k]));
+              let ah = Math.round(aw / ratio[k]);
+              if (ah > hBox) { ah = hBox; aw = Math.round(ah * ratio[k]); }
+              im.style.width = aw + 'px';
+              im.style.height = ah + 'px';
+              im.style.objectFit = 'fill';   // kích thước đã đúng tỉ lệ nên fill = không méo
+            }
           });
         });
+
+        // Dấu chẩn đoán TẠM ở chân trang: in tỉ lệ thật của bản vẽ mà mã đọc được. Nếu ảnh xuất còn
+        // lệch, nhìn dấu này là biết ngay do tỉ lệ ảnh gốc hay do mã xếp sai — khỏi đoán. Gỡ khi Sếp
+        // xác nhận khối 05 đã đạt.
+        const dau = document.getElementById('dau-k05-169');
+        if (dau) dau.textContent = ' · 05:' + ratio.map(x => x.toFixed(1)).join('/');
       }
 
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
