@@ -711,10 +711,20 @@ function onBulkPhotos(input){
     }
     const dupCount = N - filteredList.length;
 
-    // Số ô lưới: 9 nếu có đủ 9 ảnh KHÁC NỘI DUNG, ngược lại 6.
-    const targetNum = filteredList.length >= 9 ? 9 : 6;
+    // Sếp báo 17/08: "trong popup khối 3 chỉ cho 9 ảnh". Bản cũ chặn cứng ở 2 mức 6 hoặc 9 —
+    // chọn 30 ảnh thì cũng chỉ lấy 9, và 9 là số LẺ trong khi lưới ảnh báo cáo xếp 2 CỘT.
+    // Nay: GIỮ TẤT CẢ ảnh khác nội dung (chế độ nhiều trang lo phần chỗ), chỉ làm chẵn cho
+    // khớp lưới 2 cột, và chặn trần an toàn để chọn nhầm cả album không sinh ra báo cáo chục trang.
+    const TRAN_ANH = 30;                       // 15 hàng × 2 cột
+    let targetNum = Math.min(filteredList.length, TRAN_ANH);
+    if (targetNum % 2 !== 0) {                 // lẻ -> bù 1 ảnh nét nhất trong số bị loại, không có thì bỏ 1
+      var buDuoc = list.some(function (img) { return filteredList.indexOf(img) < 0; });
+      targetNum = (buDuoc && targetNum < TRAN_ANH) ? targetNum + 1 : targetNum - 1;
+    }
+    if (targetNum < 2) targetNum = Math.min(2, filteredList.length || 1);
+    const soVuot = Math.max(0, filteredList.length - targetNum);
 
-    // Chỉ bù thêm khi KHÔNG đủ ảnh khác nội dung để lấp lưới (ưu tiên ảnh nét nhất trong số bị loại).
+    // Bù thêm khi chưa đủ số ô (ưu tiên ảnh nét nhất trong số bị loại).
     // Bản cũ bù tới Math.max(6, N) nên nhồi lại TOÀN BỘ ảnh trùng -> vô hiệu hoá việc lọc.
     const finalSelectionList = [...filteredList];
     if (finalSelectionList.length < targetNum) {
@@ -743,12 +753,13 @@ function onBulkPhotos(input){
     }
     
     const filledCount = photos.filter(p => p.img).length;
-    let statusText = `✓ Đã chọn ${filledCount} ảnh khác nội dung, nét nhất, vào lưới ${targetNum} ảnh.`;
+    const soHang = Math.ceil(targetNum / 2);
+    let statusText = `✓ Đã chọn ${filledCount} ảnh khác nội dung, nét nhất — xếp ${soHang} hàng × 2 cột.`;
     if (dupCount > 0) {
       statusText += ` (Đã loại ${dupCount} ảnh trùng nội dung — giữ lại bản nét nhất của mỗi cảnh.)`;
     }
-    if (filteredList.length < targetNum) {
-      statusText += ` <span style="color:var(--red); font-weight:bold;">⚠ Chỉ có ${filteredList.length} ảnh khác nội dung, chưa đủ ${targetNum} ô. Hãy chụp thêm cảnh khác.</span>`;
+    if (soVuot > 0) {
+      statusText += ` <span style="color:var(--red); font-weight:bold;">⚠ Vượt trần ${TRAN_ANH} ảnh nên đã bỏ ${soVuot} ảnh kém nét nhất.</span>`;
     }
     
     el('bulkStatus').innerHTML = statusText;
