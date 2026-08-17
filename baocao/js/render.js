@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.4';
+const APP_BUILD = 'b4.5';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1347,7 +1347,7 @@ async function exportPNG169() {
         <span>HỆ THỐNG QUẢN LÝ THI CÔNG HP CONS © 2026</span>
         <span style="font-weight: 400; color: var(--navy); display: flex; align-items: center; gap: 6px;">
           <span style="width: 9px; height: 9px; background: var(--navy2); border-radius: 50%;"></span>
-          ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP • ${APP_BUILD}<span id="dau-k05-169"></span>
+          ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP • ${APP_BUILD}
         </span>
       </div>
     `;
@@ -1449,11 +1449,10 @@ async function exportPNG169() {
         });
 
         // Dấu chẩn đoán TẠM ở chân trang: in tỉ lệ thật của bản vẽ mà mã đọc được. Gỡ khi Sếp duyệt.
-        // Dấu chẩn đoán TẠM ở chân trang: tỉ lệ ảnh · chiều cao ô · chiều cao khung · cột đang
-        // tràn (0 = không tràn). Nhìn dấu này là biết ngay khối 05 bị ép bởi cái gì. Gỡ khi Sếp duyệt.
-        const dau = document.getElementById('dau-k05-169');
-        if (dau) dau.textContent = ' · 05:' + ratio.map(x => x.toFixed(1)).join('/')
-          + ' o' + hO + ' k' + fhNow + ' t' + (window._cotTran || 0);
+        // Dấu chẩn đoán khối 05 đã GỠ ngày 17/08 (Sếp duyệt "báo cáo xuất ra đã đẹp và đạt yêu
+        // cầu"). Nếu sau này cần soi lại: mở console gõ window._chanDoan05 — vẫn ghi âm thầm,
+        // không in ra báo cáo nữa.
+        window._chanDoan05 = { tiLeAnh: ratio.map(x => +x.toFixed(2)), oCao: hO, khung: fhNow, cotTran: window._cotTran || 0 };
       }
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
       function fillGrid(id, forceRows) {
