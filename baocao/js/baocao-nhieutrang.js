@@ -221,6 +221,18 @@
     coDinh.forEach(function (n) { tr.cot[0].appendChild(n); });
     var hCot = tr.cot[0].getBoundingClientRect().height;
 
+    // ÉP khối cuối của cột 1 (khối 02) lấp đúng phần còn lại, thay vì phó thác cho flex:1.
+    // Sếp báo 17/08: khối 02 co lại, biểu đồ tuần chỉ còn một mẩu và hụt một mảng trắng ở đáy.
+    if (coDinh.length) {
+      var cuoi = coDinh[coDinh.length - 1];
+      var daDungC1 = 0;
+      coDinh.forEach(function (n, i) { if (i < coDinh.length - 1) daDungC1 += caoNode(n) + GAP; });
+      var hCuoi = Math.max(200, Math.round(hCot - daDungC1));
+      cuoi.style.flex = '0 0 auto';
+      cuoi.style.height = hCuoi + 'px';
+      cuoi.style.minHeight = '0';
+    }
+
     var iCot = 1;                       // trang 1 bắt đầu chảy từ cột 2
     var hang = dongChay.slice();
     var canh = 0;
@@ -291,6 +303,12 @@
 
     // Ảnh đơn lẻ (khối 01) khử méo sau khi đã vào trang thật
     trangs.forEach(function (t) { chuanHoaAnhDon(t.el); });
+
+    // Khối 02 (số nhân lực + biểu đồ tuần) phải vẽ lại theo kích thước THẬT của trang mới.
+    // Không làm bước này thì SVG biểu đồ giữ khổ cũ -> bị cắt, và số nhân lực tràn khỏi ô.
+    if (typeof opts.hieuChinh === 'function') {
+      trangs.forEach(function (t) { try { opts.hieuChinh(t.el); } catch (e) {} });
+    }
 
     return trangs;
   }

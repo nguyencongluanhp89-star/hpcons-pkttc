@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.6';
+const APP_BUILD = 'b4.7';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1588,10 +1588,31 @@ async function exportPNG169() {
       } catch (e) { return false; }
     }
 
+    // Khối 02 phải tính lại theo kích thước THẬT của trang mới (Sếp báo 17/08: số nhân lực mất,
+    // biểu đồ tuần bị cắt còn một mẩu). Lý do: biểu đồ là SVG vẽ theo bề rộng/chiều cao đo được
+    // lúc dựng bản 1 trang, còn cỡ số nhân lực cũng tính theo ô cũ; sang trang mới kích thước
+    // khác nên SVG quá khổ bị cắt và số bị tràn khỏi ô.
+    function hieuChinhKhoi02(root) {
+      if (!root) return;
+      const box = root.querySelector('.mp-box-169');
+      const num = root.querySelector('.mp-num-169');
+      if (box && num) {
+        const h = box.getBoundingClientRect().height;
+        if (h > 0) num.style.fontSize = Math.max(38, Math.min(FS.manpower, Math.floor(h * 0.86))) + 'px';
+      }
+      const chartBox = root.querySelector('.chart-container-169');
+      if (chartBox) {
+        const r = chartBox.getBoundingClientRect();
+        if (r.width > 50 && r.height > 50) {
+          chartBox.innerHTML = buildWeeklyChart(Math.round(r.width), Math.round(r.height), weekData);
+        }
+      }
+    }
+
     // Phân trang rồi chụp từng trang thành một PNG riêng, xem trước cả loạt trong app.
     function xuatTheoNhieuTrang(nguon) {
       const bg = getExportBg();
-      const trangs = window.BCNhieuTrang.xepTrang({ nguon: nguon, bg: bg });
+      const trangs = window.BCNhieuTrang.xepTrang({ nguon: nguon, bg: bg, hieuChinh: hieuChinhKhoi02 });
       return window.BCNhieuTrang.chupCacTrang(trangs, bg.base, 1.25).then(anhs => {
         window.LAST_EXPORTED_PNG = anhs[0];
         window.LAST_EXPORTED_PAGES = anhs;
