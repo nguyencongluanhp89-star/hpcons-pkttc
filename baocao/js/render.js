@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.0';
+const APP_BUILD = 'b5.1';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1629,8 +1629,18 @@ async function exportPNG169() {
       }
       const phanChu01 = k01.getBoundingClientRect().height;
 
-      // (b) Sàn của hai khối
-      const min01 = Math.round(phanChu01 + MIN_ANH_01);
+      // (b) Sàn của hai khối.
+      //     Sếp báo 17/08 (lần 4): ảnh tổng quan bị thu nhỏ nằm giữa, hở khoảng trắng lớn hai bên.
+      //     Gốc: bản b5.0 khi ngân sách thiếu thì THU BỀ RỘNG ảnh để cắt 0% -> ảnh nhỏ như hiện tại.
+      //     Nay đảo lại: ảnh LẤP HẾT BỀ RỘNG, chấp nhận crop nhẹ mép trên/dưới (ảnh render công
+      //     trình có trời ở trên và đường/cây ở dưới — cắt mép không mất phần chính), nhưng crop
+      //     không vượt CROP_TOI_DA. Sàn ảnh vì thế tính ĐỘNG theo bề rộng thật và tỉ lệ ảnh thật.
+      const imTQ = anh ? anh.querySelector('img') : null;
+      const rAnh = (imTQ && imTQ.naturalWidth && imTQ.naturalHeight)
+        ? (imTQ.naturalWidth / imTQ.naturalHeight) : 1.6;
+      const CROP_TOI_DA = 0.35;
+      const sanAnh = Math.max(MIN_ANH_01, Math.round((wKhaDung / rAnh) * (1 - CROP_TOI_DA)));
+      const min01 = Math.round(phanChu01 + sanAnh);
       const min02 = VO_KHOI_02 + MIN_TANG_A + MIN_BIEU_DO;
 
       // (c) Phần dư chia theo tỉ lệ — KHÔNG phải "khối này lấy tối đa, khối kia dùng phần còn lại"
@@ -1648,27 +1658,18 @@ async function exportPNG169() {
       // (d) Ô ảnh tổng quan: chiều cao theo ngân sách, BỀ RỘNG SUY RA TỪ TỈ LỆ ẢNH GỐC.
       //     Ô đúng tỉ lệ ảnh -> ảnh lấp kín ô mà KHÔNG cắt, KHÔNG méo, không viền trắng lạ.
       if (anh) {
-        const im = anh.querySelector('img');
-        const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
-        const nganSach = Math.max(MIN_ANH_01, Math.round(h01 - phanChu01));
-        // Sếp cho phép (mục 5): dùng cover thì chỉ được crop RẤT NHẸ. Nên:
-        //   · Ngân sách đủ để ảnh dùng hết bề rộng mà không cắt -> full bề rộng, cắt 0%.
-        //   · Thiếu chút ít (cắt <= 12%) -> vẫn full bề rộng, cắt nhẹ, không mất phần chính.
-        //   · Thiếu nhiều -> THU BỀ RỘNG ảnh, canh giữa, CẮT 0% (thà ảnh nhỏ hơn còn hơn mất hình).
-        const CAT_TOI_DA = 0.12;
-        const hFull = wKhaDung / r;                 // chiều cao cần để ảnh dùng hết bề rộng
-        let wAnh, hAnh;
-        if (nganSach >= hFull - 1) {
-          wAnh = Math.round(wKhaDung); hAnh = Math.round(hFull);
-        } else if ((hFull - nganSach) / hFull <= CAT_TOI_DA) {
-          wAnh = Math.round(wKhaDung); hAnh = Math.round(nganSach);   // cắt nhẹ theo chiều cao
-        } else {
-          wAnh = Math.min(Math.round(wKhaDung), Math.round(nganSach * r));
-          hAnh = Math.round(wAnh / r);                                 // cắt 0%
-        }
+        const im = imTQ;
+        const r = rAnh;
+        const nganSach = Math.max(sanAnh, Math.round(h01 - phanChu01));
+        // Ô ảnh LUÔN lấp hết bề rộng khả dụng; chiều cao lấy theo ngân sách nhưng không để crop
+        // vượt CROP_TOI_DA (sàn ảnh ở trên đã bảo đảm điều này). Ảnh vào ô theo cover thủ công,
+        // canh giữa -> chỉ mất mép trên/dưới, phần công trình chính giữa hình còn nguyên.
+        const hFull = wKhaDung / r;                 // chiều cao cần để ảnh không bị cắt gì
+        const wAnh = Math.round(wKhaDung);
+        const hAnh = Math.round(Math.min(hFull, Math.max(nganSach, hFull * (1 - CROP_TOI_DA))));
         anh.style.width = wAnh + 'px';
         anh.style.height = hAnh + 'px';
-        anh.style.alignSelf = 'center';
+        anh.style.alignSelf = 'stretch';
         anh.style.overflow = 'hidden';
         anh.style.display = 'flex';
         anh.style.alignItems = 'center';

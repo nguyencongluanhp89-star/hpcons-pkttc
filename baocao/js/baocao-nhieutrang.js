@@ -29,6 +29,7 @@
   var RONG_TRANG  = Math.round(CAO_TRANG * TI_LE_TRANG);   // 3167
   var PAD_TREN = 58, PAD_NGANG = 36, PAD_DUOI = 44, GAP = 20;
 
+  var AN_TOAN = 16;             // dự phòng chống sai số làm tròn khi đo chiều cao
   var TI_LE_ANH_03 = 4 / 3;     // ô ảnh thi công
   var TI_LE_ANH_05 = 4 / 3;     // ô bản vẽ
 
@@ -220,7 +221,10 @@
     trangs.push(tr);
 
     // Trang 1: cột 1 nhận khối 01 + 02 nguyên khối
-    coDinh.forEach(function (n) { tr.cot[0].appendChild(n); });
+    coDinh.forEach(function (n) {
+      n.setAttribute('data-bc-codinh', '1');   // khối 01 + 02: KHOÁ ở cột 1 trang 1, không được dời
+      tr.cot[0].appendChild(n);
+    });
     var hCot = tr.cot[0].getBoundingClientRect().height;
 
     // Chia chỗ cột 1 theo nguyên tắc Sếp chốt: KHỐI 02 ĐƯỢC ƯU TIÊN DIỆN TÍCH, thiếu chỗ thì
@@ -277,7 +281,9 @@
       var cot = tr.cot[iCot];
       var daDung = 0;
       Array.prototype.forEach.call(cot.children, function (c) { daDung += caoNode(c) + GAP; });
-      var conLai = hCot - daDung;
+      // Trừ dự phòng an toàn: sai số làm tròn / border / shadow từng làm hàng ảnh cuối của
+      // khối 03 nhô quá đáy cột rồi bị cắt (Sếp báo 17/08).
+      var conLai = hCot - daDung - AN_TOAN;
       var cotRong = cot.children.length === 0;
 
       caoTuNhien(khoi);
@@ -305,6 +311,64 @@
       cot.removeChild(khoi);
       hang.unshift(khoi);
       sangCotKe();
+    }
+
+    // ===== VÒNG KIỂM CUỐI — KHÔNG CỘT NÀO ĐƯỢC PHÉP TRÀN =====
+    // Sếp báo 17/08: hàng ảnh cuối của khối 03 bị cắt bởi giới hạn trang. Đây là mất nội dung.
+    // Thay vì đoán chỗ đo sai, thêm bước kiểm tra thật: quét mọi cột của mọi trang, cột nào còn
+    // tràn thì BỐC BỚT đơn vị cuối (lưới ảnh bốc theo cặp) và đưa phần dư xuống vị trí kế tiếp
+    // (cột kế, hết cột thì trang mới). Không dùng overflow/crop để che.
+    function viTriKeTiep(iTrang, iCot) {
+      if (iCot < 2) return { t: iTrang, c: iCot + 1 };
+      if (iTrang + 1 < trangs.length) return { t: iTrang + 1, c: 0 };
+      trangs.push(dungTrang(bg, header, footer, caoTrang));
+      return { t: trangs.length - 1, c: 0 };
+    }
+
+    for (var vong = 0; vong < 12; vong++) {
+      var conTran = false;
+      for (var it = 0; it < trangs.length; it++) {
+        for (var ic = 0; ic < 3; ic++) {
+          var cotK = trangs[it].cot[ic];
+          if (!cotK.children.length) continue;
+          var doi = cotK.scrollHeight - cotK.clientHeight;
+          if (doi <= 2) continue;
+          conTran = true;
+          var khoiCuoi = cotK.lastElementChild;
+          // Khối 01/02 bị khoá ở cột 1 trang 1 (Sếp chốt: trang 1 luôn có khối 01 + 02).
+          // Cột này tràn thì NỚI CHIỀU CAO MỌI TRANG cho vừa, tuyệt đối không dời hai khối đó đi.
+          if (khoiCuoi.getAttribute('data-bc-codinh') === '1') {
+            caoTrang = Math.min(2600, caoTrang + doi + AN_TOAN);
+            trangs.forEach(function (tt) {
+              tt.el.style.height = caoTrang + 'px';
+              tt.el.style.width = Math.round(caoTrang * TI_LE_TRANG) + 'px';
+            });
+            if (typeof opts.chiaCot1 === 'function') {
+              try { opts.chiaCot1(trangs[0].cot[0], trangs[0].cot[0].getBoundingClientRect().height); } catch (e) {}
+            }
+            continue;
+          }
+          var caoKhoi = caoNode(khoiCuoi);
+          var choKhoi = caoKhoi - doi - AN_TOAN;        // chỗ khối này thực sự được phép chiếm
+          var duK = bocChoVua(khoiCuoi, Math.max(80, choKhoi));
+          var vt = viTriKeTiep(it, ic);
+          if (duK) {
+            var tiepK = khoiTiep(khoiCuoi, duK);
+            if (duK.rong) cotK.removeChild(khoiCuoi);
+            if (tiepK) {
+              trangs[vt.t].cot[vt.c].insertBefore(tiepK, trangs[vt.t].cot[vt.c].firstChild);
+              tiepK.style.flex = '0 0 auto'; tiepK.style.height = 'auto'; tiepK.style.minHeight = '0';
+              chuanHoaLuoiAnh(tiepK.querySelector('#photos-grid-169'), TI_LE_ANH_03);
+              chuanHoaLuoiAnh(tiepK.querySelector('#draws-grid-169'), TI_LE_ANH_05);
+            }
+          } else if (cotK.children.length > 1) {
+            // không tách được -> dời cả khối cuối xuống vị trí kế tiếp
+            cotK.removeChild(khoiCuoi);
+            trangs[vt.t].cot[vt.c].insertBefore(khoiCuoi, trangs[vt.t].cot[vt.c].firstChild);
+          }
+        }
+      }
+      if (!conTran) break;
     }
 
     // Chân trang: ghi "Trang i/n"
