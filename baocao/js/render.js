@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.2';
+const APP_BUILD = 'b5.3';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -500,7 +500,8 @@ function fitDrawCardsPreview() {
     if (!cards.length) return;
     const w = cards[0].getBoundingClientRect().width;
     if (!w) return;
-    const h = Math.max(56, Math.min(110, Math.round(w / (4 / 3))));
+    // Sếp chốt 17/08: thống nhất với khối 03 — cùng 3 cột, cùng chiều cao ô 150px trong app.
+    const h = Math.max(120, Math.min(170, Math.round(w / (4 / 3))));
     cards.forEach(c => {
       const box = c.querySelector('.im-wrap');
       if (box) box.style.height = h + 'px';
@@ -1034,7 +1035,7 @@ async function exportPNG169() {
       let drawItemsHtml = '';
       // Sếp chốt 17/08: thẻ 05 là GALLERY COMPACT — chỉ để xem nhanh, tối đa 4 ảnh trên 1 hàng,
       // ảnh dư gộp thành dấu "+N" chồng lên ô cuối, KHÔNG làm thẻ cao thêm.
-      const DRAW_MAX = 4;
+      const DRAW_MAX = 8;   // thống nhất với khối 03 (cùng cho tối đa 8 ô); app hiện có 4 ô bản vẽ
       const drawDu = Math.max(0, validDraws.length - DRAW_MAX);
       const drawsHienThi = validDraws.slice(0, DRAW_MAX);
       drawsHienThi.forEach((d, idx) => {
@@ -1074,7 +1075,7 @@ async function exportPNG169() {
       drawsCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
           ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div id="draws-grid-169" data-bc-tach="cap" style="display: grid; grid-template-columns: repeat(${Math.max(2, drawsHienThi.length)}, 1fr); align-items: start; gap: 8px;">
+          <div id="draws-grid-169" data-bc-tach="cap" style="display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; gap: 10px;">
             ${drawItemsHtml}
           </div>
         </div>
@@ -1429,9 +1430,10 @@ async function exportPNG169() {
       // Chống phân kỳ: MỌI ảnh đều LẤP ĐẦY ô (khối 03 + khối 05 chia đều chiều cao còn lại; ảnh tổng
       // quan 01 do khối 02 flex hấp thụ) → không ảnh nào tự tính chiều cao theo bề rộng → an toàn.
       const RATIO = 15 / 9;              // rộng : cao = 15 : 9 (ảnh ngang cân đối)
-      // Khối 05 nay chỉ đúng 1 HÀNG gallery compact (4 ảnh 4:3 + 1 dòng chú thích) nên chỗ cần
-      // chừa là hằng số, không nhân theo số ảnh nữa.
-      const DRAW_ALLOWANCE = validDraws.length > 0 ? 220 : 0;
+      // Khối 05 nay xếp 2 CỘT giống khối 03 (Sếp chốt 17/08) nên chỗ cần chừa tính theo số HÀNG:
+      // mỗi hàng = ô 4:3 + 1 dòng chú thích. Trước đây chốt cứng 220px cho 1 hàng.
+      const DRAW_HANG = validDraws.length > 0 ? Math.ceil(Math.min(validDraws.length, 8) / 2) : 0;
+      const DRAW_ALLOWANCE = DRAW_HANG > 0 ? Math.min(2, DRAW_HANG) * 230 : 0;
       const PHOTO_ROWS = 4;              // khối 03: LUÔN giữ chỗ 4 hàng × 2 cột = đủ 8 hình
       const CHROME = () => headerHeight + footerHeight + 142; // padding dọc 58+44 + 2 gap 20 = 142
 
@@ -1455,17 +1457,20 @@ async function exportPNG169() {
       //   · ảnh LẤP ĐẦY KÍN ô (cover) và KHÔNG méo.
       // maxOverride: ép trần thấp hơn — dùng khi nội dung quá nhiều, khung đã kịch trần mà vẫn tràn
       // thì thu ô bản vẽ cho vừa, chứ không cắt mất khối 07 / vùng ký tên.
-      const TI_LE_O = 4 / 3;      // thumbnail 4:3
-      const TRAN_ANH = 0.11;      // vùng ảnh khối 05 <= 11% chiều cao trang
+      // Sếp chốt 17/08: THỐNG NHẤT hiển thị khối 05 với khối 03 — cùng lưới 2 CỘT, cùng tỉ lệ ô
+      // 4:3, nên ô bản vẽ có bề rộng bằng ô ảnh thi công (trước là 4 cột nên ô chỉ bằng nửa,
+      // ảnh trông nhỏ hơn khoảng 2 lần).
+      const TI_LE_O = 4 / 3;      // thumbnail 4:3 — giống khối 03
+      const COT_KHOI_05 = 2;      // 2 cột — giống khối 03
+      const TRAN_ANH = 0.24;      // trần cho vùng ảnh: 2 hàng × ~12% (trước 0.11 tính cho 1 hàng)
       function fitDrawRows(maxOverride) {
         const g = document.getElementById('draws-grid-169');
         if (!g || !g.children.length) return;
         const cells = Array.from(g.children);
-        const GAP = 8;
+        const GAP = 10;
         const gw = g.getBoundingClientRect().width;
         if (!gw) return;
-        const n = cells.length;
-        const cw = Math.max(40, Math.floor((gw - (n - 1) * GAP) / n));
+        const cw = Math.max(40, Math.floor((gw - (COT_KHOI_05 - 1) * GAP) / COT_KHOI_05));
         const fhNow = parseInt(tempContainer.style.height) || 1080;
         // SÀN 130px: Sếp báo 17/08 — ảnh bị ép mỏng thì không đọc ra nội dung, mất luôn ý nghĩa
         // của thẻ 05. Thà thẻ cao thêm chút còn hơn 4 dải mỏng vô dụng.
@@ -1674,9 +1679,8 @@ async function exportPNG169() {
       // (b) Sàn của hai khối.
       //     Sếp báo 17/08 (lần 4): ảnh tổng quan bị thu nhỏ nằm giữa, hở khoảng trắng lớn hai bên.
       //     Gốc: bản b5.0 khi ngân sách thiếu thì THU BỀ RỘNG ảnh để cắt 0% -> ảnh nhỏ như hiện tại.
-      //     Nay đảo lại: ảnh LẤP HẾT BỀ RỘNG, chấp nhận crop nhẹ mép trên/dưới (ảnh render công
-      //     trình có trời ở trên và đường/cây ở dưới — cắt mép không mất phần chính), nhưng crop
-      //     không vượt CROP_TOI_DA. Sàn ảnh vì thế tính ĐỘNG theo bề rộng thật và tỉ lệ ảnh thật.
+      //     Nay: ảnh LẤP HẾT BỀ RỘNG của ô; ô có tỉ lệ CỐ ĐỊNH do layout quyết định (xem dưới),
+      //     ảnh vào ô theo quy tắc hình học dùng chung nên crop luôn đối xứng quanh tâm.
       // Ô ảnh tổng quan có TỈ LỆ CỐ ĐỊNH do layout quyết định — KHÔNG phụ thuộc tỉ lệ ảnh
       // đầu vào. Bản b5.1 lấy sàn = (bề rộng ÷ tỉ lệ ảnh) × 0.65 nên mỗi dự án có ảnh tỉ lệ
       // khác nhau lại ra ô cao thấp khác nhau -> đúng hiện tượng "crop không ổn định" Sếp báo.

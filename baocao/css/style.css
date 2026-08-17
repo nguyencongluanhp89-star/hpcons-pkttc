@@ -211,7 +211,7 @@
   
   .photos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
   .photo{background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.05);display:flex;flex-direction:column;position:relative}
-  .photo .im-wrap{position:relative;width:100%;height:140px;background:#f1f5f9}
+  .photo .im-wrap{position:relative;width:100%;height:150px;background:#f1f5f9}
   .photo .im{width:100%;height:100%;object-fit:cover}
   .photo .im.ph{display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:var(--fs-micro)}
   .photo .tm{position:absolute;top:8px;left:8px;background:rgba(255,255,255,0.85);backdrop-filter:blur(4px);color:var(--navy);font-size:var(--fs-micro);padding:4px 8px;border-radius:20px;font-weight:700;display:flex;align-items:center;gap:4px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
@@ -228,11 +228,12 @@
   .sq .s3{border-left:4px solid #ea580c} .sq .s3 .h{color:#ea580c}
   /* plan */
   /* drawings */
-  .draw{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+  /* Sep chot 17/08: THONG NHAT khoi 05 voi khoi 03 - cung 3 cot, cung chieu cao o. */
+  .draw{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
   .draw-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.05);display:flex;flex-direction:column}
   /* Sep chot 17/08: the 05 la gallery compact -> thumbnail 4:3 thap, chieu cao that do
      fitDrawCardsPreview() dat lai theo be rong o. 90px chi la gia tri nen ban dau. */
-  .draw-card .im-wrap{position:relative;width:100%;height:90px;background:#f1f5f9;border-bottom:1px solid #e2e8f0}
+  .draw-card .im-wrap{position:relative;width:100%;height:150px;background:#f1f5f9;border-bottom:1px solid #e2e8f0}
   /* Sếp chốt 17/08: ảnh bản vẽ phải FIX HẾT VÙNG Ô (lấp đầy kín), không co nhỏ chừa viền trắng.
      -> cover. Ô đã được fitDrawCardsPreview() tính theo tỉ lệ ảnh nên phần cắt là tối thiểu. */
   .draw-card .im{width:100%;height:100%;object-fit:cover;background:#fff}
