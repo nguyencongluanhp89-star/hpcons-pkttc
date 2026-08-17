@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.2';
+const APP_BUILD = 'b4.3';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -234,9 +234,15 @@ function draw(){
 
     const deleteBtn = d.img ? `<button type="button" onclick="window.deleteDrawPhotoDirect(event, ${i})" class="no-print delete-photo-btn" title="Xóa bản vẽ" style="position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: rgba(239, 68, 68, 0.9); color: white; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: background 0.2s; z-index: 10;">×</button>` : '';
 
+    // Sếp chốt 17/08: ô ĐÃ CÓ ảnh -> bấm vào mở ảnh lớn (lightbox) để xem đầy đủ, vì thumbnail
+    // nay là gallery compact 4:3 có cắt bớt. Ô TRỐNG thì bấm vào vẫn là tải bản vẽ lên như cũ.
+    // Muốn đổi ảnh thì bấm nút ✎ cạnh nút xóa.
+    const swapBtn = d.img ? `<button type="button" onclick="event.stopPropagation(); window.triggerDirectDrawUpload(${i})" class="no-print delete-photo-btn" title="Đổi bản vẽ khác" style="position:absolute; top:6px; right:30px; width:20px; height:20px; border-radius:50%; border:none; background:rgba(15,23,42,.72); color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.25); z-index:10;">✎</button>` : '';
+    const moAnh = d.img ? `window.moAnhLon(${i})` : `window.triggerDirectDrawUpload(${i})`;
     return `<div class="draw-card" style="position:relative;">
-      <div class="im-wrap" onclick="window.triggerDirectDrawUpload(${i})" style="cursor:pointer; position:relative;" title="Click để tải bản vẽ lên">
+      <div class="im-wrap" onclick="${moAnh}" style="cursor:${d.img ? 'zoom-in' : 'pointer'}; position:relative;" title="${d.img ? 'Bấm để xem ảnh lớn' : 'Click để tải bản vẽ lên'}">
         ${d.img?`<img class="im" src="${d.img}">`:`<div class="im ph grid-pattern" style="border:1px dashed var(--line); border-radius:4px; height:120px; display:flex; align-items:center; justify-content:center; background:#f8fafc; font-size:var(--fs-micro); color:var(--text-muted)">Chọn bản vẽ ${i+1}</div>`}
+        ${swapBtn}
         ${deleteBtn}
       </div>
       <input type="file" id="f_draw_direct_${i}" accept="image/*" style="display:none" onchange="window.onDirectDrawUpload(this, ${i})">
@@ -439,40 +445,74 @@ function draw(){
   adjustReportScale();
 }
 
-// Khối 05 trên BẢN XEM TRONG APP — ô ảnh bản vẽ cao theo TỈ LỆ THẬT (Sếp hỏi 16/08: bản xuất ảnh
-// đã sửa rồi nhưng trong app thì chưa). Trước đây ô cao CỨNG 130px (css .draw-card .im-wrap) nên
-// bản vẽ mặt bằng dài (3:1–5:1) co nhỏ, thừa mảng trắng trên dưới — y hệt lỗi đã sửa ở bản xuất.
-// Lưới preview là 4 CỘT: các ô CÙNG HÀNG lấy chung chiều cao lớn nhất để tên bản vẽ thẳng hàng.
+// Khối 05 trên BẢN XEM TRONG APP — GALLERY COMPACT (Sếp chốt 17/08).
+// Trước đây ô cao theo tỉ lệ thật của ảnh nên bản vẽ mặt bằng dài thành một dải mỏng, và thẻ 05
+// phình to ăn chỗ của khối 06/07. Nay thumbnail CỐ ĐỊNH 4:3, 4 ô một hàng, ảnh cover lấp đầy ô;
+// muốn xem trọn bản vẽ thì bấm vào ảnh để mở lớn. Kẹp 56–110px để thẻ 05 luôn ở khoảng 120–150px.
 function fitDrawCardsPreview() {
   try {
     const cards = Array.from(document.querySelectorAll('#report .draw .draw-card'));
     if (!cards.length) return;
-    const COLS = 4;
     const w = cards[0].getBoundingClientRect().width;
     if (!w) return;
-    // Ảnh chưa tải xong thì chưa biết tỉ lệ -> tải xong tính lại (chỉ gắn 1 lần cho mỗi ảnh)
+    const h = Math.max(56, Math.min(110, Math.round(w / (4 / 3))));
     cards.forEach(c => {
-      const im = c.querySelector('img.im');
-      if (im && !im.complete && !im.dataset.fitBound) {
-        im.dataset.fitBound = '1';
-        im.addEventListener('load', function () { fitDrawCardsPreview(); }, { once: true });
-      }
+      const box = c.querySelector('.im-wrap');
+      if (box) box.style.height = h + 'px';
     });
-    const need = cards.map(c => {
-      const im = c.querySelector('img.im');
-      const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 2;
-      return Math.max(60, Math.min(150, Math.round(w / r)));
-    });
-    for (let i = 0; i < cards.length; i += COLS) {
-      const h = Math.max(...need.slice(i, i + COLS));
-      cards.slice(i, i + COLS).forEach(c => {
-        const box = c.querySelector('.im-wrap');
-        if (box) box.style.height = h + 'px';
-      });
-    }
   } catch (e) { console.warn('fitDrawCardsPreview lỗi (bỏ qua):', e && e.message); }
 }
 window.fitDrawCardsPreview = fitDrawCardsPreview;
+
+// Lightbox xem bản vẽ cỡ lớn (Sếp yêu cầu 17/08): thumbnail nay nhỏ và có cắt bớt nên phải có
+// đường xem đầy đủ. Bấm nền hoặc Esc để đóng; mũi tên ← → (hoặc phím) để xem tiếp các bản vẽ khác.
+function moAnhLon(idx) {
+  try {
+    const ds = (typeof draws !== 'undefined' && Array.isArray(draws)) ? draws : [];
+    const co = ds.map((d, i) => ({ d, i })).filter(x => x.d && x.d.img);
+    if (!co.length) return;
+    let vt = Math.max(0, co.findIndex(x => x.i === idx));
+
+    let ov = document.getElementById('lightbox-banve');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'lightbox-banve';
+      ov.className = 'no-print';
+      ov.style.cssText = 'position:fixed; inset:0; z-index:99999; background:rgba(8,15,26,.94); display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box;';
+      ov.innerHTML = `
+        <img id="lb-im" style="max-width:96vw; max-height:82vh; object-fit:contain; border-radius:6px; box-shadow:0 20px 60px rgba(0,0,0,.5); background:#fff;">
+        <div id="lb-cap" style="position:absolute; left:0; right:0; bottom:22px; text-align:center; color:#e2e8f0; font-size:14px; font-weight:600; padding:0 60px; line-height:1.5;"></div>
+        <button id="lb-x" title="Đóng" style="position:absolute; top:16px; right:18px; width:38px; height:38px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:20px; cursor:pointer;">×</button>
+        <button id="lb-tr" title="Bản vẽ trước" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:22px; cursor:pointer;">‹</button>
+        <button id="lb-sa" title="Bản vẽ sau" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:22px; cursor:pointer;">›</button>`;
+      document.body.appendChild(ov);
+    }
+    ov.style.display = 'flex';
+
+    const im = ov.querySelector('#lb-im'), cap = ov.querySelector('#lb-cap');
+    const ve = () => {
+      const it = co[vt];
+      im.src = it.d.img;
+      const t = String(it.d.t || '').split('|')[0].trim();
+      cap.textContent = (t ? t + '  ' : '') + '(' + (vt + 1) + '/' + co.length + ')';
+      ov.querySelector('#lb-tr').style.display = co.length > 1 ? '' : 'none';
+      ov.querySelector('#lb-sa').style.display = co.length > 1 ? '' : 'none';
+    };
+    const dong = () => { ov.style.display = 'none'; document.removeEventListener('keydown', phim); };
+    const phim = e => {
+      if (e.key === 'Escape') dong();
+      else if (e.key === 'ArrowLeft') { vt = (vt - 1 + co.length) % co.length; ve(); }
+      else if (e.key === 'ArrowRight') { vt = (vt + 1) % co.length; ve(); }
+    };
+    ov.onclick = e => { if (e.target === ov) dong(); };
+    ov.querySelector('#lb-x').onclick = dong;
+    ov.querySelector('#lb-tr').onclick = e => { e.stopPropagation(); vt = (vt - 1 + co.length) % co.length; ve(); };
+    ov.querySelector('#lb-sa').onclick = e => { e.stopPropagation(); vt = (vt + 1) % co.length; ve(); };
+    document.addEventListener('keydown', phim);
+    ve();
+  } catch (e) { console.warn('moAnhLon lỗi:', e && e.message); }
+}
+window.moAnhLon = moAnhLon;
 
 /* ---------- export PNG ---------- */
 function exportPNG(){
@@ -997,7 +1037,12 @@ async function exportPNG169() {
 
     if (validDraws.length > 0) {
       let drawItemsHtml = '';
-      validDraws.forEach((d, idx) => {
+      // Sếp chốt 17/08: thẻ 05 là GALLERY COMPACT — chỉ để xem nhanh, tối đa 4 ảnh trên 1 hàng,
+      // ảnh dư gộp thành dấu "+N" chồng lên ô cuối, KHÔNG làm thẻ cao thêm.
+      const DRAW_MAX = 4;
+      const drawDu = Math.max(0, validDraws.length - DRAW_MAX);
+      const drawsHienThi = validDraws.slice(0, DRAW_MAX);
+      drawsHienThi.forEach((d, idx) => {
         let t_vi = d.t || '';
         let t_cn_val = '';
         if (t_vi.includes('|')) {
@@ -1009,26 +1054,32 @@ async function exportPNG169() {
         
         // Chiều cao vùng ảnh do fitDrawRows() tính lại theo TỈ LỆ THẬT của từng bản vẽ (Sếp yêu cầu
         // 15/08). Giá trị 150px chỉ là tạm cho lần dựng đầu.
+        // Ảnh dư (nếu có) báo bằng dấu "+N" chồng góc ô cuối — không sinh thêm hàng.
+        const badgeDu = (drawDu > 0 && idx === drawsHienThi.length - 1)
+          ? `<div style="position:absolute; right:6px; bottom:6px; background:rgba(15,23,42,.78); color:#fff; font-size:${FS.tiny}px; font-weight:${FW.body}; padding:2px 7px; border-radius:10px; line-height:1.4;">+${drawDu}</div>`
+          : '';
+        // Chú thích 1 dòng, tràn thì cắt bằng "…" — giữ chiều cao thẻ cố định, không bị chữ đẩy cao.
+        const motDong = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
         drawItemsHtml += `
-          <div class="draw-cell-169" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
-            <div class="draw-imbox-169" style="height: 150px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
-              <img src="${d.img}" class="draw-im-169" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+          <div class="draw-cell-169" style="position: relative; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div class="draw-imbox-169" style="height: 120px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
+              <img src="${d.img}" class="draw-im-169" style="width: 100%; height: 100%; object-fit: cover; display: block;">
             </div>
-            <div style="padding: 6px 8px; text-align: center; line-height: 1.3; font-size: ${FS.bodySmall}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
-              <div style="font-weight: ${FW.body}; color: #0f172a; text-transform: uppercase; line-height: 1.25;">${t_vi}</div>
-              ${t_cn ? `<div style="color: #64748b; font-size: ${FS.tiny}px; line-height: 1.25; margin-top: 2px;">${t_cn}</div>` : ''}
+            ${badgeDu}
+            <div style="padding: 4px 6px; text-align: center; line-height: 1.25; font-size: ${FS.tiny}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
+              <div style="font-weight: ${FW.body}; color: #0f172a; text-transform: uppercase; ${motDong}">${t_vi}</div>
+              ${t_cn ? `<div style="color: #64748b; font-size: ${FS.tiny}px; margin-top: 1px; ${motDong}">${t_cn}</div>` : ''}
             </div>
           </div>
         `;
       });
       
-      // Bỏ grid-auto-rows CỐ ĐỊNH (trước là 210px): bản vẽ mặt bằng rất dài ngang (4:1, 5:1) bị co
-      // nhỏ lọt thỏm giữa khung, thừa mảng trắng lớn. Nay chiều cao mỗi HÀNG do fitDrawRows() tính
-      // theo tỉ lệ thật của ảnh (2 ô cùng hàng vẫn bằng nhau để caption thẳng hàng).
+      // Lưới 4 CỘT / 1 HÀNG (Sếp chốt 17/08). Trước đây 2 cột nhiều hàng, ô co giãn theo tỉ lệ ảnh
+      // nên thẻ 05 phình to, ăn hết chỗ của khối 06/07. Nay thẻ 05 chỉ là gallery xem nhanh.
       drawsCardHtml = `
-        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
+        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
           ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; gap: 10px;">
+          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(${Math.max(2, drawsHienThi.length)}, 1fr); align-items: start; gap: 8px;">
             ${drawItemsHtml}
           </div>
         </div>
@@ -1383,9 +1434,9 @@ async function exportPNG169() {
       // Chống phân kỳ: MỌI ảnh đều LẤP ĐẦY ô (khối 03 + khối 05 chia đều chiều cao còn lại; ảnh tổng
       // quan 01 do khối 02 flex hấp thụ) → không ảnh nào tự tính chiều cao theo bề rộng → an toàn.
       const RATIO = 15 / 9;              // rộng : cao = 15 : 9 (ảnh ngang cân đối)
-      const ROW_H = 210;                 // chiều cao cố định mỗi hàng bản vẽ
-      const drawRows = validDraws.length > 0 ? Math.ceil(validDraws.length / 2) : 0;
-      const DRAW_ALLOWANCE = drawRows > 0 ? (drawRows * ROW_H + (drawRows - 1) * 10) : 0;
+      // Khối 05 nay chỉ đúng 1 HÀNG gallery compact (4 ảnh 4:3 + 1 dòng chú thích) nên chỗ cần
+      // chừa là hằng số, không nhân theo số ảnh nữa.
+      const DRAW_ALLOWANCE = validDraws.length > 0 ? 220 : 0;
       const PHOTO_ROWS = 4;              // khối 03: LUÔN giữ chỗ 4 hàng × 2 cột = đủ 8 hình
       const CHROME = () => headerHeight + footerHeight + 142; // padding dọc 58+44 + 2 gap 20 = 142
 
@@ -1400,100 +1451,58 @@ async function exportPNG169() {
         if (h > 0) num.style.fontSize = Math.max(38, Math.min(FS.manpower, Math.floor(h * 0.86))) + 'px';
       }
 
-      // Khối 05 — chiều cao ô bản vẽ theo TỈ LỆ THẬT của ảnh (Sếp yêu cầu 15/08: "chỉnh lại tỉ lệ
-      // cho tương xứng"). Trước đây ô cao cứng 210px nên bản vẽ mặt bằng dài (4:1, 5:1) co nhỏ lọt
-      // thỏm, thừa mảng trắng lớn. Nay: cao ảnh = bề rộng ô ÷ tỉ lệ ảnh, giới hạn 70–170px để không
-      // làm tràn cột; 2 ô CÙNG HÀNG lấy chung chiều cao lớn hơn để caption thẳng hàng, nhìn gọn.
-      // maxOverride: ép trần chiều cao ô nhỏ hơn mặc định — dùng khi nội dung quá nhiều, khung đã
-      // kịch trần mà vẫn tràn thì THU Ô BẢN VẼ cho vừa, chứ không cắt mất khối 07 / vùng ký tên.
+      // Khối 05 — GALLERY COMPACT (Sếp chốt 17/08). Nguyên tắc: thẻ 05 chỉ để xem nhanh hình tổng
+      // thể, KHÔNG được ăn diện tích của khối 06 (ghi chú/kiến nghị) và 07 (an toàn - chất lượng -
+      // tiến độ). Nên:
+      //   · 4 ảnh xếp trên CÙNG 1 HÀNG, không sinh hàng thứ hai;
+      //   · thumbnail tỉ lệ cố định 4:3, không phình theo tỉ lệ ảnh gốc (hết cảnh panorama dài mỏng);
+      //   · vùng ảnh bị chặn trần theo % chiều cao trang -> thẻ 05 luôn thấp, dữ liệu được ưu tiên;
+      //   · ảnh LẤP ĐẦY KÍN ô (cover) và KHÔNG méo.
+      // maxOverride: ép trần thấp hơn — dùng khi nội dung quá nhiều, khung đã kịch trần mà vẫn tràn
+      // thì thu ô bản vẽ cho vừa, chứ không cắt mất khối 07 / vùng ký tên.
+      const TI_LE_O = 4 / 3;      // thumbnail 4:3
+      const TRAN_ANH = 0.11;      // vùng ảnh khối 05 <= 11% chiều cao trang
       function fitDrawRows(maxOverride) {
         const g = document.getElementById('draws-grid-169');
         if (!g || !g.children.length) return;
         const cells = Array.from(g.children);
-        const GAP = 10;
-        // Đo bề rộng LƯỚI rồi tự chia cột (không đo từng ô) — vì ô có thể đang span 2 cột từ lần
-        // gọi trước, đo trực tiếp sẽ ra số sai.
+        const GAP = 8;
         const gw = g.getBoundingClientRect().width;
         if (!gw) return;
-        const cwFull = Math.round(gw);                       // 1 ô chiếm cả hàng
-        const cw = Math.max(60, Math.floor((gw - GAP) / 2)); // 1 ô nửa hàng
+        const n = cells.length;
+        const cw = Math.max(40, Math.floor((gw - (n - 1) * GAP) / n));
         const fhNow = parseInt(tempContainer.style.height) || 1080;
-        const MAXH = maxOverride || Math.round(fhNow / 5);
+        const TRAN = maxOverride || Math.round(fhNow * TRAN_ANH);
+        const hO = Math.max(56, Math.min(TRAN, Math.round(cw / TI_LE_O)));
 
         const ratio = cells.map(c => {
           const im = c.querySelector('.draw-im-169');
           return (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
         });
 
-        // Sếp báo 17/08: ảnh khối 05 bị DẸT như một sọc. Nguyên do: bản vẽ mặt bằng rất dài ngang
-        // (3:1, 4:1) mà ô chỉ rộng nửa cột (~200px) -> cao chỉ còn ~55-65px, không nhìn ra gì.
-        // Nay ảnh SIÊU NGANG (từ 2.2:1 trở lên) được cho chiếm CẢ HÀNG: bề rộng gấp đôi nên chiều
-        // cao cũng gấp đôi, bản vẽ đọc được. Ảnh tỉ lệ thường vẫn xếp 2 ô một hàng như cũ.
-        const WIDE = 2.2;
-        const rows = [];
-        let i = 0;
-        while (i < cells.length) {
-          if (ratio[i] >= WIDE) { rows.push({ idx: [i], full: true }); i++; }
-          else if (i + 1 < cells.length && ratio[i + 1] < WIDE) { rows.push({ idx: [i, i + 1], full: false }); i += 2; }
-          else { rows.push({ idx: [i], full: false }); i++; }
-        }
-
-        // Tỉ lệ Ô: bám theo tỉ lệ ảnh nhưng kẹp trong khoảng 1.2–2.6 để ô luôn cân đối, không bao
-        // giờ dẹt như một sọc. Ảnh siêu ngang (8:1) thì ô dừng ở 2.6 và ảnh sẽ cover cắt bớt 2 đầu.
-        const tiLeO = k => Math.min(2.6, Math.max(1.2, ratio[k]));
-        let hs = rows.map(r => {
-          const w = r.full ? cwFull : cw;
-          // 2 ô cùng hàng: lấy tỉ lệ trung bình để chiều cao hàng công bằng cho cả hai
-          const rTB = r.idx.reduce((a, k) => a + tiLeO(k), 0) / r.idx.length;
-          return Math.max(70, Math.min(MAXH, Math.round(w / rTB)));
+        // COVER THỦ CÔNG: html2canvas 1.4.1 không hỗ trợ object-fit (trình duyệt vẽ đúng nhưng ảnh
+        // xuất bị kéo giãn -> méo). Nên tự tính width/height ảnh ra PIXEL sao cho phủ kín ô mà vẫn
+        // đúng tỉ lệ gốc; phần thừa để ô overflow:hidden cắt đều (ô đang flex center).
+        cells.forEach((c, k) => {
+          const box = c.querySelector('.draw-imbox-169');
+          if (box) { box.style.height = hO + 'px'; box.style.padding = '0'; }
+          const im = c.querySelector('.draw-im-169');
+          if (im) {
+            let aw = Math.max(cw, Math.round(hO * ratio[k]));
+            let ah = Math.round(aw / ratio[k]);
+            if (ah < hO) { ah = hO; aw = Math.round(ah * ratio[k]); }
+            im.style.width = aw + 'px';
+            im.style.height = ah + 'px';
+            im.style.maxWidth = 'none';
+            im.style.flexShrink = '0';
+            im.style.objectFit = 'fill';   // kích thước đã đúng tỉ lệ nên fill = không méo
+          }
         });
 
-        // Trần TỔNG: cả khối 05 không được nuốt quá 34% chiều cao trang, tránh bóp chỗ của khối
-        // 04/06/07. Vượt thì thu đều mọi hàng theo cùng hệ số (giữ nguyên tương quan tỉ lệ).
-        const gapTotal = (rows.length - 1) * GAP;
-        const BUDGET = Math.round(fhNow * 0.34);
-        const tong = hs.reduce((a, b) => a + b, 0) + gapTotal;
-        if (tong > BUDGET && tong > gapTotal) {
-          const k = (BUDGET - gapTotal) / (tong - gapTotal);
-          hs = hs.map(h => Math.max(60, Math.round(h * k)));
-        }
-
-        // Sếp chốt 17/08 (lần 3): "ảnh không tự động fix hết vùng ô" — ảnh phải LẤP ĐẦY KÍN Ô,
-        // không co nhỏ chừa viền trắng, cũng không bị bóp méo.
-        //   · Bản b4.1 dùng contain -> ảnh nhỏ lọt thỏm giữa ô: SAI ý Sếp.
-        //   · Dùng thẳng object-fit:cover cũng không xong, vì html2canvas 1.4.1 KHÔNG hỗ trợ
-        //     object-fit — trình duyệt vẽ đúng (xem trong app ổn) còn ảnh xuất thì kéo giãn -> méo.
-        // Nay làm COVER THỦ CÔNG: tự tính width/height ảnh ra PIXEL sao cho PHỦ KÍN ô mà vẫn đúng
-        // tỉ lệ gốc; phần thừa để ô overflow:hidden cắt đều 2 bên (ô đang flex center).
-        const VIEN = 2;    // chỉ còn border 1×2; padding đã bỏ để ảnh sát mép ô
-        rows.forEach((r, ri) => {
-          r.idx.forEach(k => {
-            cells[k].style.gridColumn = r.full ? 'span 2' : '';
-            const box = cells[k].querySelector('.draw-imbox-169');
-            if (box) { box.style.height = hs[ri] + 'px'; box.style.padding = '0'; }
-            const im = cells[k].querySelector('.draw-im-169');
-            if (im) {
-              const wBox = Math.max(20, (r.full ? cwFull : cw) - VIEN);
-              const hBox = Math.max(20, hs[ri]);
-              let aw = Math.max(wBox, Math.round(hBox * ratio[k]));   // phủ kín bề ngang
-              let ah = Math.round(aw / ratio[k]);
-              if (ah < hBox) { ah = hBox; aw = Math.round(ah * ratio[k]); }  // và phủ kín bề dọc
-              im.style.width = aw + 'px';
-              im.style.height = ah + 'px';
-              im.style.maxWidth = 'none';
-              im.style.flexShrink = '0';     // không cho flex bóp ảnh lại -> giữ đúng tỉ lệ
-              im.style.objectFit = 'fill';   // kích thước đã đúng tỉ lệ nên fill = không méo
-            }
-          });
-        });
-
-        // Dấu chẩn đoán TẠM ở chân trang: in tỉ lệ thật của bản vẽ mà mã đọc được. Nếu ảnh xuất còn
-        // lệch, nhìn dấu này là biết ngay do tỉ lệ ảnh gốc hay do mã xếp sai — khỏi đoán. Gỡ khi Sếp
-        // xác nhận khối 05 đã đạt.
+        // Dấu chẩn đoán TẠM ở chân trang: in tỉ lệ thật của bản vẽ mà mã đọc được. Gỡ khi Sếp duyệt.
         const dau = document.getElementById('dau-k05-169');
         if (dau) dau.textContent = ' · 05:' + ratio.map(x => x.toFixed(1)).join('/');
       }
-
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
       function fillGrid(id, forceRows) {
         const g = document.getElementById(id);
