@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b3.9';
+const APP_BUILD = 'b4.0';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1329,13 +1329,14 @@ async function exportPNG169() {
           <!-- Khối 06: Ghi chú & Kiến nghị -->
           ${noteRecCardHtml}
 
-          <!-- Sếp chốt 17/08: khoảng trống dư dồn LÊN TRÊN (giữa khối 06 và 07), để khối 07 neo sát
-               vùng ký tên. Trước đây spacer nằm SAU khối 07 nên 07 bám sát 06 rồi hụt một mảng
-               trắng lớn ở đáy, trong khi khối 04 nhiều nội dung lại thiếu chỗ. -->
-          <div style="flex: 1 1 auto; min-height: 0;"></div>
-
-          <!-- Khối 07: An toàn - Chất lượng - Tiến độ (neo ngay trên vùng ký tên) -->
+          <!-- Khối 07: An toàn - Chất lượng - Tiến độ.
+               Sếp chốt 17/08 (lần 2): TRẢ LẠI như ban đầu — khối 07 xếp tiếp ngay sau khối 06,
+               KHÔNG neo xuống ô ký tên. Bản trước đẩy spacer lên giữa 06 và 07 làm khối 07 rơi
+               xuống đáy, nhìn rời rạc. -->
           ${safeQualCardHtml}
+
+          <!-- Khoảng trống dư dồn xuống dưới, ngay trên vùng ký tên -->
+          <div style="flex: 1 1 auto; min-height: 0;"></div>
 
           <!-- Chữ ký & Phê duyệt (Luôn luôn nằm đáy) -->
           ${signatureHtml}
@@ -1409,25 +1410,57 @@ async function exportPNG169() {
         const g = document.getElementById('draws-grid-169');
         if (!g || !g.children.length) return;
         const cells = Array.from(g.children);
-        const cw = cells[0].getBoundingClientRect().width;
-        if (!cw) return;
-        // Sếp duyệt 17/08: ô CAO TỐI ĐA 1/5 chiều cao trang — đủ để bản vẽ rõ mà không nuốt chỗ
-        // của khối 04/06/07. Trước đây chặn cứng 170px nên ảnh không lấp đầy được ô.
+        const GAP = 10;
+        // Đo bề rộng LƯỚI rồi tự chia cột (không đo từng ô) — vì ô có thể đang span 2 cột từ lần
+        // gọi trước, đo trực tiếp sẽ ra số sai.
+        const gw = g.getBoundingClientRect().width;
+        if (!gw) return;
+        const cwFull = Math.round(gw);                       // 1 ô chiếm cả hàng
+        const cw = Math.max(60, Math.floor((gw - GAP) / 2)); // 1 ô nửa hàng
         const fhNow = parseInt(tempContainer.style.height) || 1080;
         const MAXH = maxOverride || Math.round(fhNow / 5);
-        const need = cells.map(c => {
+
+        const ratio = cells.map(c => {
           const im = c.querySelector('.draw-im-169');
-          const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
-          return Math.max(70, Math.min(MAXH, Math.round(cw / r)));
+          return (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
         });
-        for (let i = 0; i < cells.length; i += 2) {
-          const h = Math.max(need[i], (need[i + 1] !== undefined ? need[i + 1] : 0));
-          [cells[i], cells[i + 1]].forEach(c => {
-            if (!c) return;
-            const box = c.querySelector('.draw-imbox-169');
-            if (box) box.style.height = h + 'px';
-          });
+
+        // Sếp báo 17/08: ảnh khối 05 bị DẸT như một sọc. Nguyên do: bản vẽ mặt bằng rất dài ngang
+        // (3:1, 4:1) mà ô chỉ rộng nửa cột (~200px) -> cao chỉ còn ~55-65px, không nhìn ra gì.
+        // Nay ảnh SIÊU NGANG (từ 2.2:1 trở lên) được cho chiếm CẢ HÀNG: bề rộng gấp đôi nên chiều
+        // cao cũng gấp đôi, bản vẽ đọc được. Ảnh tỉ lệ thường vẫn xếp 2 ô một hàng như cũ.
+        const WIDE = 2.2;
+        const rows = [];
+        let i = 0;
+        while (i < cells.length) {
+          if (ratio[i] >= WIDE) { rows.push({ idx: [i], full: true }); i++; }
+          else if (i + 1 < cells.length && ratio[i + 1] < WIDE) { rows.push({ idx: [i, i + 1], full: false }); i += 2; }
+          else { rows.push({ idx: [i], full: false }); i++; }
         }
+
+        let hs = rows.map(r => {
+          const w = r.full ? cwFull : cw;
+          const h = Math.max.apply(null, r.idx.map(k => Math.round(w / ratio[k])));
+          return Math.max(70, Math.min(MAXH, h));
+        });
+
+        // Trần TỔNG: cả khối 05 không được nuốt quá 34% chiều cao trang, tránh bóp chỗ của khối
+        // 04/06/07. Vượt thì thu đều mọi hàng theo cùng hệ số (giữ nguyên tương quan tỉ lệ).
+        const gapTotal = (rows.length - 1) * GAP;
+        const BUDGET = Math.round(fhNow * 0.34);
+        const tong = hs.reduce((a, b) => a + b, 0) + gapTotal;
+        if (tong > BUDGET && tong > gapTotal) {
+          const k = (BUDGET - gapTotal) / (tong - gapTotal);
+          hs = hs.map(h => Math.max(60, Math.round(h * k)));
+        }
+
+        rows.forEach((r, ri) => {
+          r.idx.forEach(k => {
+            cells[k].style.gridColumn = r.full ? 'span 2' : '';
+            const box = cells[k].querySelector('.draw-imbox-169');
+            if (box) box.style.height = hs[ri] + 'px';
+          });
+        });
       }
 
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
