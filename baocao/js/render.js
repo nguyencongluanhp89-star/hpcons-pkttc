@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.1';
+const APP_BUILD = 'b4.2';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1438,10 +1438,14 @@ async function exportPNG169() {
           else { rows.push({ idx: [i], full: false }); i++; }
         }
 
+        // Tỉ lệ Ô: bám theo tỉ lệ ảnh nhưng kẹp trong khoảng 1.2–2.6 để ô luôn cân đối, không bao
+        // giờ dẹt như một sọc. Ảnh siêu ngang (8:1) thì ô dừng ở 2.6 và ảnh sẽ cover cắt bớt 2 đầu.
+        const tiLeO = k => Math.min(2.6, Math.max(1.2, ratio[k]));
         let hs = rows.map(r => {
           const w = r.full ? cwFull : cw;
-          const h = Math.max.apply(null, r.idx.map(k => Math.round(w / ratio[k])));
-          return Math.max(70, Math.min(MAXH, h));
+          // 2 ô cùng hàng: lấy tỉ lệ trung bình để chiều cao hàng công bằng cho cả hai
+          const rTB = r.idx.reduce((a, k) => a + tiLeO(k), 0) / r.idx.length;
+          return Math.max(70, Math.min(MAXH, Math.round(w / rTB)));
         });
 
         // Trần TỔNG: cả khối 05 không được nuốt quá 34% chiều cao trang, tránh bóp chỗ của khối
@@ -1454,27 +1458,30 @@ async function exportPNG169() {
           hs = hs.map(h => Math.max(60, Math.round(h * k)));
         }
 
-        // Sếp báo 17/08 (lần 2): "chiều dài hình dài nhiều lần so với chiều rộng" — ảnh BỊ BÓP MÉO
-        // trên ảnh xuất trong khi xem trong app vẫn đúng. Gốc: html2canvas 1.4.1 KHÔNG hỗ trợ
-        // object-fit. Trình duyệt thì tôn trọng contain (nên xem trong app đúng), còn html2canvas
-        // vẽ ảnh KÉO GIÃN lấp đầy đúng width×height của thẻ <img> -> hễ ô không cùng tỉ lệ với ảnh
-        // là méo. Cách chữa: tự tính sẵn width/height của ảnh ra PIXEL theo tỉ lệ thật, không giao
-        // việc canh tỉ lệ cho object-fit nữa. Ô vẫn flex center nên ảnh nằm giữa.
-        const VIEN = 10;   // padding 4×2 + border 1×2 của .draw-imbox-169
+        // Sếp chốt 17/08 (lần 3): "ảnh không tự động fix hết vùng ô" — ảnh phải LẤP ĐẦY KÍN Ô,
+        // không co nhỏ chừa viền trắng, cũng không bị bóp méo.
+        //   · Bản b4.1 dùng contain -> ảnh nhỏ lọt thỏm giữa ô: SAI ý Sếp.
+        //   · Dùng thẳng object-fit:cover cũng không xong, vì html2canvas 1.4.1 KHÔNG hỗ trợ
+        //     object-fit — trình duyệt vẽ đúng (xem trong app ổn) còn ảnh xuất thì kéo giãn -> méo.
+        // Nay làm COVER THỦ CÔNG: tự tính width/height ảnh ra PIXEL sao cho PHỦ KÍN ô mà vẫn đúng
+        // tỉ lệ gốc; phần thừa để ô overflow:hidden cắt đều 2 bên (ô đang flex center).
+        const VIEN = 2;    // chỉ còn border 1×2; padding đã bỏ để ảnh sát mép ô
         rows.forEach((r, ri) => {
           r.idx.forEach(k => {
             cells[k].style.gridColumn = r.full ? 'span 2' : '';
             const box = cells[k].querySelector('.draw-imbox-169');
-            if (box) box.style.height = hs[ri] + 'px';
+            if (box) { box.style.height = hs[ri] + 'px'; box.style.padding = '0'; }
             const im = cells[k].querySelector('.draw-im-169');
             if (im) {
               const wBox = Math.max(20, (r.full ? cwFull : cw) - VIEN);
-              const hBox = Math.max(20, hs[ri] - 8);
-              let aw = Math.min(wBox, Math.round(hBox * ratio[k]));
+              const hBox = Math.max(20, hs[ri]);
+              let aw = Math.max(wBox, Math.round(hBox * ratio[k]));   // phủ kín bề ngang
               let ah = Math.round(aw / ratio[k]);
-              if (ah > hBox) { ah = hBox; aw = Math.round(ah * ratio[k]); }
+              if (ah < hBox) { ah = hBox; aw = Math.round(ah * ratio[k]); }  // và phủ kín bề dọc
               im.style.width = aw + 'px';
               im.style.height = ah + 'px';
+              im.style.maxWidth = 'none';
+              im.style.flexShrink = '0';     // không cho flex bóp ảnh lại -> giữ đúng tỉ lệ
               im.style.objectFit = 'fill';   // kích thước đã đúng tỉ lệ nên fill = không méo
             }
           });
