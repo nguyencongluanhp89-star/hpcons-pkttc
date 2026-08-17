@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b3.6';
+const APP_BUILD = 'b3.7';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -435,8 +435,44 @@ function draw(){
   if (typeof window.autoGrowAllTextareas === 'function') {
     window.autoGrowAllTextareas();
   }
+  fitDrawCardsPreview();
   adjustReportScale();
 }
+
+// Khối 05 trên BẢN XEM TRONG APP — ô ảnh bản vẽ cao theo TỈ LỆ THẬT (Sếp hỏi 16/08: bản xuất ảnh
+// đã sửa rồi nhưng trong app thì chưa). Trước đây ô cao CỨNG 130px (css .draw-card .im-wrap) nên
+// bản vẽ mặt bằng dài (3:1–5:1) co nhỏ, thừa mảng trắng trên dưới — y hệt lỗi đã sửa ở bản xuất.
+// Lưới preview là 4 CỘT: các ô CÙNG HÀNG lấy chung chiều cao lớn nhất để tên bản vẽ thẳng hàng.
+function fitDrawCardsPreview() {
+  try {
+    const cards = Array.from(document.querySelectorAll('#report .draw .draw-card'));
+    if (!cards.length) return;
+    const COLS = 4;
+    const w = cards[0].getBoundingClientRect().width;
+    if (!w) return;
+    // Ảnh chưa tải xong thì chưa biết tỉ lệ -> tải xong tính lại (chỉ gắn 1 lần cho mỗi ảnh)
+    cards.forEach(c => {
+      const im = c.querySelector('img.im');
+      if (im && !im.complete && !im.dataset.fitBound) {
+        im.dataset.fitBound = '1';
+        im.addEventListener('load', function () { fitDrawCardsPreview(); }, { once: true });
+      }
+    });
+    const need = cards.map(c => {
+      const im = c.querySelector('img.im');
+      const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 2;
+      return Math.max(60, Math.min(150, Math.round(w / r)));
+    });
+    for (let i = 0; i < cards.length; i += COLS) {
+      const h = Math.max(...need.slice(i, i + COLS));
+      cards.slice(i, i + COLS).forEach(c => {
+        const box = c.querySelector('.im-wrap');
+        if (box) box.style.height = h + 'px';
+      });
+    }
+  } catch (e) { console.warn('fitDrawCardsPreview lỗi (bỏ qua):', e && e.message); }
+}
+window.fitDrawCardsPreview = fitDrawCardsPreview;
 
 /* ---------- export PNG ---------- */
 function exportPNG(){
