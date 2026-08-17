@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.3';
+const APP_BUILD = 'b4.4';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -234,15 +234,11 @@ function draw(){
 
     const deleteBtn = d.img ? `<button type="button" onclick="window.deleteDrawPhotoDirect(event, ${i})" class="no-print delete-photo-btn" title="Xóa bản vẽ" style="position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: rgba(239, 68, 68, 0.9); color: white; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: background 0.2s; z-index: 10;">×</button>` : '';
 
-    // Sếp chốt 17/08: ô ĐÃ CÓ ảnh -> bấm vào mở ảnh lớn (lightbox) để xem đầy đủ, vì thumbnail
-    // nay là gallery compact 4:3 có cắt bớt. Ô TRỐNG thì bấm vào vẫn là tải bản vẽ lên như cũ.
-    // Muốn đổi ảnh thì bấm nút ✎ cạnh nút xóa.
-    const swapBtn = d.img ? `<button type="button" onclick="event.stopPropagation(); window.triggerDirectDrawUpload(${i})" class="no-print delete-photo-btn" title="Đổi bản vẽ khác" style="position:absolute; top:6px; right:30px; width:20px; height:20px; border-radius:50%; border:none; background:rgba(15,23,42,.72); color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.25); z-index:10;">✎</button>` : '';
-    const moAnh = d.img ? `window.moAnhLon(${i})` : `window.triggerDirectDrawUpload(${i})`;
+    // Sếp chốt 17/08: KHÔNG cần lightbox / thao tác click xem ảnh — đầu ra cuối cùng là một ảnh
+    // báo cáo tĩnh gửi Zalo. Bấm vào ô vẫn chỉ để tải bản vẽ lên như trước.
     return `<div class="draw-card" style="position:relative;">
-      <div class="im-wrap" onclick="${moAnh}" style="cursor:${d.img ? 'zoom-in' : 'pointer'}; position:relative;" title="${d.img ? 'Bấm để xem ảnh lớn' : 'Click để tải bản vẽ lên'}">
+      <div class="im-wrap" onclick="window.triggerDirectDrawUpload(${i})" style="cursor:pointer; position:relative;" title="Click để tải bản vẽ lên">
         ${d.img?`<img class="im" src="${d.img}">`:`<div class="im ph grid-pattern" style="border:1px dashed var(--line); border-radius:4px; height:120px; display:flex; align-items:center; justify-content:center; background:#f8fafc; font-size:var(--fs-micro); color:var(--text-muted)">Chọn bản vẽ ${i+1}</div>`}
-        ${swapBtn}
         ${deleteBtn}
       </div>
       <input type="file" id="f_draw_direct_${i}" accept="image/*" style="display:none" onchange="window.onDirectDrawUpload(this, ${i})">
@@ -463,56 +459,6 @@ function fitDrawCardsPreview() {
   } catch (e) { console.warn('fitDrawCardsPreview lỗi (bỏ qua):', e && e.message); }
 }
 window.fitDrawCardsPreview = fitDrawCardsPreview;
-
-// Lightbox xem bản vẽ cỡ lớn (Sếp yêu cầu 17/08): thumbnail nay nhỏ và có cắt bớt nên phải có
-// đường xem đầy đủ. Bấm nền hoặc Esc để đóng; mũi tên ← → (hoặc phím) để xem tiếp các bản vẽ khác.
-function moAnhLon(idx) {
-  try {
-    const ds = (typeof draws !== 'undefined' && Array.isArray(draws)) ? draws : [];
-    const co = ds.map((d, i) => ({ d, i })).filter(x => x.d && x.d.img);
-    if (!co.length) return;
-    let vt = Math.max(0, co.findIndex(x => x.i === idx));
-
-    let ov = document.getElementById('lightbox-banve');
-    if (!ov) {
-      ov = document.createElement('div');
-      ov.id = 'lightbox-banve';
-      ov.className = 'no-print';
-      ov.style.cssText = 'position:fixed; inset:0; z-index:99999; background:rgba(8,15,26,.94); display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box;';
-      ov.innerHTML = `
-        <img id="lb-im" style="max-width:96vw; max-height:82vh; object-fit:contain; border-radius:6px; box-shadow:0 20px 60px rgba(0,0,0,.5); background:#fff;">
-        <div id="lb-cap" style="position:absolute; left:0; right:0; bottom:22px; text-align:center; color:#e2e8f0; font-size:14px; font-weight:600; padding:0 60px; line-height:1.5;"></div>
-        <button id="lb-x" title="Đóng" style="position:absolute; top:16px; right:18px; width:38px; height:38px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:20px; cursor:pointer;">×</button>
-        <button id="lb-tr" title="Bản vẽ trước" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:22px; cursor:pointer;">‹</button>
-        <button id="lb-sa" title="Bản vẽ sau" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,.14); color:#fff; font-size:22px; cursor:pointer;">›</button>`;
-      document.body.appendChild(ov);
-    }
-    ov.style.display = 'flex';
-
-    const im = ov.querySelector('#lb-im'), cap = ov.querySelector('#lb-cap');
-    const ve = () => {
-      const it = co[vt];
-      im.src = it.d.img;
-      const t = String(it.d.t || '').split('|')[0].trim();
-      cap.textContent = (t ? t + '  ' : '') + '(' + (vt + 1) + '/' + co.length + ')';
-      ov.querySelector('#lb-tr').style.display = co.length > 1 ? '' : 'none';
-      ov.querySelector('#lb-sa').style.display = co.length > 1 ? '' : 'none';
-    };
-    const dong = () => { ov.style.display = 'none'; document.removeEventListener('keydown', phim); };
-    const phim = e => {
-      if (e.key === 'Escape') dong();
-      else if (e.key === 'ArrowLeft') { vt = (vt - 1 + co.length) % co.length; ve(); }
-      else if (e.key === 'ArrowRight') { vt = (vt + 1) % co.length; ve(); }
-    };
-    ov.onclick = e => { if (e.target === ov) dong(); };
-    ov.querySelector('#lb-x').onclick = dong;
-    ov.querySelector('#lb-tr').onclick = e => { e.stopPropagation(); vt = (vt - 1 + co.length) % co.length; ve(); };
-    ov.querySelector('#lb-sa').onclick = e => { e.stopPropagation(); vt = (vt + 1) % co.length; ve(); };
-    document.addEventListener('keydown', phim);
-    ve();
-  } catch (e) { console.warn('moAnhLon lỗi:', e && e.message); }
-}
-window.moAnhLon = moAnhLon;
 
 /* ---------- export PNG ---------- */
 function exportPNG(){
@@ -1472,8 +1418,11 @@ async function exportPNG169() {
         const n = cells.length;
         const cw = Math.max(40, Math.floor((gw - (n - 1) * GAP) / n));
         const fhNow = parseInt(tempContainer.style.height) || 1080;
+        // SÀN 130px: Sếp báo 17/08 — ảnh bị ép mỏng thì không đọc ra nội dung, mất luôn ý nghĩa
+        // của thẻ 05. Thà thẻ cao thêm chút còn hơn 4 dải mỏng vô dụng.
+        const SAN_O = 130;
         const TRAN = maxOverride || Math.round(fhNow * TRAN_ANH);
-        const hO = Math.max(56, Math.min(TRAN, Math.round(cw / TI_LE_O)));
+        const hO = Math.max(SAN_O, Math.min(Math.max(TRAN, SAN_O), Math.round(cw / TI_LE_O)));
 
         const ratio = cells.map(c => {
           const im = c.querySelector('.draw-im-169');
@@ -1500,8 +1449,11 @@ async function exportPNG169() {
         });
 
         // Dấu chẩn đoán TẠM ở chân trang: in tỉ lệ thật của bản vẽ mà mã đọc được. Gỡ khi Sếp duyệt.
+        // Dấu chẩn đoán TẠM ở chân trang: tỉ lệ ảnh · chiều cao ô · chiều cao khung · cột đang
+        // tràn (0 = không tràn). Nhìn dấu này là biết ngay khối 05 bị ép bởi cái gì. Gỡ khi Sếp duyệt.
         const dau = document.getElementById('dau-k05-169');
-        if (dau) dau.textContent = ' · 05:' + ratio.map(x => x.toFixed(1)).join('/');
+        if (dau) dau.textContent = ' · 05:' + ratio.map(x => x.toFixed(1)).join('/')
+          + ' o' + hO + ' k' + fhNow + ' t' + (window._cotTran || 0);
       }
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
       function fillGrid(id, forceRows) {
@@ -1573,18 +1525,21 @@ async function exportPNG169() {
       // Vòng này đo phần dôi ra thật rồi cộng thêm vào chiều cao khung, lặp tới khi hết tràn.
       function noKhungNeuTran(hStart) {
         let h = hStart;
-        let tranO = 0;                               // 0 = ô bản vẽ để mặc định (1/5 trang)
+        let tranO = 0;                               // 0 = ô bản vẽ để mặc định (4:3)
         for (let i = 0; i < 6; i++) {
-          const doi = Math.max(
-            col1El ? col1El.scrollHeight - col1El.clientHeight : 0,
-            col2El ? col2El.scrollHeight - col2El.clientHeight : 0,
-            col3El ? col3El.scrollHeight - col3El.clientHeight : 0
-          );
+          const doi1 = col1El ? col1El.scrollHeight - col1El.clientHeight : 0;
+          const doi2 = col2El ? col2El.scrollHeight - col2El.clientHeight : 0;
+          const doi3 = col3El ? col3El.scrollHeight - col3El.clientHeight : 0;
+          const doi = Math.max(doi1, doi2, doi3);
+          window._cotTran = (doi <= 2) ? 0 : (doi3 > 2 ? 3 : (doi1 > 2 ? 1 : 2));
           if (doi <= 2) break;                       // không tràn -> xong
           if (h >= 2600) {
-            // Khung đã kịch trần an toàn: không nới được nữa -> THU Ô BẢN VẼ cho vừa,
-            // thà bản vẽ nhỏ lại còn hơn cắt mất khối 07 và vùng ký tên.
-            tranO = tranO ? Math.max(70, tranO - 40) : 140;
+            // Khung đã kịch trần an toàn: không nới được nữa.
+            // Sếp báo 17/08: chính van này là thủ phạm làm 4 bản vẽ thành dải mỏng — nó thu ô
+            // KỂ CẢ khi cột tràn là cột 1/cột 2, trong khi thu bản vẽ chỉ cứu được CỘT 3.
+            // Nay: chỉ thu khi ĐÚNG cột 3 tràn, và sàn 130px để ảnh còn nhận ra nội dung.
+            if (doi3 > 2) tranO = tranO ? Math.max(130, tranO - 30) : 190;
+            else break;                              // cột 1/2 tràn: thu bản vẽ vô ích -> dừng
           } else {
             h = Math.min(2600, h + doi + 10);
           }
