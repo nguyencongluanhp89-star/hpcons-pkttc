@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b3.7';
+const APP_BUILD = 'b3.8';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1012,7 +1012,7 @@ async function exportPNG169() {
         drawItemsHtml += `
           <div class="draw-cell-169" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
             <div class="draw-imbox-169" style="height: 150px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
-              <img src="${d.img}" class="draw-im-169" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;">
+              <img src="${d.img}" class="draw-im-169" style="width: 100%; height: 100%; object-fit: contain; display: block;">
             </div>
             <div style="padding: 6px 8px; text-align: center; line-height: 1.3; font-size: ${FS.bodySmall}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
               <div style="font-weight: ${FW.body}; color: #0f172a; text-transform: uppercase; line-height: 1.25;">${t_vi}</div>
@@ -1329,11 +1329,13 @@ async function exportPNG169() {
           <!-- Khối 06: Ghi chú & Kiến nghị -->
           ${noteRecCardHtml}
 
-          <!-- Khối 07: An toàn - Chất lượng - Tiến độ -->
-          ${safeQualCardHtml}
-
-          <!-- Spacer dồn khoảng trống dư của Cột 3 xuống dưới -->
+          <!-- Sếp chốt 17/08: khoảng trống dư dồn LÊN TRÊN (giữa khối 06 và 07), để khối 07 neo sát
+               vùng ký tên. Trước đây spacer nằm SAU khối 07 nên 07 bám sát 06 rồi hụt một mảng
+               trắng lớn ở đáy, trong khi khối 04 nhiều nội dung lại thiếu chỗ. -->
           <div style="flex: 1 1 auto; min-height: 0;"></div>
+
+          <!-- Khối 07: An toàn - Chất lượng - Tiến độ (neo ngay trên vùng ký tên) -->
+          ${safeQualCardHtml}
 
           <!-- Chữ ký & Phê duyệt (Luôn luôn nằm đáy) -->
           ${signatureHtml}
@@ -1407,10 +1409,14 @@ async function exportPNG169() {
         const cells = Array.from(g.children);
         const cw = cells[0].getBoundingClientRect().width;
         if (!cw) return;
+        // Sếp duyệt 17/08: ô CAO TỐI ĐA 1/5 chiều cao trang — đủ để bản vẽ rõ mà không nuốt chỗ
+        // của khối 04/06/07. Trước đây chặn cứng 170px nên ảnh không lấp đầy được ô.
+        const fhNow = parseInt(tempContainer.style.height) || 1080;
+        const MAXH = Math.round(fhNow / 5);
         const need = cells.map(c => {
           const im = c.querySelector('.draw-im-169');
-          const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 2;
-          return Math.max(70, Math.min(170, Math.round(cw / r)));
+          const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
+          return Math.max(70, Math.min(MAXH, Math.round(cw / r)));
         });
         for (let i = 0; i < cells.length; i += 2) {
           const h = Math.max(need[i], (need[i + 1] !== undefined ? need[i + 1] : 0));
@@ -1514,7 +1520,13 @@ async function exportPNG169() {
     function captureAndDownload() {
       const finalWidth = parseInt(tempContainer.style.width);
       const finalHeight = parseInt(tempContainer.style.height);
-      
+
+      // Chốt lại NGAY TRƯỚC KHI CHỤP: lúc này ảnh chắc chắn đã tải xong nên biết tỉ lệ thật.
+      // (Sếp báo 17/08: trong app ô bản vẽ đúng nhưng ảnh xuất vẫn thừa trắng — do lần tính trước
+      //  đó ảnh chưa tải xong, phải dùng tỉ lệ mặc định.)
+      try { fitDrawRows(); } catch (e) {}
+      try { fitManpowerNumber(); } catch (e) {}
+
       html2canvas(tempContainer, {
         scale: 1.25,
         useCORS: true,
