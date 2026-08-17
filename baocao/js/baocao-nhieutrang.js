@@ -221,15 +221,17 @@
     coDinh.forEach(function (n) { tr.cot[0].appendChild(n); });
     var hCot = tr.cot[0].getBoundingClientRect().height;
 
-    // ÉP khối cuối của cột 1 (khối 02) lấp đúng phần còn lại, thay vì phó thác cho flex:1.
-    // Sếp báo 17/08: khối 02 co lại, biểu đồ tuần chỉ còn một mẩu và hụt một mảng trắng ở đáy.
-    if (coDinh.length) {
+    // Chia chỗ cột 1 theo nguyên tắc Sếp chốt: KHỐI 02 ĐƯỢC ƯU TIÊN DIỆN TÍCH, thiếu chỗ thì
+    // giảm khối 01 trước. Việc chia do render.js quyết định (nó biết cấu trúc khối 01/02 và
+    // hàm vẽ biểu đồ); ở đây chỉ đưa cột 1 và chiều cao cột thật cho nó.
+    if (typeof opts.chiaCot1 === 'function' && coDinh.length >= 2) {
+      try { opts.chiaCot1(tr.cot[0], hCot); } catch (e) { console.warn('chiaCot1 lỗi:', e && e.message); }
+    } else if (coDinh.length) {
       var cuoi = coDinh[coDinh.length - 1];
       var daDungC1 = 0;
       coDinh.forEach(function (n, i) { if (i < coDinh.length - 1) daDungC1 += caoNode(n) + GAP; });
-      var hCuoi = Math.max(200, Math.round(hCot - daDungC1));
       cuoi.style.flex = '0 0 auto';
-      cuoi.style.height = hCuoi + 'px';
+      cuoi.style.height = Math.max(200, Math.round(hCot - daDungC1)) + 'px';
       cuoi.style.minHeight = '0';
     }
 

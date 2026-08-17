@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.7';
+const APP_BUILD = 'b4.8';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1588,17 +1588,93 @@ async function exportPNG169() {
       } catch (e) { return false; }
     }
 
-    // Khối 02 phải tính lại theo kích thước THẬT của trang mới (Sếp báo 17/08: số nhân lực mất,
-    // biểu đồ tuần bị cắt còn một mẩu). Lý do: biểu đồ là SVG vẽ theo bề rộng/chiều cao đo được
-    // lúc dựng bản 1 trang, còn cỡ số nhân lực cũng tính theo ô cũ; sang trang mới kích thước
-    // khác nên SVG quá khổ bị cắt và số bị tràn khỏi ô.
-    function hieuChinhKhoi02(root) {
+    /* ================= THIẾT KẾ LẠI CỘT 1: KHỐI 02 ĐƯỢC ƯU TIÊN DIỆN TÍCH =================
+       Sếp chốt 17/08: "Không thiết kế khối 02 để vừa chỗ. Hãy thiết kế bố cục để vừa khối 02."
+       Khối 02 (nhân lực + thời tiết + biểu đồ tuần) là nội dung quan trọng nhất của báo cáo:
+       người quản lý nhìn vài giây phải biết hôm nay bao nhiêu người, BCH/tổ đội bao nhiêu,
+       thời tiết thế nào, nhân lực trong tuần tăng hay giảm. Vì vậy:
+         · Khối 02 giữ SÀN diện tích, không bị ép nhỏ để nhường chỗ.
+         · Thiếu chỗ thì GIẢM KHỐI 01 trước (thu ảnh tổng quan, bớt padding) — không mất thông tin.
+         · Còn dư chỗ thì khối 02 lấy hết phần dư (nội dung quyết định chiều cao).
+         · Biểu đồ có sàn riêng, tính theo khả năng ĐỌC khi xuất ảnh, không theo pixel còn thừa.
+       Tuyệt đối không thu nhỏ font, không ẩn trục/nhãn, không cắt cuối biểu đồ.                */
+    const SAN_KHOI_02  = 880;      // sàn cho cả khối 02
+    const SAN_BIEU_DO  = 430;      // sàn riêng cho vùng vẽ biểu đồ tuần
+    const SAN_ANH_TQ   = 230;      // ảnh tổng quan khối 01 không thu nhỏ hơn mức này
+
+    function thietKeLaiKhoi02(cot1, hCot) {
+      if (!cot1 || cot1.children.length < 2 || !hCot) return;
+      const k01 = cot1.children[0];
+      const k02 = cot1.children[cot1.children.length - 1];
+
+      // 1) Đo chiều cao TỰ NHIÊN của khối 01 (để biết nó thực sự cần bao nhiêu)
+      k01.style.flex = '0 0 auto'; k01.style.height = 'auto';
+      k02.style.flex = '0 0 auto'; k02.style.height = 'auto';
+      const h01TuNhien = k01.getBoundingClientRect().height;
+
+      // 2) Chia chỗ: khối 02 giữ sàn, phần dư dồn hết cho khối 02
+      let h02 = Math.max(SAN_KHOI_02, Math.round(hCot * 0.55));
+      let h01 = hCot - h02 - 20;
+      if (h01TuNhien + h02 + 20 <= hCot) {          // khối 01 vốn đã gọn -> khối 02 lấy hết phần dư
+        h01 = Math.round(h01TuNhien);
+        h02 = hCot - h01 - 20;
+      } else {
+        // 3) Không đủ chỗ -> GIẢM KHỐI 01: thu ảnh tổng quan rồi bớt padding dọc
+        let thieu = Math.round(h01TuNhien - h01);
+        const anh = k01.querySelector('.ov-main-img');
+        if (anh && thieu > 0) {
+          const cao = anh.getBoundingClientRect().height;
+          const caoMoi = Math.max(SAN_ANH_TQ, Math.round(cao - thieu));
+          anh.style.height = caoMoi + 'px';
+          anh.style.overflow = 'hidden';
+          anh.style.display = 'flex';
+          anh.style.alignItems = 'center';
+          anh.style.justifyContent = 'center';
+          const im = anh.querySelector('img');
+          if (im) {   // cover thủ công: html2canvas bỏ qua object-fit nên phải tự tính pixel
+            const w = anh.getBoundingClientRect().width;
+            const r = (im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
+            let aw = Math.max(w, Math.round(caoMoi * r));
+            let ah = Math.round(aw / r);
+            if (ah < caoMoi) { ah = caoMoi; aw = Math.round(ah * r); }
+            im.style.width = aw + 'px'; im.style.height = ah + 'px';
+            im.style.maxWidth = 'none'; im.style.flexShrink = '0'; im.style.objectFit = 'fill';
+          }
+          thieu -= (cao - caoMoi);
+        }
+        if (thieu > 0) { k01.style.paddingTop = '12px'; k01.style.paddingBottom = '12px'; }
+        h01 = Math.min(Math.round(k01.getBoundingClientRect().height), hCot - h02 - 20);
+        h02 = hCot - h01 - 20;
+      }
+      k01.style.height = h01 + 'px';
+      k02.style.height = h02 + 'px';
+
+      // 4) Trong khối 02: tầng A (nhân lực | thời tiết) ở trên, tầng B (biểu đồ) có SÀN riêng
+      const tangA = k02.querySelector('.weather-manpower-section');
+      const tangB = k02.querySelector('.chart-section');
+      if (tangA && tangB) {
+        const hB = Math.max(SAN_BIEU_DO, Math.round(h02 * 0.5));
+        tangB.style.flex = '0 0 auto';
+        tangB.style.height = hB + 'px';
+        tangB.style.minHeight = '0';
+        tangA.style.flex = '1 1 auto';       // tầng A lấy phần còn lại
+        tangA.style.height = 'auto';
+        tangA.style.minHeight = '0';
+      }
+
+      // 5) Số nhân lực và biểu đồ phải tính lại theo kích thước THẬT (đây là chỗ hỏng ở b4.7:
+      //    biểu đồ là SVG vẽ bằng toạ độ pixel của bản 1 trang, sang trang mới thì quá khổ -> bị cắt)
+      veLaiKhoi02(cot1);
+    }
+
+    // Vẽ lại số nhân lực + biểu đồ tuần theo kích thước thật của vùng chứa
+    function veLaiKhoi02(root) {
       if (!root) return;
       const box = root.querySelector('.mp-box-169');
       const num = root.querySelector('.mp-num-169');
       if (box && num) {
         const h = box.getBoundingClientRect().height;
-        if (h > 0) num.style.fontSize = Math.max(38, Math.min(FS.manpower, Math.floor(h * 0.86))) + 'px';
+        if (h > 0) num.style.fontSize = Math.max(48, Math.min(FS.manpower, Math.floor(h * 0.8))) + 'px';
       }
       const chartBox = root.querySelector('.chart-container-169');
       if (chartBox) {
@@ -1612,7 +1688,7 @@ async function exportPNG169() {
     // Phân trang rồi chụp từng trang thành một PNG riêng, xem trước cả loạt trong app.
     function xuatTheoNhieuTrang(nguon) {
       const bg = getExportBg();
-      const trangs = window.BCNhieuTrang.xepTrang({ nguon: nguon, bg: bg, hieuChinh: hieuChinhKhoi02 });
+      const trangs = window.BCNhieuTrang.xepTrang({ nguon: nguon, bg: bg, chiaCot1: thietKeLaiKhoi02, hieuChinh: veLaiKhoi02 });
       return window.BCNhieuTrang.chupCacTrang(trangs, bg.base, 1.25).then(anhs => {
         window.LAST_EXPORTED_PNG = anhs[0];
         window.LAST_EXPORTED_PAGES = anhs;
