@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b3.8';
+const APP_BUILD = 'b3.9';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1403,7 +1403,9 @@ async function exportPNG169() {
       // cho tương xứng"). Trước đây ô cao cứng 210px nên bản vẽ mặt bằng dài (4:1, 5:1) co nhỏ lọt
       // thỏm, thừa mảng trắng lớn. Nay: cao ảnh = bề rộng ô ÷ tỉ lệ ảnh, giới hạn 70–170px để không
       // làm tràn cột; 2 ô CÙNG HÀNG lấy chung chiều cao lớn hơn để caption thẳng hàng, nhìn gọn.
-      function fitDrawRows() {
+      // maxOverride: ép trần chiều cao ô nhỏ hơn mặc định — dùng khi nội dung quá nhiều, khung đã
+      // kịch trần mà vẫn tràn thì THU Ô BẢN VẼ cho vừa, chứ không cắt mất khối 07 / vùng ký tên.
+      function fitDrawRows(maxOverride) {
         const g = document.getElementById('draws-grid-169');
         if (!g || !g.children.length) return;
         const cells = Array.from(g.children);
@@ -1412,7 +1414,7 @@ async function exportPNG169() {
         // Sếp duyệt 17/08: ô CAO TỐI ĐA 1/5 chiều cao trang — đủ để bản vẽ rõ mà không nuốt chỗ
         // của khối 04/06/07. Trước đây chặn cứng 170px nên ảnh không lấp đầy được ô.
         const fhNow = parseInt(tempContainer.style.height) || 1080;
-        const MAXH = Math.round(fhNow / 5);
+        const MAXH = maxOverride || Math.round(fhNow / 5);
         const need = cells.map(c => {
           const im = c.querySelector('.draw-im-169');
           const r = (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
@@ -1493,13 +1495,39 @@ async function exportPNG169() {
 
       console.log("exportPNG169 completed. finalH:", finalH);
 
+      // Nới khung nếu cột nào bị TRÀN. 17/08: ô bản vẽ nay cao tối đa 1/5 trang (Sếp duyệt) nên có
+      // thể vượt DRAW_ALLOWANCE mà khung đã chốt trước đó -> khối 07 và vùng ký tên bị cắt mất.
+      // Vòng này đo phần dôi ra thật rồi cộng thêm vào chiều cao khung, lặp tới khi hết tràn.
+      function noKhungNeuTran(hStart) {
+        let h = hStart;
+        let tranO = 0;                               // 0 = ô bản vẽ để mặc định (1/5 trang)
+        for (let i = 0; i < 6; i++) {
+          const doi = Math.max(
+            col1El ? col1El.scrollHeight - col1El.clientHeight : 0,
+            col2El ? col2El.scrollHeight - col2El.clientHeight : 0,
+            col3El ? col3El.scrollHeight - col3El.clientHeight : 0
+          );
+          if (doi <= 2) break;                       // không tràn -> xong
+          if (h >= 2600) {
+            // Khung đã kịch trần an toàn: không nới được nữa -> THU Ô BẢN VẼ cho vừa,
+            // thà bản vẽ nhỏ lại còn hơn cắt mất khối 07 và vùng ký tên.
+            tranO = tranO ? Math.max(70, tranO - 40) : 140;
+          } else {
+            h = Math.min(2600, h + doi + 10);
+          }
+          layout(h);
+          try { fitDrawRows(tranO); fitManpowerNumber(); } catch (e) {}
+        }
+        return h;
+      }
+
       // Chờ reflow 100ms RỒI đợi TẤT CẢ ảnh (Storage URL) tải xong mới chụp — tránh ảnh trống (vd phần 05).
       // Tính lại chiều cao ô bản vẽ SAU KHI ảnh tải xong (lúc dựng khung ảnh chưa có kích thước
-      // thật nên naturalWidth = 0). Chiều cao tối đa 170px < 210px cũ nên khối 05 chỉ thấp đi,
-      // không bao giờ làm tràn cột.
+      // thật nên naturalWidth = 0), rồi nới khung nếu vì thế mà tràn.
       setTimeout(() => waitAllImages(tempContainer).then(() => {
         try { fitDrawRows(); } catch (e) { console.warn('fitDrawRows lỗi (bỏ qua):', e && e.message); }
         try { fitManpowerNumber(); } catch (e) { console.warn('fitManpowerNumber lỗi (bỏ qua):', e && e.message); }
+        try { finalH = noKhungNeuTran(finalH); } catch (e) { console.warn('noKhungNeuTran lỗi:', e && e.message); }
         return captureAndDownload();
       }), 100);
     }, 400);
@@ -1521,11 +1549,9 @@ async function exportPNG169() {
       const finalWidth = parseInt(tempContainer.style.width);
       const finalHeight = parseInt(tempContainer.style.height);
 
-      // Chốt lại NGAY TRƯỚC KHI CHỤP: lúc này ảnh chắc chắn đã tải xong nên biết tỉ lệ thật.
-      // (Sếp báo 17/08: trong app ô bản vẽ đúng nhưng ảnh xuất vẫn thừa trắng — do lần tính trước
-      //  đó ảnh chưa tải xong, phải dùng tỉ lệ mặc định.)
-      try { fitDrawRows(); } catch (e) {}
-      try { fitManpowerNumber(); } catch (e) {}
+      // KHÔNG tính lại kích thước ô ở đây nữa: làm vậy là đổi bố cục SAU KHI khung đã chốt
+      // -> nội dung dôi ra bị cắt (17/08 mất khối 07 + vùng ký tên). Việc tính ô và nới khung
+      // đã làm xong ở bước trước (fitDrawRows -> noKhungNeuTran), tới đây chỉ việc chụp.
 
       html2canvas(tempContainer, {
         scale: 1.25,
