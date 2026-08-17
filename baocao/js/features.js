@@ -2114,7 +2114,23 @@ async function saveReportData(targetStatus) {
   }
 }
 
+// Sếp chốt 17/08: ảnh thi công phải đủ CẶP (lưới 2 cột, không có ảnh lẻ). Nhắc khi nộp, không
+// chặn cứng — anh em ngoài công trường có lúc chỉ chụp được số lẻ, vẫn phải nộp được báo cáo.
+function nhacAnhLe() {
+  try {
+    const co = (typeof photos !== 'undefined' && Array.isArray(photos))
+      ? photos.filter(p => p && p.img).length : 0;
+    if (co > 0 && co % 2 !== 0) {
+      return confirm('Đang có ' + co + ' ảnh thi công — số LẺ.\n\n' +
+        'Lưới ảnh xếp 2 cột nên hàng cuối sẽ hụt một ô. Thêm 1 ảnh nữa cho đủ ' + (co + 1) +
+        ' ảnh thì báo cáo cân hơn.\n\nVẫn nộp với ' + co + ' ảnh?');
+    }
+  } catch (e) {}
+  return true;
+}
+
 async function submitReportForApproval() {
+  if (!nhacAnhLe()) return;
   if (!confirm("Báo cáo sẽ được nộp cho Chỉ huy trưởng duyệt và bạn sẽ không thể tự ý sửa đổi nữa. Xác nhận nộp?")) return;
   // Chốt số liệu thời tiết THỰC TẾ tới đúng thời điểm nộp (bỏ dự báo) trước khi lưu.
   try { await fetchWeatherFromGPS(true); } catch (e) { console.warn("Chốt thời tiết khi nộp lỗi (bỏ qua):", e && e.message); }

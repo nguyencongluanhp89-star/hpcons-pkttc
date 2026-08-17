@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.5';
+const APP_BUILD = 'b4.6';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -969,7 +969,7 @@ async function exportPNG169() {
       planCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
           ${secHeaderStatic('04', 'KẾ HOẠCH NGÀY MAI', '明日施工计划')}
-          <div style="display: flex; flex-direction: column;">
+          <div data-bc-tach="dong" style="display: flex; flex-direction: column;">
             ${content}
           </div>
         </div>
@@ -1025,7 +1025,7 @@ async function exportPNG169() {
       drawsCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
           ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div id="draws-grid-169" style="display: grid; grid-template-columns: repeat(${Math.max(2, drawsHienThi.length)}, 1fr); align-items: start; gap: 8px;">
+          <div id="draws-grid-169" data-bc-tach="cap" style="display: grid; grid-template-columns: repeat(${Math.max(2, drawsHienThi.length)}, 1fr); align-items: start; gap: 8px;">
             ${drawItemsHtml}
           </div>
         </div>
@@ -1058,7 +1058,7 @@ async function exportPNG169() {
       noteRecCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
           ${secHeaderStatic('06', 'GHI CHÚ & KIẾN NGHỊ', '备注 & 建议')}
-          ${content}
+          <div data-bc-tach="dong" style="display: flex; flex-direction: column; gap: 14px;">${content}</div>
         </div>
       `;
     }
@@ -1121,7 +1121,7 @@ async function exportPNG169() {
       const extraCount  = validPhotos.length - shownPhotos.length;
 
       photosInlineHtml = `
-        <div id="photos-grid-169" style="display: grid; grid-template-columns: ${photoGridCols}; gap: 10px; align-content: start; flex: 1; min-height: 0;">
+        <div id="photos-grid-169" data-bc-tach="cap" style="display: grid; grid-template-columns: ${photoGridCols}; gap: 10px; align-content: start; flex: 1; min-height: 0;">
           ${shownPhotos.map(p => `
             <div style="border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); width: 100%;">
               <img src="${p.img}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
@@ -1300,7 +1300,7 @@ async function exportPNG169() {
             ${secHeaderStatic('03', 'TIẾN ĐỘ THI CÔNG CHI TIẾT', '详细施工进度')}
             <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
               <!-- Trên: Hạng mục — chỉ dùng chỗ CÒN LẠI sau khi khu ảnh đã giữ chỗ; nhiều thì tự tách 2 cột -->
-              <div id="works-text-169" style="flex: 1 1 auto; min-height: 0; padding-right: 5px; box-sizing: border-box;">
+              <div id="works-text-169" data-bc-tach="dong-sau-tieude" style="flex: 1 1 auto; min-height: 0; padding-right: 5px; box-sizing: border-box;">
                 <div style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
                 ${worksHtml}
               </div>
@@ -1554,6 +1554,14 @@ async function exportPNG169() {
       setTimeout(() => waitAllImages(tempContainer).then(() => {
         try { fitDrawRows(); } catch (e) { console.warn('fitDrawRows lỗi (bỏ qua):', e && e.message); }
         try { fitManpowerNumber(); } catch (e) { console.warn('fitManpowerNumber lỗi (bỏ qua):', e && e.message); }
+        // CÔNG TẮC CHẾ ĐỘ NHIỀU TRANG (Sếp chốt 17/08). Mở app kèm ?trang=nhieu để dùng.
+        // Bản 1 trang vẫn là mặc định cho tới khi Sếp duyệt bản nhiều trang.
+        if (cheDoNhieuTrang() && window.BCNhieuTrang) {
+          try { return xuatTheoNhieuTrang(tempContainer); }
+          catch (e) {
+            console.warn('Phân trang lỗi, quay về bản 1 trang:', e && e.message);
+          }
+        }
         try { finalH = noKhungNeuTran(finalH); } catch (e) { console.warn('noKhungNeuTran lỗi:', e && e.message); }
         return captureAndDownload();
       }), 100);
@@ -1570,6 +1578,37 @@ async function exportPNG169() {
           setTimeout(res, 10000);
         });
       }));
+    }
+
+    // Chế độ nhiều trang bật khi URL có ?trang=nhieu (hoặc window.BC_CHE_DO_TRANG = 'nhieu')
+    function cheDoNhieuTrang() {
+      try {
+        if (window.BC_CHE_DO_TRANG === 'nhieu') return true;
+        return new URLSearchParams(location.search).get('trang') === 'nhieu';
+      } catch (e) { return false; }
+    }
+
+    // Phân trang rồi chụp từng trang thành một PNG riêng, xem trước cả loạt trong app.
+    function xuatTheoNhieuTrang(nguon) {
+      const bg = getExportBg();
+      const trangs = window.BCNhieuTrang.xepTrang({ nguon: nguon, bg: bg });
+      return window.BCNhieuTrang.chupCacTrang(trangs, bg.base, 1.25).then(anhs => {
+        window.LAST_EXPORTED_PNG = anhs[0];
+        window.LAST_EXPORTED_PAGES = anhs;
+        if (window.AppCore) {
+          window.AppCore.LAST_EXPORTED_PNG = anhs[0];
+          window.AppCore.LAST_EXPORTED_PAGES = anhs;
+        }
+        const ten = 'BaoCao169_' + el('f_proj').value + '_' + (el('f_date').value || 'bao-cao');
+        window.BCNhieuTrang.don(trangs);
+        if (nguon.parentNode) nguon.parentNode.removeChild(nguon);
+        window.BCNhieuTrang.xemTruocNhieuTrang(anhs, ten);
+      }).catch(err => {
+        console.error('Lỗi xuất nhiều trang:', err);
+        alert('Lỗi xuất ảnh nhiều trang: ' + (err && err.message));
+        window.BCNhieuTrang.don(trangs);
+        if (nguon.parentNode) nguon.parentNode.removeChild(nguon);
+      });
     }
 
     function captureAndDownload() {
