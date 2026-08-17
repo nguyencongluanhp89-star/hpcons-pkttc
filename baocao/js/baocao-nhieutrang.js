@@ -100,10 +100,11 @@
 
   /* ---------- dựng một trang rỗng ---------- */
 
-  function dungTrang(bg, headerGoc, footerGoc) {
+  function dungTrang(bg, headerGoc, footerGoc, caoTrang) {
+    var CT = caoTrang || CAO_TRANG;
     var t = tao('div',
       'position:fixed; left:-9999px; top:-9999px;' +
-      'width:' + RONG_TRANG + 'px; height:' + CAO_TRANG + 'px;' +
+      'width:' + Math.round(CT * TI_LE_TRANG) + 'px; height:' + CT + 'px;' +
       'background-color:' + bg.base + '; background-image:' + bg.image + '; background-size:' + bg.size + ';' +
       'box-sizing:border-box; padding:' + PAD_TREN + 'px ' + PAD_NGANG + 'px ' + PAD_DUOI + 'px ' + PAD_NGANG + 'px;' +
       'display:flex; flex-direction:column; gap:' + GAP + 'px;' +
@@ -214,7 +215,8 @@
       .filter(function (n) { return n.textContent.trim() !== '' || n.querySelector('img'); }); // bỏ spacer rỗng
 
     var trangs = [];
-    var tr = dungTrang(bg, header, footer);
+    var caoTrang = CAO_TRANG;          // có thể nới lên nếu cột trái cần thêm chỗ cho khối 02
+    var tr = dungTrang(bg, header, footer, caoTrang);
     trangs.push(tr);
 
     // Trang 1: cột 1 nhận khối 01 + 02 nguyên khối
@@ -226,6 +228,18 @@
     // hàm vẽ biểu đồ); ở đây chỉ đưa cột 1 và chiều cao cột thật cho nó.
     if (typeof opts.chiaCot1 === 'function' && coDinh.length >= 2) {
       try { opts.chiaCot1(tr.cot[0], hCot); } catch (e) { console.warn('chiaCot1 lỗi:', e && e.message); }
+      // Sếp chốt: KHÔNG được cắt nội dung nào. Nếu khối 01 đã nén hết mức mà cột vẫn không đủ
+      // chỗ cho khối 02 giữ sàn -> NỚI CHIỀU CAO TRANG cho vừa, chứ không bóp khối nào lại.
+      // Đúng nguyên tắc "thiết kế bố cục để vừa khối 02", không phải ngược lại.
+      for (var lanNoi = 0; lanNoi < 2; lanNoi++) {
+        var doiC1 = tr.cot[0].scrollHeight - tr.cot[0].clientHeight;
+        if (doiC1 <= 4) break;
+        caoTrang = Math.min(2600, caoTrang + doiC1 + 10);
+        tr.el.style.height = caoTrang + 'px';
+        tr.el.style.width = Math.round(caoTrang * TI_LE_TRANG) + 'px';
+        hCot = tr.cot[0].getBoundingClientRect().height;
+        try { opts.chiaCot1(tr.cot[0], hCot); } catch (e) {}
+      }
     } else if (coDinh.length) {
       var cuoi = coDinh[coDinh.length - 1];
       var daDungC1 = 0;
@@ -251,7 +265,7 @@
     function sangCotKe() {
       iCot++;
       if (iCot > 2) {
-        tr = dungTrang(bg, header, footer);
+        tr = dungTrang(bg, header, footer, caoTrang);
         trangs.push(tr);
         iCot = 0;
         hCot = tr.cot[0].getBoundingClientRect().height || hCot;
@@ -329,8 +343,8 @@
           scale: scale || 1.25,
           useCORS: true,
           backgroundColor: bgBase,
-          width: RONG_TRANG,
-          height: CAO_TRANG
+          width: parseInt(t.el.style.width) || RONG_TRANG,   // trang có thể đã được nới -> lấy khổ THẬT
+          height: parseInt(t.el.style.height) || CAO_TRANG
         }).then(function (cv) { ds.push(cv.toDataURL('image/png')); });
       });
     }, Promise.resolve()).then(function () { return ds; });

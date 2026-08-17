@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b4.8';
+const APP_BUILD = 'b4.9';
 window.APP_BUILD = APP_BUILD;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
@@ -1588,50 +1588,47 @@ async function exportPNG169() {
       } catch (e) { return false; }
     }
 
-    /* ================= THIẾT KẾ LẠI CỘT 1: KHỐI 02 ĐƯỢC ƯU TIÊN DIỆN TÍCH =================
-       Sếp chốt 17/08: "Không thiết kế khối 02 để vừa chỗ. Hãy thiết kế bố cục để vừa khối 02."
-       Khối 02 (nhân lực + thời tiết + biểu đồ tuần) là nội dung quan trọng nhất của báo cáo:
-       người quản lý nhìn vài giây phải biết hôm nay bao nhiêu người, BCH/tổ đội bao nhiêu,
-       thời tiết thế nào, nhân lực trong tuần tăng hay giảm. Vì vậy:
-         · Khối 02 giữ SÀN diện tích, không bị ép nhỏ để nhường chỗ.
-         · Thiếu chỗ thì GIẢM KHỐI 01 trước (thu ảnh tổng quan, bớt padding) — không mất thông tin.
-         · Còn dư chỗ thì khối 02 lấy hết phần dư (nội dung quyết định chiều cao).
-         · Biểu đồ có sàn riêng, tính theo khả năng ĐỌC khi xuất ảnh, không theo pixel còn thừa.
-       Tuyệt đối không thu nhỏ font, không ẩn trục/nhãn, không cắt cuối biểu đồ.                */
-    const SAN_KHOI_02  = 880;      // sàn cho cả khối 02
-    const SAN_BIEU_DO  = 430;      // sàn riêng cho vùng vẽ biểu đồ tuần
-    const SAN_ANH_TQ   = 230;      // ảnh tổng quan khối 01 không thu nhỏ hơn mức này
+    /* ============ PHÂN BỔ CHIỀU CAO CỘT TRÁI — KHÓA CHỖ KHỐI 02 TRƯỚC ============
+       Sếp chốt 17/08 (lần 2): "Hãy KHÓA chiều cao tối thiểu của khối 02 TRƯỚC rồi mới tối ưu
+       khối 01". Và cấm hẳn logic cũ: "Khối 01 render trước → Khối 02 lấy phần còn dư".
 
-    function thietKeLaiKhoi02(cot1, hCot) {
-      if (!cot1 || cot1.children.length < 2 || !hCot) return;
-      const k01 = cot1.children[0];
-      const k02 = cot1.children[cot1.children.length - 1];
+       Bản b4.8 sai đúng hai chỗ Sếp chỉ ra:
+         · Vẫn đo khối 01 tự nhiên trước, nếu vừa thì khối 02 nhận phần dư — tức khối 02 vẫn
+           là kẻ nhận phần thừa.
+         · Ép height cho khối 01: nội dung cao hơn ô thì bị cột (overflow:hidden) CẮT MẤT —
+           đúng dấu hiệu "nội dung khối 01 bị cắt/che".
 
-      // 1) Đo chiều cao TỰ NHIÊN của khối 01 (để biết nó thực sự cần bao nhiêu)
-      k01.style.flex = '0 0 auto'; k01.style.height = 'auto';
-      k02.style.flex = '0 0 auto'; k02.style.height = 'auto';
-      const h01TuNhien = k01.getBoundingClientRect().height;
+       Cơ chế mới, đúng thứ tự Sếp yêu cầu:
+         chiều cao cột = chiều cao trang − header/footer/padding
+         → DÀNH TRƯỚC chiều cao tối thiểu cho khối 02
+         → phần còn lại mới tới khối 01
+         → khối 01 tự NÉN cho vừa (ảnh → padding → khoảng cách dòng), KHÔNG ép height,
+           KHÔNG cắt, KHÔNG giảm cỡ chữ.                                                    */
+    const MIN_TANG_A   = 360;   // tầng A: tổng nhân lực + BCH + tổ đội + thời tiết, đọc rõ
+    const MIN_BIEU_DO  = 480;   // tầng B: vùng vẽ biểu đồ tuần — có vùng riêng, không ăn phần thừa
+    const MIN_KHOI_02  = 980;   // = tiêu đề mục + tầng A + tầng B + padding, làm tròn an toàn
+    const SAN_ANH_TQ   = 200;   // ảnh tổng quan khối 01 không thu nhỏ hơn mức này
 
-      // 2) Chia chỗ: khối 02 giữ sàn, phần dư dồn hết cho khối 02
-      let h02 = Math.max(SAN_KHOI_02, Math.round(hCot * 0.55));
-      let h01 = hCot - h02 - 20;
-      if (h01TuNhien + h02 + 20 <= hCot) {          // khối 01 vốn đã gọn -> khối 02 lấy hết phần dư
-        h01 = Math.round(h01TuNhien);
-        h02 = hCot - h01 - 20;
-      } else {
-        // 3) Không đủ chỗ -> GIẢM KHỐI 01: thu ảnh tổng quan rồi bớt padding dọc
-        let thieu = Math.round(h01TuNhien - h01);
-        const anh = k01.querySelector('.ov-main-img');
-        if (anh && thieu > 0) {
-          const cao = anh.getBoundingClientRect().height;
-          const caoMoi = Math.max(SAN_ANH_TQ, Math.round(cao - thieu));
+    // Nén khối 01 cho vừa chiều cao được cấp — theo đúng thứ tự Sếp cho phép, và KHÔNG cắt gì.
+    function nenKhoi01(k01, hCap) {
+      k01.style.flex = '0 0 auto';
+      k01.style.height = 'auto';          // KHÔNG ép height -> không bao giờ che nội dung
+      let cao = k01.getBoundingClientRect().height;
+      if (cao <= hCap) return cao;
+
+      // (1) Thu chiều cao ảnh tổng quan
+      const anh = k01.querySelector('.ov-main-img');
+      if (anh) {
+        const caoAnh = anh.getBoundingClientRect().height;
+        const caoMoi = Math.max(SAN_ANH_TQ, Math.round(caoAnh - (cao - hCap)));
+        if (caoMoi < caoAnh) {
           anh.style.height = caoMoi + 'px';
           anh.style.overflow = 'hidden';
           anh.style.display = 'flex';
           anh.style.alignItems = 'center';
           anh.style.justifyContent = 'center';
           const im = anh.querySelector('img');
-          if (im) {   // cover thủ công: html2canvas bỏ qua object-fit nên phải tự tính pixel
+          if (im) {   // cover thủ công (html2canvas bỏ qua object-fit) -> lấp kín, không méo
             const w = anh.getBoundingClientRect().width;
             const r = (im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
             let aw = Math.max(w, Math.round(caoMoi * r));
@@ -1640,30 +1637,66 @@ async function exportPNG169() {
             im.style.width = aw + 'px'; im.style.height = ah + 'px';
             im.style.maxWidth = 'none'; im.style.flexShrink = '0'; im.style.objectFit = 'fill';
           }
-          thieu -= (cao - caoMoi);
+          cao = k01.getBoundingClientRect().height;
         }
-        if (thieu > 0) { k01.style.paddingTop = '12px'; k01.style.paddingBottom = '12px'; }
-        h01 = Math.min(Math.round(k01.getBoundingClientRect().height), hCot - h02 - 20);
-        h02 = hCot - h01 - 20;
       }
-      k01.style.height = h01 + 'px';
-      k02.style.height = h02 + 'px';
+      if (cao <= hCap) return cao;
 
-      // 4) Trong khối 02: tầng A (nhân lực | thời tiết) ở trên, tầng B (biểu đồ) có SÀN riêng
+      // (2) Bớt padding dọc của thẻ
+      k01.style.paddingTop = '12px';
+      k01.style.paddingBottom = '12px';
+      cao = k01.getBoundingClientRect().height;
+      if (cao <= hCap) return cao;
+
+      // (3) Thu gọn khoảng cách giữa các dòng thông tin dự án (giữ nguyên CỠ CHỮ, chỉ bớt khoảng trắng)
+      k01.querySelectorAll('div[style*="padding: 4px 0"]').forEach(function (d) {
+        d.style.padding = '1px 0';
+      });
+      const tienDo = k01.querySelector('div[style*="margin-top: 14px"]');
+      if (tienDo) { tienDo.style.marginTop = '8px'; tienDo.style.padding = '10px 20px'; }
+      return k01.getBoundingClientRect().height;
+    }
+
+    function thietKeLaiKhoi02(cot1, hCot) {
+      if (!cot1 || cot1.children.length < 2 || !hCot) return;
+      const k01 = cot1.children[0];
+      const k02 = cot1.children[cot1.children.length - 1];
+
+      // BƯỚC 1 — DÀNH TRƯỚC chỗ cho khối 02 (khoá sàn, chưa hề đo khối 01)
+      let h02 = Math.max(MIN_KHOI_02, Math.round(hCot * 0.58));
+      // BƯỚC 2 — phần còn lại mới tới khối 01; khối 01 tự nén cho vừa
+      let hCapCho01 = hCot - h02 - 20;
+      let h01That = nenKhoi01(k01, hCapCho01);
+      // BƯỚC 3 — khối 01 nén hết mức vẫn nhỏ hơn phần được cấp -> khối 02 lấy thêm phần dư
+      //          (chỉ được LỚN thêm, tuyệt đối không nhỏ hơn sàn)
+      h02 = Math.max(MIN_KHOI_02, Math.round(hCot - h01That - 20));
+
+      k02.style.flex = '0 0 auto';
+      k02.style.height = h02 + 'px';
+      k02.style.minHeight = MIN_KHOI_02 + 'px';
+
+      // BƯỚC 4 — trong khối 02: tầng B (biểu đồ) có vùng riêng, tầng A lấy phần còn lại
       const tangA = k02.querySelector('.weather-manpower-section');
       const tangB = k02.querySelector('.chart-section');
       if (tangA && tangB) {
-        const hB = Math.max(SAN_BIEU_DO, Math.round(h02 * 0.5));
+        const wrap = k02.querySelector('.content-wrapper-169') || k02;
+        let hWrap = wrap.getBoundingClientRect().height;
+        let hB = Math.max(MIN_BIEU_DO, Math.round(hWrap * 0.52));
+        if (hWrap - hB < MIN_TANG_A) hB = Math.max(MIN_BIEU_DO, hWrap - MIN_TANG_A);
         tangB.style.flex = '0 0 auto';
         tangB.style.height = hB + 'px';
-        tangB.style.minHeight = '0';
-        tangA.style.flex = '1 1 auto';       // tầng A lấy phần còn lại
+        tangB.style.minHeight = MIN_BIEU_DO + 'px';
+        tangA.style.flex = '1 1 auto';
         tangA.style.height = 'auto';
-        tangA.style.minHeight = '0';
+        tangA.style.minHeight = MIN_TANG_A + 'px';
+        // Cả hai tầng cùng đòi sàn mà khung không đủ -> NỚI KHỐI 02 lên cho đủ, không bóp tầng nào
+        const canWrap = MIN_TANG_A + hB;
+        if (hWrap < canWrap) {
+          k02.style.height = (h02 + (canWrap - hWrap)) + 'px';
+        }
       }
 
-      // 5) Số nhân lực và biểu đồ phải tính lại theo kích thước THẬT (đây là chỗ hỏng ở b4.7:
-      //    biểu đồ là SVG vẽ bằng toạ độ pixel của bản 1 trang, sang trang mới thì quá khổ -> bị cắt)
+      // BƯỚC 5 — số nhân lực và biểu đồ vẽ lại theo kích thước THẬT của vùng chứa
       veLaiKhoi02(cot1);
     }
 
