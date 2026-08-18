@@ -171,33 +171,80 @@
     }) };
   }
 
-  // Khối "(tiếp)": clone vỏ thẻ + tiêu đề mục, dọn sạch mọi thùng rồi nhồi phần dư vào đúng thùng
+  /* Khối "(tiếp)" — phần nối của một khối bị tách sang cột/trang khác.
+     Sếp báo 18/08: khối 03 sang cột bị LẶP LẠI THÔNG TIN — mỗi khối tiếp mang theo cả thanh
+     tiêu đề xanh "03 TIẾN ĐỘ THI CÔNG CHI TIẾT" lẫn dòng "HÌNH ẢNH THI CÔNG TRONG NGÀY",
+     nhìn rối và chiếm chỗ nên lại phải tách vụn tiếp (2 khối, mỗi khối chỉ 2 ảnh).
+     Nay khối tiếp:
+       · BỎ thanh tiêu đề mục (không lặp số mục và tên mục nữa)
+       · chỉ giữ MỘT dòng nhãn gọn của phần đang nối, kèm chữ "(tiếp)"
+       · tiêu đề phụ của cụm không có nội dung thì ẩn luôn
+     Nhờ gọn hơn ~90px mà mỗi khối tiếp chứa được nhiều ảnh hơn, ít lần tách hơn.        */
   function khoiTiep(khoiGoc, phanDu) {
     var moi = khoiGoc.cloneNode(true);
+    moi.setAttribute('data-bc-tiep', '1');
     var thungsMoi = Array.prototype.slice.call(moi.querySelectorAll('[data-bc-tach]'));
     var thungsGoc = Array.prototype.slice.call(khoiGoc.querySelectorAll('[data-bc-tach]'));
     if (!thungsMoi.length) return null;
+
     thungsMoi.forEach(function (th, ti) {
       var kieu = th.getAttribute('data-bc-tach');
       while (th.firstChild) th.removeChild(th.firstChild);
-      // thùng kiểu "dòng sau tiêu đề": lặp lại dòng tiêu đề phụ cho dễ đọc
       if (kieu === 'dong-sau-tieude' && thungsGoc[ti] && thungsGoc[ti].children[0]) {
         th.appendChild(thungsGoc[ti].children[0].cloneNode(true));
       }
       (phanDu.du[ti] || []).forEach(function (n) { th.appendChild(n); });
     });
-    // Thùng nào rỗng hẳn thì ẩn CHÍNH NÓ. Bản đầu ẩn node CHA -> mà cha của danh sách hạng mục
-    // lại là container chứa luôn lưới ảnh, nên ẩn cha là mất sạch ảnh (đúng lỗi: 20 ảnh còn 10).
+
+    // Thùng rỗng thì ẩn CHÍNH NÓ (ẩn node cha sẽ mất cả lưới ảnh — lỗi đã gặp), và ẩn luôn
+    // tiêu đề phụ đứng ngay trước nó cho khỏi trơ tiêu đề không có nội dung.
     thungsMoi.forEach(function (th) {
       var kieu = th.getAttribute('data-bc-tach');
       var giu = (kieu === 'dong-sau-tieude') ? 1 : 0;
-      if (th.children.length <= giu) th.style.display = 'none';
+      if (th.children.length <= giu) {
+        th.style.display = 'none';
+        // tiêu đề phụ đứng NGOÀI thùng (sibling)
+        var truoc = th.previousElementSibling;
+        if (truoc && truoc.getAttribute && truoc.getAttribute('data-bc-tieudephu') === '1') {
+          truoc.style.display = 'none';
+        }
+        // và tiêu đề phụ nằm NGAY TRONG thùng (khối 03 giữ tiêu đề "TỔNG HỢP CÁC HẠNG MỤC"
+        // bên trong thùng) — không ẩn thì bước chọn nhãn sẽ gắn "(tiếp)" vào đúng cái tiêu đề
+        // của phần KHÔNG có nội dung, gây hiểu sai.
+        Array.prototype.forEach.call(th.querySelectorAll('[data-bc-tieudephu="1"]'), function (x) {
+          x.style.display = 'none';
+        });
+      }
     });
-    var tieu = moi.querySelector('.sec-h-169, [data-bc-tieude]') || moi.firstElementChild;
-    if (tieu && tieu.textContent && tieu.textContent.indexOf('(tiếp)') < 0) {
-      var nhan = tao('span', 'font-weight:400; opacity:.85;');
-      nhan.textContent = '  (tiếp)';
-      tieu.appendChild(nhan);
+
+    // Không có nội dung thật nào -> KHÔNG tạo khối tiếp rỗng (từng sinh ra thẻ trống 0 ảnh)
+    var coND = thungsMoi.some(function (th) {
+      var giu = (th.getAttribute('data-bc-tach') === 'dong-sau-tieude') ? 1 : 0;
+      return th.children.length > giu;
+    });
+    if (!coND) return null;
+
+    // BỎ thanh tiêu đề mục — không lặp lại "03 TIẾN ĐỘ THI CÔNG CHI TIẾT" nữa
+    var thanh = moi.querySelector('[data-bc-tieude="1"], .sec-h-169');
+    if (thanh && thanh.parentNode) thanh.parentNode.removeChild(thanh);
+
+    // Đánh dấu "(tiếp)" vào ĐÚNG MỘT nhãn: tiêu đề phụ đầu tiên còn hiện
+    var nhan = null;
+    var dsPhu = Array.prototype.slice.call(moi.querySelectorAll('[data-bc-tieudephu="1"]'));
+    for (var k = 0; k < dsPhu.length; k++) {
+      if (dsPhu[k].style.display !== 'none') { nhan = dsPhu[k]; break; }
+    }
+    if (nhan) {
+      if (String(nhan.textContent).indexOf('(tiếp)') < 0) {
+        var sp = tao('span', 'font-weight:400; opacity:.8;');
+        sp.textContent = '  (tiếp)';
+        nhan.appendChild(sp);
+      }
+    } else {
+      // Khối không có tiêu đề phụ nào (ví dụ khối 04/06) -> thêm một dòng nhãn nhỏ
+      var d = tao('div', 'font-size:20px; font-weight:400; color:#64748b; margin-bottom:8px;');
+      d.textContent = '(tiếp)';
+      moi.insertBefore(d, moi.firstChild);
     }
     return moi;
   }
@@ -317,6 +364,39 @@
       hang.unshift(khoi);
       sangCotKe();
     }
+
+    // ===== GỘP CÁC KHỐI "(tiếp)" LIỀN NHAU TRONG CÙNG MỘT CỘT =====
+    // Sếp báo 18/08: khối 03 sang cột sinh ra HAI khối "(tiếp)" cạnh nhau, mỗi khối chỉ 2 ảnh.
+    // Hai khối liền nhau thì gộp làm một: dồn nội dung thùng của khối sau vào khối trước rồi
+    // bỏ khối sau. Gộp chỉ làm THẤP đi (bớt một vỏ thẻ + một nhãn) nên không thể gây tràn.
+    trangs.forEach(function (t) {
+      t.cot.forEach(function (c) {
+        var i = 0;
+        while (i < c.children.length - 1) {
+          var a = c.children[i], b = c.children[i + 1];
+          if (a.getAttribute('data-bc-tiep') === '1' && b.getAttribute('data-bc-tiep') === '1') {
+            var thA = Array.prototype.slice.call(a.querySelectorAll('[data-bc-tach]'));
+            var thB = Array.prototype.slice.call(b.querySelectorAll('[data-bc-tach]'));
+            if (thA.length === thB.length && thA.length) {
+              thB.forEach(function (tb, k) {
+                var giu = (tb.getAttribute('data-bc-tach') === 'dong-sau-tieude') ? 1 : 0;
+                while (tb.children.length > giu) thA[k].appendChild(tb.children[giu]);
+                if (thA[k].children.length > 0) {
+                  thA[k].style.display = '';
+                  var truoc = thA[k].previousElementSibling;
+                  if (truoc && truoc.getAttribute && truoc.getAttribute('data-bc-tieudephu') === '1') {
+                    truoc.style.display = '';
+                  }
+                }
+              });
+              c.removeChild(b);
+              continue;                       // thử gộp tiếp khối kế nếu cũng là "(tiếp)"
+            }
+          }
+          i++;
+        }
+      });
+    });
 
     // ===== VÒNG KIỂM CUỐI — KHÔNG CỘT NÀO ĐƯỢC PHÉP TRÀN =====
     // Sếp báo 17/08: hàng ảnh cuối của khối 03 bị cắt bởi giới hạn trang. Đây là mất nội dung.

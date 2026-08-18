@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.6';
+const APP_BUILD = 'b5.7';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -662,7 +662,7 @@ async function exportPNG169() {
     // Helper render header các phần giống báo cáo gốc (nền gradient xanh navy đặc, bo góc tròn, viền trái xanh lục)
     function secHeaderStatic(num, titleVi, titleCn) {
       return `
-        <div style="background: linear-gradient(90deg, var(--navy) 0%, var(--navy2) 100%); color: #fff; padding: 17px 26px; font-size: ${FS.secTitle}px; font-weight: ${FW.title}; display: flex; align-items: center; letter-spacing: 0.3px; border-left: 8px solid var(--navy2); box-shadow: 0 2px 5px rgba(0,0,0,0.08); text-transform: uppercase; border-radius: 8px; margin-bottom: 20px; line-height: 1.2; flex-shrink: 0; box-sizing: border-box;">
+        <div class="sec-h-169" data-bc-tieude="1" style="background: linear-gradient(90deg, var(--navy) 0%, var(--navy2) 100%); color: #fff; padding: 17px 26px; font-size: ${FS.secTitle}px; font-weight: ${FW.title}; display: flex; align-items: center; letter-spacing: 0.3px; border-left: 8px solid var(--navy2); box-shadow: 0 2px 5px rgba(0,0,0,0.08); text-transform: uppercase; border-radius: 8px; margin-bottom: 20px; line-height: 1.2; flex-shrink: 0; box-sizing: border-box;">
           <span style="background: #fff; color: var(--navy); border-radius: 5px; padding: 6px 12px; font-size: ${FS.secNum}px; font-weight: ${FW.title}; line-height: 1; margin-right: 13px; font-family: 'Outfit', sans-serif;">${num}</span>
           ${titleVi} <span style="font-weight: 400; font-size: ${FS.secCn}px; opacity: 0.85; font-family: Arial; text-transform: none; margin-left: 7px;">/ ${titleCn}</span>
         </div>
@@ -1442,12 +1442,12 @@ async function exportPNG169() {
             <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
               <!-- Trên: Hạng mục — chỉ dùng chỗ CÒN LẠI sau khi khu ảnh đã giữ chỗ; nhiều thì tự tách 2 cột -->
               <div id="works-text-169" data-bc-tach="dong-sau-tieude" style="flex: 1 1 auto; min-height: 0; padding-right: 5px; box-sizing: border-box;">
-                <div style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
+                <div data-bc-tieudephu="1" style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px;">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>
                 ${worksHtml}
               </div>
               <!-- Dưới: Khu ảnh GIỮ CHỖ CỐ ĐỊNH đủ 8 hình (2×4) — không co theo chữ, không phình khi ít ảnh -->
               <div id="photos-sec-169" style="flex: 0 0 ${PHOTO_AREA_PCT}%; min-height: 0; display: flex; flex-direction: column; border-top: 1.5px solid #e8edf5; padding-top: 14px; margin-top: 14px;">
-                <div style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px; flex-shrink: 0;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
+                <div data-bc-tieudephu="1" style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px; flex-shrink: 0;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
                 ${photosInlineHtml}
               </div>
             </div>
