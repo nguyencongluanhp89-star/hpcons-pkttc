@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.4';
+const APP_BUILD = 'b5.5';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -54,6 +54,97 @@ function oCoverTam(hop, wO, hO) {
 }
 window.coverTamChung = coverTamChung;
 window.oCoverTam = oCoverTam;
+
+/* =============================================================================
+   KHỐI 05 — TỔNG HỢP NHÀ THẦU TRONG TUẦN            (Sếp chốt 18/08/2026)
+   -----------------------------------------------------------------------------
+   Mục đích: nhìn nhanh nhà thầu nào đang tham gia công trường và hoạt động vào
+   ngày nào, trong TUẦN CHỨA NGÀY CỦA BÁO CÁO (không phải tuần hiện tại của máy).
+     · mỗi dòng = 1 nhà thầu, không lặp tên
+     · ● = có thi công trong ngày, – = không
+     · tiêu đề mỗi ngày kèm ngày tháng, ví dụ "T2 17/08"
+     · TỰ ĐỘNG sinh khi xuất báo cáo, không phải nhập thủ công
+   Sếp chốt cách tính ●: nhà thầu có tên VÀ số người > 0 trong báo cáo ngày đó.
+   Dữ liệu: units[] của từng báo cáo trong tuần ({name, area, n}); riêng ngày của
+   báo cáo đang làm thì lấy units đang nhập trên form (chưa lưu cũng vẫn đúng).
+   ========================================================================== */
+function tongHopNhaThauTuan(ngayBaoCao) {
+  const NHAN = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const d0 = new Date(String(ngayBaoCao) + 'T00:00:00');
+  if (isNaN(d0.getTime())) return { ngay: [], nhaThau: [] };
+  const dow = d0.getDay();                       // 0 = Chủ Nhật
+  const luiVeThu2 = (dow === 0) ? 6 : (dow - 1);
+  const thu2 = new Date(d0);
+  thu2.setDate(d0.getDate() - luiVeThu2);
+
+  const ngay = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(thu2);
+    d.setDate(thu2.getDate() + i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const ds = y + '-' + m + '-' + dd;
+    ngay.push({ dateStr: ds, nhan: NHAN[i], ngayThang: dd + '/' + m, laTuongLai: ds > ngayBaoCao });
+  }
+
+  const pid = (typeof curProject !== 'undefined' && curProject) ? (curProject.id || curProject) : '';
+  const rs = ((typeof reports !== 'undefined' && Array.isArray(reports)) ? reports : [])
+    .filter(r => r.project_id === pid || r.project === pid);
+
+  function unitsCuaNgay(ds) {
+    if (ds === ngayBaoCao) {
+      return (typeof units !== 'undefined' && Array.isArray(units)) ? units : [];
+    }
+    const r = rs.find(x => x.date === ds);
+    return (r && Array.isArray(r.units)) ? r.units : [];
+  }
+
+  const bang = new Map();      // khoá chuẩn hoá -> { ten, coMat[7] }
+  ngay.forEach((ng, i) => {
+    unitsCuaNgay(ng.dateStr).forEach(u => {
+      const ten = String((u && u.name) || '').trim();
+      if (!ten) return;
+      const so = parseInt(u && u.n, 10) || 0;
+      if (so <= 0) return;                  // Sếp chốt: phải có người mới tính là có thi công
+      const khoa = ten.toLowerCase();
+      if (!bang.has(khoa)) bang.set(khoa, { ten: ten, coMat: [false, false, false, false, false, false, false] });
+      bang.get(khoa).coMat[i] = true;
+    });
+  });
+
+  // Nhà thầu hoạt động nhiều ngày hơn xếp lên trước, cùng số ngày thì theo tên
+  const nhaThau = Array.from(bang.values()).sort((a, b) => {
+    const sa = a.coMat.filter(Boolean).length, sb = b.coMat.filter(Boolean).length;
+    if (sb !== sa) return sb - sa;
+    return a.ten.localeCompare(b.ten, 'vi');
+  });
+  return { ngay: ngay, nhaThau: nhaThau };
+}
+window.tongHopNhaThauTuan = tongHopNhaThauTuan;
+
+// Bảng tổng hợp nhà thầu cho BẢN XEM TRONG APP (ảnh xuất dựng riêng trong exportPNG169).
+function contractorTableHtml() {
+  const th = tongHopNhaThauTuan((typeof el === 'function' && el('f_date')) ? el('f_date').value : '');
+  const dauNgay = th.ngay.map(n =>
+    '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap;">'
+    + n.nhan + ' <span style="color:var(--grey); font-weight:400; font-size:var(--fs-caption-cn);">' + n.ngayThang + '</span></th>'
+  ).join('');
+  const dong = th.nhaThau.length
+    ? th.nhaThau.map((nt, idx) => {
+        const o = th.ngay.map((n, i) => nt.coMat[i]
+          ? '<td style="text-align:center; padding:6px 4px; color:var(--green-d); font-weight:800;">●</td>'
+          : '<td style="text-align:center; padding:6px 4px; color:#cbd5e1;">–</td>').join('');
+        return '<tr style="' + (idx % 2 ? 'background:#fafbfc;' : '') + '">'
+          + '<td style="padding:6px 10px; font-size:var(--fs-body); font-weight:700; color:var(--navy); border-bottom:1px solid #f1f5f9;">'
+          + esc(nt.ten) + '</td>' + o + '</tr>';
+      }).join('')
+    : '<tr><td colspan="8" style="padding:14px; text-align:center; color:var(--grey); font-style:italic; font-size:var(--fs-caption);">Chưa có nhà thầu nào thi công trong tuần</td></tr>';
+  return '<table style="width:100%; border-collapse:collapse; table-layout:fixed;">'
+    + '<thead><tr><th style="text-align:left; padding:6px 10px; font-size:var(--fs-caption); color:var(--green-d); text-transform:uppercase; border-bottom:2px solid #cbd5e1; width:30%;">NHÀ THẦU</th>'
+    + dauNgay + '</tr></thead><tbody>' + dong + '</tbody></table>';
+}
+window.contractorTableHtml = contractorTableHtml;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
   const dt=new Date(v+'T00:00:00');
@@ -447,8 +538,10 @@ function draw(){
   <div class="sec-h" onclick="editBilingualField('f_plan', 'KẾ HOẠCH / 计划')" title="Nhấn để nhập thủ công và tự dịch"><span class="num">04</span> KẾ HOẠCH THI CÔNG NGÀY MAI <span class="cn">/ 明日施工计划</span></div>
   <div class="pad" style="cursor:pointer;transition:0.2s" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'" onclick="editBilingualField('f_plan', 'KẾ HOẠCH / 计划')" title="Nhấn để nhập thủ công và tự dịch">${planHtml}</div>
 
-  <div class="sec-h" onclick="openModal('grp-05')"><span class="num">05</span> BẢN VẼ & TỔNG THỂ <span class="cn">/ 图纸与总体布置图</span></div>
-  <div class="pad"><div class="draw">${drawHtml}</div></div>
+  <!-- Khối 05: TỔNG HỢP NHÀ THẦU (Sếp chốt 18/08) — TỰ ĐỘNG sinh từ báo cáo trong tuần
+       chứa ngày của báo cáo, không phải nhập thủ công nên không mở popup khi bấm. -->
+  <div class="sec-h" style="cursor:default"><span class="num">05</span> TỔNG HỢP NHÀ THẦU <span class="cn">/ 分包商汇总</span></div>
+  <div class="pad">${contractorTableHtml()}</div>
 
   <div class="sec-h" onclick="openModal('grp-06')"><span class="num">06</span> GHI CHÚ & KIẾN NGHỊ <span class="cn">/ 备注与建议</span></div>
   <div class="pad notes">
@@ -1026,58 +1119,50 @@ async function exportPNG169() {
       `;
     }
 
-    // --- Khối 05: Bản vẽ & Tổng thể (Chỉ hiện khi có ảnh) ---
-    const activeDraws = (typeof draws !== 'undefined' && Array.isArray(draws)) ? draws : [];
-    let drawsCardHtml = '';
-    const validDraws = activeDraws.filter(d => d && d.img);
+    /* --- Khối 05: TỔNG HỢP NHÀ THẦU TRONG TUẦN (Sếp chốt 18/08) ---------------------
+       Thay hẳn khối "Bản vẽ & Tổng thể" cũ. Bảng này TỰ ĐỘNG sinh khi xuất báo cáo,
+       không phải nhập thủ công: mỗi dòng 1 nhà thầu, ● = có thi công ngày đó,
+       – = không, tiêu đề ngày kèm ngày tháng, tuần lấy theo NGÀY CỦA BÁO CÁO.
+       Chỉ tổng hợp, không thêm biểu đồ hay thông tin phụ.                          */
+    let contractorCardHtml = '';
+    {
+      const th = tongHopNhaThauTuan(el('f_date').value || '');
+      const ngay = th.ngay, nhaThau = th.nhaThau;
+      const oNgay = 'text-align:center; padding:7px 4px; font-size:' + FS.bodySmall + 'px;';
 
-    if (validDraws.length > 0) {
-      let drawItemsHtml = '';
-      // Sếp chốt 17/08: thẻ 05 là GALLERY COMPACT — chỉ để xem nhanh, tối đa 4 ảnh trên 1 hàng,
-      // ảnh dư gộp thành dấu "+N" chồng lên ô cuối, KHÔNG làm thẻ cao thêm.
-      const DRAW_MAX = 8;   // thống nhất với khối 03 (cùng cho tối đa 8 ô); app hiện có 4 ô bản vẽ
-      const drawDu = Math.max(0, validDraws.length - DRAW_MAX);
-      const drawsHienThi = validDraws.slice(0, DRAW_MAX);
-      drawsHienThi.forEach((d, idx) => {
-        let t_vi = d.t || '';
-        let t_cn_val = '';
-        if (t_vi.includes('|')) {
-          const parts = t_vi.split('|');
-          t_vi = parts[0].trim();
-          t_cn_val = parts[1].trim();
-        }
-        const t_cn = t_cn_val || ((typeof workCN === 'function') ? workCN(t_vi) : '');
-        
-        // Chiều cao vùng ảnh do fitDrawRows() tính lại theo TỈ LỆ THẬT của từng bản vẽ (Sếp yêu cầu
-        // 15/08). Giá trị 150px chỉ là tạm cho lần dựng đầu.
-        // Ảnh dư (nếu có) báo bằng dấu "+N" chồng góc ô cuối — không sinh thêm hàng.
-        const badgeDu = (drawDu > 0 && idx === drawsHienThi.length - 1)
-          ? `<div style="position:absolute; right:6px; bottom:6px; background:rgba(15,23,42,.78); color:#fff; font-size:${FS.tiny}px; font-weight:${FW.body}; padding:2px 7px; border-radius:10px; line-height:1.4;">+${drawDu}</div>`
-          : '';
-        // Chú thích 1 dòng, tràn thì cắt bằng "…" — giữ chiều cao thẻ cố định, không bị chữ đẩy cao.
-        const motDong = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
-        drawItemsHtml += `
-          <div class="draw-cell-169" style="position: relative; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; background: #fff; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-            <div class="draw-imbox-169" style="height: 120px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0;">
-              <img src="${d.img}" class="draw-im-169" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-            </div>
-            ${badgeDu}
-            <div style="padding: 4px 6px; text-align: center; line-height: 1.25; font-size: ${FS.tiny}px; background: #f8fafc; border-top: 1px solid #f1f5f9; flex-shrink: 0;">
-              <div style="font-weight: ${FW.body}; color: #0f172a; text-transform: uppercase; ${motDong}">${t_vi}</div>
-              ${t_cn ? `<div style="color: #64748b; font-size: ${FS.tiny}px; margin-top: 1px; ${motDong}">${t_cn}</div>` : ''}
-            </div>
-          </div>
-        `;
-      });
-      
-      // Lưới 4 CỘT / 1 HÀNG (Sếp chốt 17/08). Trước đây 2 cột nhiều hàng, ô co giãn theo tỉ lệ ảnh
-      // nên thẻ 05 phình to, ăn hết chỗ của khối 06/07. Nay thẻ 05 chỉ là gallery xem nhanh.
-      drawsCardHtml = `
+      const dauNgay = ngay.map(n =>
+        '<th style="' + oNgay + ' font-weight:' + FW.body + '; color:#0f172a; border-bottom:2px solid #cbd5e1; white-space:nowrap;">'
+        + n.nhan + ' <span style="color:#64748b; font-weight:400; font-size:' + FS.tiny + 'px;">' + n.ngayThang + '</span></th>'
+      ).join('');
+
+      const dongHtml = nhaThau.length
+        ? nhaThau.map((nt, idx) => {
+            const o = ngay.map((n, i) => nt.coMat[i]
+              ? '<td style="' + oNgay + ' color:#2E6B22; font-weight:' + FW.title + ';">●</td>'
+              : '<td style="' + oNgay + ' color:#cbd5e1;">–</td>'
+            ).join('');
+            const nen = idx % 2 ? 'background:#fafbfc;' : '';
+            return '<tr data-bc-dong style="' + nen + '">'
+              + '<td style="padding:7px 10px; font-size:' + FS.body + 'px; font-weight:' + FW.body
+              + '; color:#0f172a; border-bottom:1px solid #f1f5f9;">' + esc(nt.ten) + '</td>' + o + '</tr>';
+          }).join('')
+        : '<tr><td colspan="8" style="padding:16px; text-align:center; color:#94a3b8; font-style:italic; font-size:'
+          + FS.bodySmall + 'px;">Chưa có nhà thầu nào thi công trong tuần</td></tr>';
+
+      contractorCardHtml = `
         <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 14px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex: 0 0 auto;">
-          ${secHeaderStatic('05', 'BẢN VẼ & TỔNG THỂ', '图纸与总体布置图')}
-          <div id="draws-grid-169" data-bc-tach="cap" style="display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; gap: 10px;">
-            ${drawItemsHtml}
-          </div>
+          ${secHeaderStatic('05', 'TỔNG HỢP NHÀ THẦU', '分包商汇总')}
+          <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:7px 10px; font-size:${FS.bodySmall}px; font-weight:${FW.body}; color:#2E6B22; text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid #cbd5e1; width:30%;">NHÀ THẦU <span style="color:#64748b; font-weight:400; text-transform:none;">/ 分包商</span></th>
+                ${dauNgay}
+              </tr>
+            </thead>
+            <tbody data-bc-tach="dong">
+              ${dongHtml}
+            </tbody>
+          </table>
         </div>
       `;
     }
@@ -1371,7 +1456,7 @@ async function exportPNG169() {
           ${planCardHtml}
 
           <!-- Khối 05: Bản vẽ & Tổng thể -->
-          ${drawsCardHtml}
+          ${contractorCardHtml}
 
           <!-- Khối 06: Ghi chú & Kiến nghị -->
           ${noteRecCardHtml}
@@ -1432,8 +1517,9 @@ async function exportPNG169() {
       const RATIO = 15 / 9;              // rộng : cao = 15 : 9 (ảnh ngang cân đối)
       // Khối 05 nay xếp 2 CỘT giống khối 03 (Sếp chốt 17/08) nên chỗ cần chừa tính theo số HÀNG:
       // mỗi hàng = ô 4:3 + 1 dòng chú thích. Trước đây chốt cứng 220px cho 1 hàng.
-      const DRAW_HANG = validDraws.length > 0 ? Math.ceil(Math.min(validDraws.length, 8) / 2) : 0;
-      const DRAW_ALLOWANCE = DRAW_HANG > 0 ? Math.min(2, DRAW_HANG) * 230 : 0;
+      // Khối 05 nay là BẢNG CHỮ (tổng hợp nhà thầu), không còn ảnh bản vẽ nên không phải
+      // chừa chỗ riêng cho ảnh; chiều cao bảng đã nằm trong phép đo chữ của cột 3.
+      const DRAW_ALLOWANCE = 0;
       const PHOTO_ROWS = 4;              // khối 03: LUÔN giữ chỗ 4 hàng × 2 cột = đủ 8 hình
       const CHROME = () => headerHeight + footerHeight + 142; // padding dọc 58+44 + 2 gap 20 = 142
 
@@ -1448,59 +1534,10 @@ async function exportPNG169() {
         if (h > 0) num.style.fontSize = Math.max(38, Math.min(FS.manpower, Math.floor(h * 0.86))) + 'px';
       }
 
-      // Khối 05 — GALLERY COMPACT (Sếp chốt 17/08). Nguyên tắc: thẻ 05 chỉ để xem nhanh hình tổng
-      // thể, KHÔNG được ăn diện tích của khối 06 (ghi chú/kiến nghị) và 07 (an toàn - chất lượng -
-      // tiến độ). Nên:
-      //   · 4 ảnh xếp trên CÙNG 1 HÀNG, không sinh hàng thứ hai;
-      //   · thumbnail tỉ lệ cố định 4:3, không phình theo tỉ lệ ảnh gốc (hết cảnh panorama dài mỏng);
-      //   · vùng ảnh bị chặn trần theo % chiều cao trang -> thẻ 05 luôn thấp, dữ liệu được ưu tiên;
-      //   · ảnh LẤP ĐẦY KÍN ô (cover) và KHÔNG méo.
-      // maxOverride: ép trần thấp hơn — dùng khi nội dung quá nhiều, khung đã kịch trần mà vẫn tràn
-      // thì thu ô bản vẽ cho vừa, chứ không cắt mất khối 07 / vùng ký tên.
-      // Sếp chốt 17/08: THỐNG NHẤT hiển thị khối 05 với khối 03 — cùng lưới 2 CỘT, cùng tỉ lệ ô
-      // 4:3, nên ô bản vẽ có bề rộng bằng ô ảnh thi công (trước là 4 cột nên ô chỉ bằng nửa,
-      // ảnh trông nhỏ hơn khoảng 2 lần).
-      const TI_LE_O = 4 / 3;      // thumbnail 4:3 — giống khối 03
-      const COT_KHOI_05 = 2;      // 2 cột — giống khối 03
-      const TRAN_ANH = 0.24;      // trần cho vùng ảnh: 2 hàng × ~12% (trước 0.11 tính cho 1 hàng)
-      function fitDrawRows(maxOverride) {
-        const g = document.getElementById('draws-grid-169');
-        if (!g || !g.children.length) return;
-        const cells = Array.from(g.children);
-        const GAP = 10;
-        const gw = g.getBoundingClientRect().width;
-        if (!gw) return;
-        const cw = Math.max(40, Math.floor((gw - (COT_KHOI_05 - 1) * GAP) / COT_KHOI_05));
-        const fhNow = parseInt(tempContainer.style.height) || 1080;
-        // SÀN 130px: Sếp báo 17/08 — ảnh bị ép mỏng thì không đọc ra nội dung, mất luôn ý nghĩa
-        // của thẻ 05. Thà thẻ cao thêm chút còn hơn 4 dải mỏng vô dụng.
-        const SAN_O = 130;
-        const TRAN = maxOverride || Math.round(fhNow * TRAN_ANH);
-        const hO = Math.max(SAN_O, Math.min(Math.max(TRAN, SAN_O), Math.round(cw / TI_LE_O)));
+      // Khối 05 đã đổi thành BẢNG tổng hợp nhà thầu (Sếp chốt 18/08) nên hàm canh lưới ảnh
+      // bản vẽ fitDrawRows() không còn việc gì làm — đã bỏ cùng các hằng số TI_LE_O / COT_KHOI_05
+      // / TRAN_ANH / SAN_O của nó. Ảnh khối 03 vẫn do fillGrid() lo.
 
-        const ratio = cells.map(c => {
-          const im = c.querySelector('.draw-im-169');
-          return (im && im.naturalWidth && im.naturalHeight) ? (im.naturalWidth / im.naturalHeight) : 1.6;
-        });
-
-        // COVER THỦ CÔNG: html2canvas 1.4.1 không hỗ trợ object-fit (trình duyệt vẽ đúng nhưng ảnh
-        // xuất bị kéo giãn -> méo). Nên tự tính width/height ảnh ra PIXEL sao cho phủ kín ô mà vẫn
-        // đúng tỉ lệ gốc; phần thừa để ô overflow:hidden cắt đều (ô đang flex center).
-        cells.forEach((c, k) => {
-          const box = c.querySelector('.draw-imbox-169');
-          if (box) { box.style.height = hO + 'px'; box.style.padding = '0'; }
-          const im = c.querySelector('.draw-im-169');
-          if (im) {
-            coverTamChung(im, cw, hO);   // quy tắc hình học dùng chung toàn app
-          }
-        });
-
-        // Dấu chẩn đoán TẠM ở chân trang: in tỉ lệ thật của bản vẽ mà mã đọc được. Gỡ khi Sếp duyệt.
-        // Dấu chẩn đoán khối 05 đã GỠ ngày 17/08 (Sếp duyệt "báo cáo xuất ra đã đẹp và đạt yêu
-        // cầu"). Nếu sau này cần soi lại: mở console gõ window._chanDoan05 — vẫn ghi âm thầm,
-        // không in ra báo cáo nữa.
-        window._chanDoan05 = { tiLeAnh: ratio.map(x => +x.toFixed(2)), oCao: hO, khung: fhNow, cotTran: window._cotTran || 0 };
-      }
       // forceRows: ép số hàng thay vì tính theo số ảnh thực tế (khối 03 luôn giữ chỗ đủ 8 hình).
       function fillGrid(id, forceRows) {
         const g = document.getElementById(id);
@@ -1524,7 +1561,6 @@ async function exportPNG169() {
         // ảnh khối 03 (cột 2): LUÔN chia đủ 4 hàng — ít ảnh cũng không phình to, chỗ vẫn giữ cho đủ 8 hình
         fillGrid('photos-grid-169', PHOTO_ROWS);
         // bản vẽ khối 05 (cột 3): ô cao theo TỈ LỆ THẬT của từng bản vẽ (hết cảnh ảnh dài lọt thỏm)
-        fitDrawRows();
         // số nhân lực khối 02: hạ cỡ chữ cho vừa ô, tránh đè lên tiêu đề
         fitManpowerNumber();
 
@@ -1542,7 +1578,7 @@ async function exportPNG169() {
 
       // Đo chiều cao PHẦN CHỮ của cột 3 (tạm thu lưới bản vẽ về 0) — để chốt khung không cắt, không phình.
       function col3TextNeed() {
-        const dg = document.getElementById('draws-grid-169');
+        const dg = null;   // khối 05 nay là bảng chữ, không còn lưới ảnh phải tạm ẩn khi đo
         let savedDisplay = null;
         if (dg) { savedDisplay = dg.style.display; dg.style.display = 'none'; }
         const prev = col3El.style.height; col3El.style.height = 'auto';
@@ -1580,17 +1616,14 @@ async function exportPNG169() {
           window._cotTran = (doi <= 2) ? 0 : (doi3 > 2 ? 3 : (doi1 > 2 ? 1 : 2));
           if (doi <= 2) break;                       // không tràn -> xong
           if (h >= 2600) {
-            // Khung đã kịch trần an toàn: không nới được nữa.
-            // Sếp báo 17/08: chính van này là thủ phạm làm 4 bản vẽ thành dải mỏng — nó thu ô
-            // KỂ CẢ khi cột tràn là cột 1/cột 2, trong khi thu bản vẽ chỉ cứu được CỘT 3.
-            // Nay: chỉ thu khi ĐÚNG cột 3 tràn, và sàn 130px để ảnh còn nhận ra nội dung.
-            if (doi3 > 2) tranO = tranO ? Math.max(130, tranO - 30) : 190;
-            else break;                              // cột 1/2 tràn: thu bản vẽ vô ích -> dừng
+            // Khung đã kịch trần an toàn và khối 05 nay là bảng chữ (không còn ô ảnh bản vẽ để
+            // thu nhỏ) -> không còn cách nào nới thêm, dừng để không lặp vô ích.
+            break;
           } else {
             h = Math.min(2600, h + doi + 10);
           }
           layout(h);
-          try { fitDrawRows(tranO); fitManpowerNumber(); } catch (e) {}
+          try { fitManpowerNumber(); } catch (e) {}
         }
         return h;
       }
@@ -1599,7 +1632,6 @@ async function exportPNG169() {
       // Tính lại chiều cao ô bản vẽ SAU KHI ảnh tải xong (lúc dựng khung ảnh chưa có kích thước
       // thật nên naturalWidth = 0), rồi nới khung nếu vì thế mà tràn.
       setTimeout(() => waitAllImages(tempContainer).then(() => {
-        try { fitDrawRows(); } catch (e) { console.warn('fitDrawRows lỗi (bỏ qua):', e && e.message); }
         try { fitManpowerNumber(); } catch (e) { console.warn('fitManpowerNumber lỗi (bỏ qua):', e && e.message); }
         // CÔNG TẮC CHẾ ĐỘ NHIỀU TRANG (Sếp chốt 17/08). Mở app kèm ?trang=nhieu để dùng.
         // Bản 1 trang vẫn là mặc định cho tới khi Sếp duyệt bản nhiều trang.
@@ -1789,7 +1821,7 @@ async function exportPNG169() {
 
       // KHÔNG tính lại kích thước ô ở đây nữa: làm vậy là đổi bố cục SAU KHI khung đã chốt
       // -> nội dung dôi ra bị cắt (17/08 mất khối 07 + vùng ký tên). Việc tính ô và nới khung
-      // đã làm xong ở bước trước (fitDrawRows -> noKhungNeuTran), tới đây chỉ việc chụp.
+      // đã làm xong ở bước trước (noKhungNeuTran), tới đây chỉ việc chụp.
 
       html2canvas(tempContainer, {
         scale: 1.25,
