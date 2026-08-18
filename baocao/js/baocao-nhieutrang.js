@@ -117,7 +117,11 @@
 
     var body = tao('div', 'flex:1; display:flex; gap:' + GAP + 'px; width:100%; box-sizing:border-box; min-height:0;');
     var cot = [];
-    [30, 35, 35].forEach(function (w) {
+    // Sep chot 18/08 (thong nhat hien thi): 3 COT CHIA DEU tren MOI trang.
+    // Truoc day 30/35/35 nen o anh o cot 1 cua trang 2 tro di chi 446x325 trong khi cot 2/3
+    // la 525x382 -> cung mot khoi ma anh hai co. Chia deu thi moi o anh o moi trang bang nhau,
+    // va cot 1 rong them nen bieu do nhan luc trang 1 cung de doc hon.
+    [1, 1, 1].forEach(function (w) {
       var c = tao('div', 'flex:' + w + ' 1 0; min-width:0; display:flex; flex-direction:column; gap:' + GAP + 'px;' +
                           'box-sizing:border-box; justify-content:flex-start; overflow:hidden;');
       body.appendChild(c); cot.push(c);
