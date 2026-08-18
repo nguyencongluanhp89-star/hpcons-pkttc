@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.5';
+const APP_BUILD = 'b5.6';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -69,7 +69,8 @@ window.oCoverTam = oCoverTam;
    báo cáo đang làm thì lấy units đang nhập trên form (chưa lưu cũng vẫn đúng).
    ========================================================================== */
 function tongHopNhaThauTuan(ngayBaoCao) {
-  const NHAN = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  // Sếp chốt 18/08: ghi ĐẦY ĐỦ tên thứ, không viết tắt T2/T3/CN
+  const NHAN = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
   const d0 = new Date(String(ngayBaoCao) + 'T00:00:00');
   if (isNaN(d0.getTime())) return { ngay: [], nhaThau: [] };
   const dow = d0.getDay();                       // 0 = Chủ Nhật
@@ -127,8 +128,10 @@ window.tongHopNhaThauTuan = tongHopNhaThauTuan;
 function contractorTableHtml() {
   const th = tongHopNhaThauTuan((typeof el === 'function' && el('f_date')) ? el('f_date').value : '');
   const dauNgay = th.ngay.map(n =>
-    '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap;">'
-    + n.nhan + ' <span style="color:var(--grey); font-weight:400; font-size:var(--fs-caption-cn);">' + n.ngayThang + '</span></th>'
+    '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap; vertical-align:bottom;">'
+    + '<div style="font-weight:700; line-height:1.25;">' + n.nhan + '</div>'
+    + '<div style="color:var(--grey); font-weight:400; font-size:var(--fs-caption-cn); line-height:1.25; margin-top:2px;">' + n.ngayThang + '</div>'
+    + '</th>'
   ).join('');
   const dong = th.nhaThau.length
     ? th.nhaThau.map((nt, idx) => {
@@ -141,7 +144,7 @@ function contractorTableHtml() {
       }).join('')
     : '<tr><td colspan="8" style="padding:14px; text-align:center; color:var(--grey); font-style:italic; font-size:var(--fs-caption);">Chưa có nhà thầu nào thi công trong tuần</td></tr>';
   return '<table style="width:100%; border-collapse:collapse; table-layout:fixed;">'
-    + '<thead><tr><th style="text-align:left; padding:6px 10px; font-size:var(--fs-caption); color:var(--green-d); text-transform:uppercase; border-bottom:2px solid #cbd5e1; width:30%;">NHÀ THẦU</th>'
+    + '<thead><tr><th style="text-align:left; padding:6px 10px; font-size:var(--fs-caption); color:var(--green-d); text-transform:uppercase; border-bottom:2px solid #cbd5e1; width:26%;">NHÀ THẦU</th>'
     + dauNgay + '</tr></thead><tbody>' + dong + '</tbody></table>';
 }
 window.contractorTableHtml = contractorTableHtml;
@@ -1130,9 +1133,12 @@ async function exportPNG169() {
       const ngay = th.ngay, nhaThau = th.nhaThau;
       const oNgay = 'text-align:center; padding:7px 4px; font-size:' + FS.bodySmall + 'px;';
 
+      // Tên thứ ở trên, NGÀY THÁNG xuống dòng bên dưới (Sếp chốt 18/08)
       const dauNgay = ngay.map(n =>
-        '<th style="' + oNgay + ' font-weight:' + FW.body + '; color:#0f172a; border-bottom:2px solid #cbd5e1; white-space:nowrap;">'
-        + n.nhan + ' <span style="color:#64748b; font-weight:400; font-size:' + FS.tiny + 'px;">' + n.ngayThang + '</span></th>'
+        '<th style="' + oNgay + ' color:#0f172a; border-bottom:2px solid #cbd5e1; white-space:nowrap; vertical-align:bottom;">'
+        + '<div style="font-weight:' + FW.body + '; line-height:1.25;">' + n.nhan + '</div>'
+        + '<div style="color:#64748b; font-weight:400; font-size:' + FS.tiny + 'px; line-height:1.25; margin-top:2px;">' + n.ngayThang + '</div>'
+        + '</th>'
       ).join('');
 
       const dongHtml = nhaThau.length
@@ -1155,7 +1161,7 @@ async function exportPNG169() {
           <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
             <thead>
               <tr>
-                <th style="text-align:left; padding:7px 10px; font-size:${FS.bodySmall}px; font-weight:${FW.body}; color:#2E6B22; text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid #cbd5e1; width:30%;">NHÀ THẦU <span style="color:#64748b; font-weight:400; text-transform:none;">/ 分包商</span></th>
+                <th style="text-align:left; padding:7px 10px; font-size:${FS.bodySmall}px; font-weight:${FW.body}; color:#2E6B22; text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid #cbd5e1; width:26%;">NHÀ THẦU <span style="color:#64748b; font-weight:400; text-transform:none;">/ 分包商</span></th>
                 ${dauNgay}
               </tr>
             </thead>
