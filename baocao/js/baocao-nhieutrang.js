@@ -371,11 +371,15 @@
     // còn phần tiến độ hạng mục. Chỉ gỡ khi thật sự có ảnh để dựng trang riêng.
     var plAnh = goc.querySelector('[data-bc-phuluc="anh"]');
     var plVe  = goc.querySelector('[data-bc-phuluc="ve"]');
-    var coAnhPL = plAnh && plAnh.querySelectorAll('.pl-o-169').length > 0;
-    if (coAnhPL) {
-      var cumAnh = goc.querySelector('[data-bc-goneuphuluc="1"]');
-      if (cumAnh && cumAnh.parentNode) cumAnh.parentNode.removeChild(cumAnh);
-    }
+    // Sếp báo 18/08: tiêu đề "HÌNH ẢNH THI CÔNG" vẫn còn trong khối 03. Trước đây chỉ gỡ cụm ảnh
+    // KHI CÓ ảnh, nên hôm không có ảnh thì tiêu đề trơ lại trong khối 03 kèm dòng "Chưa có ảnh".
+    // Ở chế độ nhiều trang, ảnh thi công LUÔN có trang riêng -> gỡ cụm ảnh VÔ ĐIỀU KIỆN.
+    var cumAnh = goc.querySelector('[data-bc-goneuphuluc="1"]');
+    if (cumAnh && cumAnh.parentNode) cumAnh.parentNode.removeChild(cumAnh);
+    // Gỡ luôn ràng buộc flex của phần hạng mục: nó được đặt flex:1 để chia chỗ với cụm ảnh,
+    // cụm ảnh đi rồi mà còn flex thì hai tiêu đề CHỒNG LÊN NHAU (đúng lỗi thấy trong ảnh xuất).
+    var wt = goc.querySelector('#works-text-169');
+    if (wt) { wt.style.flex = '0 0 auto'; wt.style.minHeight = '0'; wt.style.height = 'auto'; }
 
     var trangs = [];
     var caoTrang = CAO_TRANG;          // có thể nới lên nếu cột trái cần thêm chỗ cho khối 02
@@ -567,6 +571,49 @@
       }
       if (!conTran) break;
     }
+
+    // ===== GIẢM KHOẢNG TRỐNG: chia đều chỗ dư giữa các khối trong mỗi cột =====
+    // Sếp báo 18/08: "bố cục còn nhiều khoảng trống". Sau khi ảnh thi công ra trang riêng, các
+    // cột còn dôi chỗ và toàn bộ dồn thành một mảng trắng ở đáy. Nay:
+    //   · cột có NHIỀU khối -> rải đều chỗ dư vào các khoảng giữa (space-between)
+    //   · cột chỉ có MỘT khối và dư nhiều -> cho khối đó giãn ra lấp cột
+    // Không áp cho cột 1 trang 1 (khối 01/02 đã có cơ chế chia riêng) và không áp cho trang phụ lục.
+    trangs.forEach(function (t, iT) {
+      if (t.laPhuLuc) return;
+      t.cot.forEach(function (c, iC) {
+        if (iT === 0 && iC === 0) return;
+        var n = c.children.length;
+        if (!n) return;
+        var dung = 0;
+        Array.prototype.forEach.call(c.children, function (x) { dung += caoNode(x); });
+        var du = c.clientHeight - dung - (n - 1) * GAP;
+        if (du < 40) return;
+        // GIÃN các thẻ ra để LẤP hết cột. Rải đều khoảng trắng (space-between) không giải quyết
+        // được điều Sếp nói: chỗ dư vẫn nằm ngoài thẻ thành các mảng trắng. Nay cho mỗi thẻ nhận
+        // thêm một phần chỗ dư (chia đều) nên các thẻ liền mạch từ trên xuống đáy cột — đúng cách
+        // bản 1 trang vẫn làm. Vùng ký tên giữ nguyên cao tự nhiên để chữ ký không bị trôi.
+        var dsGian = Array.prototype.filter.call(c.children, function (x) {
+          return !/NGƯỜI LẬP BÁO CÁO|CHỈ HUY TRƯỞNG|KY TEN/i.test(x.textContent || '');
+        });
+        if (!dsGian.length) dsGian = Array.prototype.slice.call(c.children);
+        // ĐO TRƯỚC toàn bộ rồi mới gán. Gán xen kẽ với đo sẽ sai vì mỗi lần gán là layout đổi,
+        // các thẻ sau đo ra số khác -> cộng dồn quá tay và làm TRÀN cột.
+        var caoTruoc = dsGian.map(function (x) { return caoNode(x); });
+        var them = Math.floor((du - 4) / dsGian.length);
+        if (them <= 0) return;
+        dsGian.forEach(function (x, k) {
+          x.style.boxSizing = 'border-box';   // không ép border-box thì height cộng thêm padding -> tràn
+          x.style.flex = '0 0 auto';
+          x.style.minHeight = '0';
+          x.style.height = Math.round(caoTruoc[k] + them) + 'px';
+        });
+        // Chốt an toàn: nếu vì lý do nào đó vẫn tràn thì hoàn nguyên cả cột (thà còn khoảng
+        // trống chứ không được cắt mất nội dung).
+        if (c.scrollHeight - c.clientHeight > 2) {
+          dsGian.forEach(function (x, k) { x.style.height = 'auto'; });
+        }
+      });
+    });
 
     // ===== HAI TRANG PHỤ LỤC (sau khi đã hết dòng chảy chính, tức sau vùng ký tên) =====
     // Sếp chốt 18/08: "sau khi thể hiện các trường thông tin từ thẻ 1 đến ký tên thì đến mục
