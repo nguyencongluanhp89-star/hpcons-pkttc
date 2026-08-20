@@ -655,7 +655,19 @@ body.dark-mode .photo-cap-textarea:focus {
   .a4-foot{flex-shrink:0;border-top:2px solid var(--navy);padding-top:7px;display:flex;
     justify-content:space-between;font-size:9.5px;color:#94a3b8}
   /* Trong khổ A4 các mục xếp DỌC nối tiếp nhau, không chia 2 cột như bản xem cũ */
-  body.kho-a4 .pad.two{flex-direction:column}
+  /* Sếp chốt 20/08: khối 01 giữ 2 CỘT (ảnh | thông tin) và khối 02 giữ 2 CỘT
+     (nhân lực | thời tiết). Trước đây em ép mọi khối .two thành 1 cột dọc trong khổ A4 nên
+     hai khối này bị xếp trên-dưới. Nay giữ 2 cột, chỉ thu gọn cho vừa bề rộng A4 (794px):
+     mỗi cột còn ~350px nên ảnh tổng quan và các ô số liệu nhỏ lại tương ứng. */
+  body.kho-a4 .pad.two{flex-direction:row;gap:10px;align-items:stretch}
+  body.kho-a4 .ov-imgs{flex:0 0 46%;min-width:0}
+  body.kho-a4 .ov-info{flex:1;min-width:0}
+  body.kho-a4 .ov-main{height:auto;aspect-ratio:4/3}
+  body.kho-a4 .ov-info .line{padding:3px 6px}
+  body.kho-a4 .ov-info .k{font-size:10.5px}
+  body.kho-a4 .ov-info .v{font-size:11px}
+  body.kho-a4 .card2{padding:10px}
+  body.kho-a4 .card2 .ch{margin-bottom:8px;padding-bottom:6px;font-size:11.5px}
   /* Sếp chốt 20/08: trong khổ A4 chia 2 CỘT cho cả ảnh thi công và bản vẽ để hình TO RÕ hơn.
      A4 rộng 794 - lề 68 - viền = ~712px -> mỗi ô ~350px, cao 3:2 là ~233px; thân tờ ~940px
      nên vừa 3 hàng ảnh (6 ảnh/tờ) hoặc 2 hàng bản vẽ có mô tả (4 bản vẽ/tờ). */
