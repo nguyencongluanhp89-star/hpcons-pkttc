@@ -634,9 +634,19 @@ body.dark-mode .photo-cap-textarea:focus {
     padding:34px;display:flex;flex-direction:column;gap:12px;
     box-shadow:0 6px 24px rgba(0,0,0,.18);position:relative;overflow:hidden;
     font-size:12.5px;color:#1c2733}
-  .a4-page .a4-head{flex-shrink:0;border-bottom:3px solid var(--navy2);margin-bottom:4px}
-  .a4-page .a4-head .r-logo{width:120px;padding:8px}
-  .a4-page .a4-head img{max-height:52px}
+  /* Sếp chốt 20/08: giữ nguyên hiện trạng đầu trang, CHỈ THU NHỎ CHIỀU CAO.
+     Trước: ~112px. Sau các mức dưới đây: ~62px, tiết kiệm khoảng 50px cho mỗi tờ
+     (tương đương thêm được 2 dòng nội dung mỗi trang). Không đổi phông, không đổi
+     bố cục, không thêm số hiệu — đúng yêu cầu Sếp. */
+  .a4-page .a4-head{flex-shrink:0;border-bottom:2px solid var(--navy2);margin-bottom:2px;align-items:center}
+  .a4-page .a4-head .r-logo{width:92px;padding:3px 6px;border-right:none}
+  .a4-page .a4-head .r-logo-cdt{width:92px;padding:3px 6px}
+  .a4-page .a4-head img{max-height:32px}
+  .a4-page .a4-head .r-title{padding:4px 10px}
+  .a4-page .a4-head .r-title .t1{font-size:16px;letter-spacing:0.2px}
+  .a4-page .a4-head .r-title .t2{font-size:10px;margin-bottom:2px !important;letter-spacing:0.4px}
+  .a4-page .a4-head .r-title > div:last-child{font-size:10.5px !important;padding:1px 8px !important;margin-left:-8px !important}
+  .a4-page .a4-head .r-title > div:last-child span[style*="font-size:16px"]{font-size:11.5px !important}
   .a4-than{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
   .a4-khoi{flex-shrink:0}
   .a4-tiep{font-weight:700;color:var(--navy);font-size:11.5px;padding:6px 10px;
