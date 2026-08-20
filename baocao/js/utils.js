@@ -23,7 +23,18 @@ function addEquip(){equips.push({q:"01",t:"Thiết bị mới"});renderEquipForm
    dòng tóm tắt (bao nhiêu đơn vị · bao nhiêu người); bấm lại thì mở ra khung cuộn đầy đủ.
    Mặc định để MỞ vì khung đã có trần chiều cao, không còn chiếm chỗ như trước. */
 var _unitMoRong = true;
-function toggleUnitMoRong(){ _unitMoRong = !_unitMoRong; renderUnitForm(); }
+
+/* Sếp yêu cầu 20/08: "khi bấm thêm nhà thầu thì chỉ hiển thị dòng tiếp theo, chứ không xổ toàn
+   bộ danh sách lại". Nên phải nhớ những dòng VỪA THÊM: đang thu gọn mà bấm thêm thì chỉ dựng
+   đúng mấy dòng mới đó để khai tiếp, danh sách cũ vẫn nằm gọn.
+   Nhớ theo THAM CHIẾU đối tượng (không theo vị trí) vì bấm "Bỏ" sẽ làm vị trí xê dịch; đồng thời
+   khi mở báo cáo khác thì units là mảng đối tượng mới nên danh sách này tự hết hiệu lực. */
+var _unitMoi = [];
+function toggleUnitMoRong(){
+  _unitMoRong = !_unitMoRong;
+  if (!_unitMoRong) _unitMoi = [];        // bấm Thu gọn là gọn hết, kể cả dòng vừa thêm
+  renderUnitForm();
+}
 window.toggleUnitMoRong = toggleUnitMoRong;
 
 function renderUnitForm(){
@@ -33,7 +44,8 @@ function renderUnitForm(){
   const NGUONG_THU_GON = 5;                 // quá số này thì thu gọn cho gọn màn hình
   const nhieu = units.length > NGUONG_THU_GON;
   const hienHet = _unitMoRong || !nhieu;
-  const danhSach = hienHet ? units : [];    // thu gọn = ẩn hẳn khung dòng, không phải bớt vài dòng
+  // Thu gọn = ẩn hẳn khung dòng; chỉ chừa lại những dòng VỪA THÊM để khai tiếp cho nhanh.
+  const danhSach = hienHet ? units : units.filter(function (u) { return _unitMoi.indexOf(u) >= 0; });
   /* Sếp yêu cầu 20/08: nút cuộn (thu gọn / mở rộng) bố trí Ở TRÊN cho thuận tiện khai báo —
      trước đây nút nằm dưới cùng nên danh sách dài phải cuộn xuống hết mới bấm được. */
   let h = "";
@@ -49,7 +61,10 @@ function renderUnitForm(){
      cuộn lên xuống liên tục mới khai xong. Nay chỉ khung này cuộn, mọi thứ quanh nó đứng yên. */
   if (danhSach.length) h += '<div class="unit-rows">';
 
-  danhSach.forEach((u, i) => {
+  danhSach.forEach((u) => {
+    /* PHẢI dùng vị trí THẬT trong units, không dùng vị trí trong danh sách đang hiển thị: khi
+       thu gọn thì danh sách hiển thị là một phần, lấy vị trí của nó sẽ sửa nhầm sang dòng khác. */
+    const i = units.indexOf(u);
     let opt = `<option value="">-- Chọn nhà thầu --</option>`;
     listContractors.forEach(c => {
       opt += `<option value="${c}" ${u.name === c ? 'selected' : ''}>${c}</option>`;
@@ -74,7 +89,7 @@ function renderUnitForm(){
         </div>
         <div style="flex:0 0 auto">
           <button class="delbtn" type="button" title="Bỏ nhà thầu này khỏi báo cáo hôm nay (không xóa khỏi danh mục dự án)"
-            onclick="units.splice(${i},1);renderUnitForm();recomputeTotal()">Bỏ</button>
+            onclick="boNhaThau(${i})">Bỏ</button>
         </div>
       </div></div>`;
   });
@@ -85,12 +100,25 @@ function renderUnitForm(){
   if (typeof updateProgress === 'function') updateProgress();
 }
 
+/* Bỏ một nhà thầu khỏi báo cáo hôm nay. Tách thành hàm riêng để xóa luôn khỏi danh sách "dòng
+   vừa thêm" — nếu không, dòng đã bỏ vẫn được coi là mới và có thể hiện lại khi thu gọn. */
+function boNhaThau(i){
+  var u = units[i];
+  if (!u) return;
+  var k = _unitMoi.indexOf(u);
+  if (k >= 0) _unitMoi.splice(k, 1);
+  units.splice(i, 1);
+  renderUnitForm();
+  if (typeof recomputeTotal === 'function') recomputeTotal();
+}
+window.boNhaThau = boNhaThau;
+
 function addUnit(){
-  units.push({name:"",area:"",n:0});
-  /* Danh sách đang thu gọn (chỉ hiện 5 dòng đầu) thì dòng vừa thêm KHÔNG được dựng ra -> bấm
-     "+ Thêm nhà thầu" mà không thấy gì. Nay tự mở rộng và cuộn khung xuống cuối cho thấy ngay
-     dòng mới. */
-  _unitMoRong = true;
+  var moi = {name:"",area:"",n:0};
+  units.push(moi);
+  /* Sếp chốt 20/08: KHÔNG tự mở lại toàn bộ danh sách nữa. Đang thu gọn thì chỉ dựng thêm đúng
+     dòng vừa thêm này; đang mở thì hiện như bình thường. */
+  _unitMoi.push(moi);
   renderUnitForm();
   recomputeTotal();
   var khung = document.querySelector('#unit-list .unit-rows');
