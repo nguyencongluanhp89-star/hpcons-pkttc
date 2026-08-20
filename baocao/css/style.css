@@ -725,3 +725,8 @@ body.dark-mode .photo-cap-textarea:focus {
   body.kho-a4 .kv{padding:3px 0}
   body.kho-a4 .sign-block{padding:8px 16px 10px}
   body.kho-a4 .sign-block div[style*="font-size:13px"]{font-size:10.5px !important}
+
+  /* Khối chưa có nội dung: vẫn hiện trên màn hình để bấm vào nhập, chỉ ẩn khi chụp ảnh */
+  .a4-nhac-nhap{font-size:10px;color:#94a3b8;font-style:italic;padding:2px 0}
+  body.dang-chup-a4 [data-a4-rong="1"]{display:none !important}
+  body.kho-a4 [data-a4-rong="1"] .sec-h{opacity:.72}

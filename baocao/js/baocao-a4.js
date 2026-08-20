@@ -57,10 +57,21 @@
       if (n.classList.contains('sec-h')) {
         var than = (con[i + 1] && !con[i + 1].classList.contains('sec-h')) ? con[i + 1] : null;
         i += than ? 2 : 1;
-        if (!than || !coNoiDung(than)) continue;      // phần thân rỗng -> BỎ cả khối, hết ô trắng
+        if (!than) continue;
         var g = tao('div', 'a4-khoi');
         g.appendChild(n);
         g.appendChild(than);
+        // Sếp báo 20/08: khối 04 bị ẩn nên KHÔNG NHẬP ĐƯỢC. Bản trước em bỏ hẳn khối rỗng để
+        // hết "ô trắng" — nhưng nhiều khối nhập liệu bằng cách BẤM VÀO CHÍNH NÓ, ẩn đi là mất
+        // luôn đường nhập. Nay: khối rỗng VẪN HIỆN trên màn hình (kèm dòng nhắc mờ để biết là
+        // chưa có nội dung), chỉ bị ẩn LÚC CHỤP ẢNH -> vừa nhập được, vừa đúng yêu cầu
+        // "trường nào không có thông tin thì tự ẩn khi xuất báo cáo".
+        if (!coNoiDung(than)) {
+          g.setAttribute('data-a4-rong', '1');
+          var nhac = tao('div', 'a4-nhac-nhap');
+          nhac.textContent = 'Chưa có nội dung — nhấn vào đây để nhập';
+          than.appendChild(nhac);
+        }
         khoi.push(g);
         continue;
       }
