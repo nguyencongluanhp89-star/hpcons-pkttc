@@ -256,9 +256,12 @@
   .divider{height:6px;background:var(--navy2)}
   @media print{.panel{display:none}.preview-wrap{padding:0}}
   /* ===== TABS + RESPONSIVE (thêm) ===== */
-  .tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 12px;position:sticky;top:0;background:#fff;padding:6px 0;z-index:5}
-  .tabs button{border:1px solid var(--line);background:#f4f7fa;color:var(--navy);border-radius:6px;padding:6px 9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
-  .tabs button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  /* Sếp yêu cầu 20/08: thanh tab cột nhập liệu còn mã màu tự chế -> đưa hết về token --hp-*.
+     Mấy mã cũ (#fff, #f4f7fa, #f0f4f8, #5b6b7b, #f9fbfe) là màu SÁNG cố định nên ở chế độ tối
+     chúng lòi ra thành mảng trắng giữa nền tối. Dùng token thì tự đúng cả sáng lẫn tối. */
+  .tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 12px;position:sticky;top:0;background:var(--hp-surface);padding:6px 0;z-index:5}
+  .tabs button{border:1px solid var(--hp-border);background:var(--hp-muted-bg);color:var(--hp-text-primary);border-radius:var(--hp-radius-sm);padding:6px 9px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .tabs button.active{background:var(--hp-brand-primary);color:#fff;border-color:var(--hp-brand-primary)}
   .panel.tabbed .grp{display:none;border:0;margin:0}
   .panel.tabbed .grp.active{display:block}
   .panel.tabbed .grp>summary{display:none}
@@ -378,8 +381,8 @@ button.sec:active { background:color-mix(in srgb, var(--hp-neutral) 28%, transpa
 
 /* Tab cuộn ngang - Bo tròn hơn */
 .tabs { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px; border-bottom:none; }
-.tabs button { flex:0 0 auto; min-height:42px; border-radius:999px; padding:0 16px; border:none; background:#f0f4f8; color:#5b6b7b; transition:all 0.2s; font-weight:700; }
-.tabs button.active { background:var(--navy); color:#fff; box-shadow:0 4px 10px rgba(9,106,167,.2); }
+.tabs button { flex:0 0 auto; min-height:42px; border-radius:999px; padding:0 16px; border:none; background:var(--hp-muted-bg); color:var(--hp-text-secondary); transition:all 0.2s; font-weight:700; }
+.tabs button.active { background:var(--hp-brand-primary); color:#fff; box-shadow:0 4px 10px color-mix(in srgb, var(--hp-primary) 25%, transparent); }
 
 /* Card cho nhóm form (Group) */
 .panel.tabbed .grp.active {
@@ -418,7 +421,7 @@ button.sec:active { background:color-mix(in srgb, var(--hp-neutral) 28%, transpa
   .panel { padding:12px 14px 160px; background:#F8FAFC; } /* Nền app xám nhạt để nổi bật card trắng */
   .panel h1, .panel .sub { display:none; } /* Ẩn title trên đt */
   
-  .tabs { position:sticky; top:58px; z-index:100; background:#f9fbfe; padding-top:8px; margin-top:-4px; }
+  .tabs { position:sticky; top:58px; z-index:100; background:var(--hp-surface); padding-top:8px; margin-top:-4px; }
   .btnbar { width:100%; padding: 16px 20px calc(24px + env(safe-area-inset-bottom, 0px)); border-radius:24px 24px 0 0; }
   
   label { font-size:13px; margin-top:12px; color:#3a4756; }
