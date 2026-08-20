@@ -341,8 +341,20 @@
         c.style.flex = '1';
         c.style.display = 'flex';
         c.style.flexDirection = 'column';
-        c.style.justifyContent = 'space-between';       // hết cảnh nội dung dồn lên, cách đáy xa
+        c.style.justifyContent = 'flex-start';
         c.style.minHeight = '0';
+        /* Canh hàng giữa hai ô: tiêu đề và các hàng số liệu giữ chiều cao thật, riêng khoảng
+           GIỮA (số nhân lực lớn / hình thời tiết) giãn ăn hết chỗ trống. Nhờ vậy các hàng của
+           hai ô luôn thẳng nhau — trước đây dàn đều nên hàng bị kéo lệch theo nội dung. */
+        Array.prototype.slice.call(c.children).forEach(function (x) {
+          if (x.classList.contains('ch') || x.classList.contains('kv')) {
+            x.style.flex = '0 0 auto';
+          } else {
+            x.style.flex = '1 1 auto';
+            x.style.setProperty('height', 'auto', 'important');
+            x.style.minHeight = '0';
+          }
+        });
       });
 
       // Biểu đồ: vẽ lại cho lấp đúng phần 55%
