@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b8.4';
+const APP_BUILD = 'b8.5';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -165,25 +165,57 @@ window.tienDoThoiGian = tienDoThoiGian;
 // Bảng tổng hợp nhà thầu cho BẢN XEM TRONG APP (ảnh xuất dựng riêng trong exportPNG169).
 function contractorTableHtml() {
   const th = tongHopNhaThauTuan((typeof el === 'function' && el('f_date')) ? el('f_date').value : '');
+
+  /* Sếp yêu cầu 20/08: bảng phải có CỘT TỔNG (mỗi nhà thầu cả tuần) và HÀNG TỔNG (mỗi ngày cộng
+     hết nhà thầu). Hàng tổng còn để đối chiếu với khối 02: số ở cột ngày báo cáo phải trùng đúng
+     dòng "Nhà thầu / 分包商" của khối 02. Vì vậy hàng tổng ghi rõ là TỔNG NHÀ THẦU — không gồm
+     BCH; số 36 ở khối 02 là 05 BCH + 31 nhà thầu, không phải cùng một đại lượng với bảng này. */
+  const tongNgay = [0, 0, 0, 0, 0, 0, 0];
+  th.nhaThau.forEach(function (nt) {
+    th.ngay.forEach(function (n, i) { if (nt.coMat[i]) tongNgay[i] += (nt.so[i] || 0); });
+  });
+  const tongCong = tongNgay.reduce(function (x, y) { return x + y; }, 0);
+
+  const oTong = 'text-align:center; padding:6px 4px; font-weight:800; color:var(--navy);'
+    + ' background:#eef4fa; border-left:2px solid #cbd5e1;';
+
   const dauNgay = th.ngay.map(n =>
     '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap; vertical-align:bottom;">'
     + '<div style="font-weight:700; line-height:1.25;">' + n.nhan + '</div>'
     + '<div style="color:var(--grey); font-weight:400; font-size:var(--fs-caption-cn); line-height:1.25; margin-top:2px;">' + n.ngayThang + '</div>'
     + '</th>'
   ).join('');
+  const dauTong = '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap; vertical-align:bottom; background:#eef4fa; border-left:2px solid #cbd5e1; width:11%;">'
+    + '<div style="font-weight:800; line-height:1.25;">TỔNG</div>'
+    + '<div style="color:var(--grey); font-weight:400; font-size:var(--fs-caption-cn); line-height:1.25; margin-top:2px;">合计</div>'
+    + '</th>';
+
   const dong = th.nhaThau.length
     ? th.nhaThau.map((nt, idx) => {
         const o = th.ngay.map((n, i) => nt.coMat[i]
           ? '<td style="text-align:center; padding:6px 4px; color:var(--green-d); font-weight:800;">' + (nt.so[i] || 0) + '</td>'
           : '<td style="text-align:center; padding:6px 4px; color:#cbd5e1;">–</td>').join('');
+        const tongNT = nt.so.reduce(function (x, y) { return x + (y || 0); }, 0);
         return '<tr style="' + (idx % 2 ? 'background:#fafbfc;' : '') + '">'
           + '<td style="padding:6px 10px; font-size:var(--fs-body); font-weight:700; color:var(--navy); border-bottom:1px solid #f1f5f9;">'
-          + esc(nt.ten) + '</td>' + o + '</tr>';
+          + esc(nt.ten) + '</td>' + o
+          + '<td style="' + oTong + ' border-bottom:1px solid #f1f5f9;">' + tongNT + '</td></tr>';
       }).join('')
-    : '<tr><td colspan="8" style="padding:14px; text-align:center; color:var(--grey); font-style:italic; font-size:var(--fs-caption);">Chưa có nhà thầu nào thi công trong tuần</td></tr>';
+    : '<tr><td colspan="9" style="padding:14px; text-align:center; color:var(--grey); font-style:italic; font-size:var(--fs-caption);">Chưa có nhà thầu nào thi công trong tuần</td></tr>';
+
+  const hangTong = th.nhaThau.length
+    ? '<tr style="background:#e8f0f8;">'
+      + '<td style="padding:6px 10px; font-size:var(--fs-body); font-weight:800; color:var(--navy); border-top:2px solid #cbd5e1;">TỔNG NHÀ THẦU <span style="font-weight:400; color:var(--grey)">/ 分包商合计</span></td>'
+      + th.ngay.map(function (n, i) {
+          return '<td style="text-align:center; padding:6px 4px; font-weight:800; color:var(--navy); border-top:2px solid #cbd5e1;">'
+            + (tongNgay[i] > 0 ? tongNgay[i] : '–') + '</td>';
+        }).join('')
+      + '<td style="' + oTong + ' border-top:2px solid #cbd5e1;">' + tongCong + '</td></tr>'
+    : '';
+
   return '<table style="width:100%; border-collapse:collapse; table-layout:fixed;">'
-    + '<thead><tr><th style="text-align:left; padding:6px 10px; font-size:var(--fs-caption); color:var(--green-d); text-transform:uppercase; border-bottom:2px solid #cbd5e1; width:26%;">NHÀ THẦU</th>'
-    + dauNgay + '</tr></thead><tbody>' + dong + '</tbody></table>';
+    + '<thead><tr><th style="text-align:left; padding:6px 10px; font-size:var(--fs-caption); color:var(--green-d); text-transform:uppercase; border-bottom:2px solid #cbd5e1; width:22%;">NHÀ THẦU</th>'
+    + dauNgay + dauTong + '</tr></thead><tbody>' + dong + hangTong + '</tbody></table>';
 }
 window.contractorTableHtml = contractorTableHtml;
 
