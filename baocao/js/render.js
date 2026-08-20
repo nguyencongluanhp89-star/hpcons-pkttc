@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b6.7';
+const APP_BUILD = 'b6.8';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -596,10 +596,10 @@ function draw(){
 
   <!-- Sếp chốt 20/08: HÌNH ẢNH THI CÔNG và BẢN VẼ bố trí SAU trang chữ ký -> đặt cuối cùng,
        sau khối ký tên. Nhập ảnh ngay tại chỗ, khỏi vào popup. -->
-  <div class="sec-h" style="cursor:default"><span class="num">📷</span> HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
+  <div class="sec-h" style="cursor:default">HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
   <div class="pad"><div class="photos">${photoHtml}</div></div>
 
-  <div class="sec-h" style="cursor:default"><span class="num">📐</span> BẢN VẼ <span class="cn">/ 图纸</span></div>
+  <div class="sec-h" style="cursor:default">BẢN VẼ <span class="cn">/ 图纸</span></div>
   <div class="pad" style="border-bottom:1px solid var(--line)"><div class="draw">${drawHtml}</div></div>`;
 
   if (typeof window.autoGrowAllTextareas === 'function') {
