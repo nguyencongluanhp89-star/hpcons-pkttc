@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b7.3';
+const APP_BUILD = 'b7.4';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -186,6 +186,77 @@ function contractorTableHtml() {
     + dauNgay + '</tr></thead><tbody>' + dong + '</tbody></table>';
 }
 window.contractorTableHtml = contractorTableHtml;
+
+/* ===========================================================================
+   BIỂU ĐỒ NHÂN LỰC TRONG TUẦN cho BẢN XEM        (Sếp yêu cầu 20/08/2026)
+   -----------------------------------------------------------------------------
+   Sếp báo: "khi chuyển qua đã mất phần biểu đồ nhân lực tuần".
+   Nguyên do: biểu đồ này CHƯA TỪNG có trong bản xem — nó chỉ tồn tại bên trong bộ
+   dựng ảnh khổ ngang 15:9 (hàm buildWeeklyChart nằm trong closure của exportPNG169,
+   không gọi được từ ngoài). Khổ A4 lấy chính bản xem nên biểu đồ không có.
+   Nay dựng biểu đồ riêng cho bản xem bằng SVG có viewBox -> tự vừa mọi bề rộng,
+   in A4 hay chụp ảnh đều nét. Tuần lấy theo NGÀY CỦA BÁO CÁO, giống khối 05.
+   ========================================================================== */
+function duLieuNhanLucTuan() {
+  const ngayBC = (typeof el === 'function' && el('f_date')) ? el('f_date').value : '';
+  const th = tongHopNhaThauTuan(ngayBC);          // dùng lại cách tính tuần đã có
+  const pid = (typeof curProject !== 'undefined' && curProject) ? (curProject.id || curProject) : '';
+  const rs = ((typeof reports !== 'undefined' && Array.isArray(reports)) ? reports : [])
+    .filter(r => r.project_id === pid || r.project === pid);
+  return th.ngay.map(n => {
+    if (n.dateStr === ngayBC) {
+      const v = parseInt(el('f_total') ? el('f_total').value : 0) || 0;
+      return { nhan: n.nhan, ngayThang: n.ngayThang, val: v, homNay: true };
+    }
+    if (n.laTuongLai) return { nhan: n.nhan, ngayThang: n.ngayThang, val: null, homNay: false };
+    const r = rs.find(x => x.date === n.dateStr);
+    return { nhan: n.nhan, ngayThang: n.ngayThang, val: r ? (parseInt(r.total_manpower) || 0) : 0, homNay: false };
+  });
+}
+
+function bieuDoNhanLucTuanHtml() {
+  const ds = duLieuNhanLucTuan();
+  if (!ds.length) return '';
+  const W = 700, H = 210, L = 42, R = 12, T = 20, B = 34;
+  const cw = W - L - R, ch = H - T - B;
+  const cos = ds.map(d => d.val).filter(v => v !== null);
+  const max = Math.max(10, ...cos);
+  const buoc = Math.ceil(max / 3 / 5) * 5 || 5;
+  const tran = buoc * 3;
+  const x = i => L + (ds.length === 1 ? cw / 2 : i * (cw / (ds.length - 1)));
+  const y = v => T + ch - (v / tran) * ch;
+
+  let luoi = '', nhanY = '';
+  for (let k = 0; k <= 3; k++) {
+    const v = buoc * k, yy = y(v);
+    luoi += `<line x1="${L}" y1="${yy.toFixed(1)}" x2="${W - R}" y2="${yy.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`;
+    nhanY += `<text x="${L - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="13" fill="#64748b">${v}</text>`;
+  }
+  const diem = ds.map((d, i) => d.val === null ? null : { x: x(i), y: y(d.val), v: d.val, homNay: d.homNay }).filter(Boolean);
+  const duong = diem.length > 1 ? 'M ' + diem.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ') : '';
+  const to = diem.length > 1
+    ? `${duong} L ${diem[diem.length - 1].x.toFixed(1)} ${(T + ch).toFixed(1)} L ${diem[0].x.toFixed(1)} ${(T + ch).toFixed(1)} Z` : '';
+  const mocDiem = diem.map(p =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.homNay ? 5 : 3.5}" fill="${p.homNay ? '#2E6B22' : '#096AA7'}"/>`
+    + `<text x="${p.x.toFixed(1)}" y="${(p.y - 9).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="${p.homNay ? '#2E6B22' : '#075687'}">${p.v}</text>`
+  ).join('');
+  const nhanX = ds.map((d, i) =>
+    `<text x="${x(i).toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="12.5" font-weight="${d.homNay ? 700 : 400}" fill="${d.homNay ? '#2E6B22' : '#64748b'}">${d.nhan}</text>`
+    + `<text x="${x(i).toFixed(1)}" y="${H - 2}" text-anchor="middle" font-size="10.5" fill="#94a3b8">${d.ngayThang}</text>`
+  ).join('');
+
+  return `<div class="bieudo-tuan">
+    <div class="ch" style="text-align:left;margin-bottom:6px">📈 BIỂU ĐỒ NHÂN LỰC TRONG TUẦN <span class="cn">/ 本周人员图表</span></div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" preserveAspectRatio="xMidYMid meet">
+      <text x="${L}" y="${T - 6}" font-size="11" fill="#64748b">(NGƯỜI)</text>
+      ${luoi}${nhanY}
+      ${to ? `<path d="${to}" fill="rgba(9,106,167,.10)"/>` : ''}
+      ${duong ? `<path d="${duong}" fill="none" stroke="#096AA7" stroke-width="2.2" stroke-linejoin="round"/>` : ''}
+      ${mocDiem}${nhanX}
+    </svg>
+  </div>`;
+}
+window.bieuDoNhanLucTuanHtml = bieuDoNhanLucTuanHtml;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
   const dt=new Date(v+'T00:00:00');
@@ -570,6 +641,12 @@ function draw(){
     </div>
   </div>
 
+  <!-- Sếp yêu cầu 20/08: khối 02 phải có BIỂU ĐỒ NHÂN LỰC TRONG TUẦN. Biểu đồ này trước chỉ
+       tồn tại trong bộ dựng ảnh khổ ngang cũ (không gọi được từ bản xem), nên khi chuyển sang
+       A4 thì mất. Nay dựng thẳng trong bản xem -> A4 và ảnh xuất đều có. Đặt dưới hai ô
+       nhân lực | thời tiết, chiếm hết bề rộng. -->
+  <div class="pad" style="border-top:none;padding-top:4px">${bieuDoNhanLucTuanHtml()}</div>
+
   <div class="sec-h" onclick="openModal('grp-03')"><span class="num">03</span> TIẾN ĐỘ THI CÔNG CHI TIẾT <span class="cn">/ 详细施工进度</span></div>
   <!-- Sếp chốt 20/08: mục hình ảnh ở khối 03 BỎ — ảnh thi công có TRANG RIÊNG ở cuối báo cáo.
        Khối 03 chỉ còn phần tổng hợp hạng mục. -->
@@ -600,6 +677,22 @@ function draw(){
     <div class="s3"><div class="scenter">${svgTime}</div><div class="h" style="text-align:center">TIẾN ĐỘ <span class="cn">/ 进度</span></div></div>
   </div>
 
+  <!-- Sếp chốt 20/08: HÌNH ẢNH THI CÔNG và BẢN VẼ bố trí SAU trang chữ ký -> đặt cuối cùng,
+       sau khối ký tên. Nhập ảnh ngay tại chỗ, khỏi vào popup. -->
+  <!-- Sếp chốt 20/08: nút chọn nhiều ảnh TÍCH HỢP ngay trong dòng tiêu đề, khỏi chiếm một khối
+       riêng. Bấm từng ô vẫn chọn được một ảnh như cũ. -->
+  <div class="sec-h" style="cursor:default;display:flex;align-items:center;gap:10px">
+    <span style="flex:1">HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></span>
+    <input type="file" id="f_photos_bulk_bc" accept="image/*" multiple style="display:none" onchange="onBulkPhotos(this)">
+    <button class="no-print" type="button" onclick="el('f_photos_bulk_bc').click()" title="Tự lọc ảnh trùng, giữ bản nét nhất"
+      style="background:rgba(255,255,255,.92);color:var(--navy);border:none;border-radius:5px;padding:3px 10px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Chọn nhiều ảnh</button>
+  </div>
+  <div class="pad"><div class="photos">${photoHtml}</div></div>
+
+  <div class="sec-h" style="cursor:default">BẢN VẼ <span class="cn">/ 图纸</span></div>
+  <div class="pad"><div class="draw">${drawHtml}</div></div>
+
+  <!-- Sếp chốt 20/08: KÝ TÊN xuống CUỐI CÙNG toàn bộ báo cáo, tức dưới phần bản vẽ. -->
   <div class="sign-block" style="display:flex;justify-content:space-around;padding:10px 20px 12px;text-align:center;page-break-inside:avoid;margin-top:0;background:#fff;border:1px solid var(--line);border-top:none">
     <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
       <div style="font-weight:700;color:var(--navy);font-size:var(--fs-body);margin-bottom:2px">NGƯỜI LẬP BÁO CÁO</div>
@@ -617,22 +710,7 @@ function draw(){
       </div>
       <div style="font-weight:700; color:var(--navy); font-size:13px; margin-top:4px;">${esc(report.approved_by || commanderName)}</div>
     </div>
-  </div>
-
-  <!-- Sếp chốt 20/08: HÌNH ẢNH THI CÔNG và BẢN VẼ bố trí SAU trang chữ ký -> đặt cuối cùng,
-       sau khối ký tên. Nhập ảnh ngay tại chỗ, khỏi vào popup. -->
-  <!-- Sếp chốt 20/08: nút chọn nhiều ảnh TÍCH HỢP ngay trong dòng tiêu đề, khỏi chiếm một khối
-       riêng. Bấm từng ô vẫn chọn được một ảnh như cũ. -->
-  <div class="sec-h" style="cursor:default;display:flex;align-items:center;gap:10px">
-    <span style="flex:1">HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></span>
-    <input type="file" id="f_photos_bulk_bc" accept="image/*" multiple style="display:none" onchange="onBulkPhotos(this)">
-    <button class="no-print" type="button" onclick="el('f_photos_bulk_bc').click()" title="Tự lọc ảnh trùng, giữ bản nét nhất"
-      style="background:rgba(255,255,255,.92);color:var(--navy);border:none;border-radius:5px;padding:3px 10px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Chọn nhiều ảnh</button>
-  </div>
-  <div class="pad"><div class="photos">${photoHtml}</div></div>
-
-  <div class="sec-h" style="cursor:default">BẢN VẼ <span class="cn">/ 图纸</span></div>
-  <div class="pad" style="border-bottom:1px solid var(--line)"><div class="draw">${drawHtml}</div></div>`;
+  </div>`;
 
   if (typeof window.autoGrowAllTextareas === 'function') {
     window.autoGrowAllTextareas();

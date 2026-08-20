@@ -671,10 +671,19 @@ body.dark-mode .photo-cap-textarea:focus {
   /* Sếp chốt 20/08: trong khổ A4 chia 2 CỘT cho cả ảnh thi công và bản vẽ để hình TO RÕ hơn.
      A4 rộng 794 - lề 68 - viền = ~712px -> mỗi ô ~350px, cao 3:2 là ~233px; thân tờ ~940px
      nên vừa 3 hàng ảnh (6 ảnh/tờ) hoặc 2 hàng bản vẽ có mô tả (4 bản vẽ/tờ). */
-  body.kho-a4 .photos{grid-template-columns:1fr 1fr;gap:10px}
-  body.kho-a4 .draw{grid-template-columns:1fr 1fr;gap:10px}
-  body.kho-a4 .photo .im-wrap{height:auto;aspect-ratio:3/2}
-  body.kho-a4 .draw-card .im-wrap{height:auto;aspect-ratio:3/2}
+  /* Sếp báo 20/08: "khối hình ảnh thi công mặc định là 2 cột - hiện tại bị lỗi thể hiện ảnh đơn".
+     Nguyên do: các ô trong lưới cao thấp khác nhau (ô có chú thích thì cao hơn, ô hàng cuối
+     đứng một mình thì bị kéo giãn theo hàng) nên ảnh trông lệch cỡ. Nay ép:
+       · lưới LUÔN 2 cột, các hàng cùng chiều cao (grid-auto-rows + align-items:start)
+       · mỗi ô ảnh đúng tỉ lệ 3:2, ảnh cover nên không méo
+       · ô lẻ ở hàng cuối GIỮ ĐÚNG một cột, không kéo rộng ra hai cột                        */
+  body.kho-a4 .photos{grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  body.kho-a4 .draw{grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  body.kho-a4 .photo, body.kho-a4 .draw-card{align-self:start;height:auto}
+  body.kho-a4 .photo .im-wrap{height:auto;aspect-ratio:3/2;width:100%}
+  body.kho-a4 .draw-card .im-wrap{height:auto;aspect-ratio:3/2;width:100%}
+  body.kho-a4 .photo .im, body.kho-a4 .draw-card .im{width:100%;height:100%;object-fit:cover;object-position:center center}
+  body.kho-a4 .photo:last-child:nth-child(odd){grid-column:auto}
   /* Bỏ ô trắng dư: khối ký tên nối liền mục ảnh, không còn dải trắng chen giữa */
   body.kho-a4 .sign-block{margin-top:0}
 
