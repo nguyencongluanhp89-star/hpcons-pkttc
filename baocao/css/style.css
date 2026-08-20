@@ -777,6 +777,21 @@ body.dark-mode .photo-cap-textarea:focus {
   /* Khối chưa có nội dung: vẫn hiện trên màn hình để bấm vào nhập, chỉ ẩn khi chụp ảnh */
   .a4-nhac-nhap{font-size:10px;color:#94a3b8;font-style:italic;padding:2px 0}
   body.dang-chup-a4 [data-a4-rong="1"]{display:none !important}
+
+  /* Sếp báo 20/08: "khối Bản vẽ phần chú thích khi xuất thì bị ẩn, không hiển thị".
+     Gốc: dòng chú thích để in nằm trong .cap.print-only, mà .print-only bị đặt display:none
+     toàn cục và CHỈ được mở lại trong @media print. Ảnh xuất là ảnh CHỤP MÀN HÌNH (html2canvas)
+     chứ không phải in, nên luật @media print không áp -> chú thích không bao giờ lên ảnh.
+     Nay lúc chụp thì mở nó ra. Ô nhập chú thích (.no-print) đã tự ẩn lúc chụp nên không trùng
+     nhau, và chiều cao hai thứ xấp xỉ bằng nhau nên việc phân trang không bị xê dịch. */
+  body.dang-chup-a4 .print-only{display:block !important}
+
+  /* Sếp yêu cầu 20/08: chú thích LUÔN CĂN GIỮA hình — cả trên màn hình lẫn trên ảnh xuất, để
+     "nhìn thấy sao thì xuất ra vậy". Ô nhập chú thích trước đây căn trái nên xem và xuất khác nhau. */
+  body.kho-a4 .draw-card .cap{text-align:center; align-items:center}
+  body.kho-a4 .draw-card .cap .dt,
+  body.kho-a4 .draw-card .cap .dc{text-align:center; width:100%}
+  body.kho-a4 .draw-card .photo-cap-textarea{text-align:center}
   body.kho-a4 [data-a4-rong="1"] .sec-h{opacity:.72}
 
   /* Nút bấm nằm TRONG thanh tiêu đề (ví dụ "Chọn nhiều ảnh") phải nổi trên lớp phủ ::after,
