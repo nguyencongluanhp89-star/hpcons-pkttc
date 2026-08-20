@@ -473,7 +473,11 @@
           <label>Quy mô</label><textarea id="f_scale"></textarea>
           <div class="row"><div><label>Bắt đầu</label><input type="text" id="f_start"></div>
           <div><label>Kết thúc (dự kiến)</label><input type="text" id="f_end"></div></div>
-          <label>% thực hiện (tự tính theo lịch — có thể sửa tay)</label><input type="number" id="f_prog" value="0" min="0" max="100">
+          <!-- Sếp chốt 20/08: BỎ nhập thủ công % tiến độ. Hệ thống tự tính theo ngày bắt đầu /
+               kết thúc / ngày báo cáo; thiếu ngày thì hiển thị 0%. Ô nhập được ẨN (không xóa
+               field) để mã lưu báo cáo và phục hồi báo cáo cũ không lỗi. -->
+          <div class="hint">% tiến độ tổng thể do hệ thống tự tính theo ngày bắt đầu và ngày kết thúc — không nhập tay.</div>
+          <input type="number" id="f_prog" value="0" min="0" max="100" style="display:none">
         </div>
       </div></details>
 
@@ -525,8 +529,12 @@
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
         <!-- Sếp chốt 20/08: mục khai báo hình ở khối 03 BỎ, chuyển sang trang Hình ảnh thi công.
              Phần tải ảnh dưới đây dời sang nhóm riêng grp-anh (xem bên dưới). -->
-        <div style="font-weight:700;color:var(--green-d);font-size:14px;margin-bottom:8px">🖼 Tải ảnh lên báo cáo</div>
-        <div class="bulk-upload-card" style="background: #f0fdf4; border: 1.5px dashed #bbf7d0; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
+        <!-- Sếp chốt 20/08: TẮT chức năng tải ảnh trong popup 03. Toàn bộ việc chọn/tải/xóa ảnh
+             chuyển sang khu HÌNH ẢNH THI CÔNG ngay trong báo cáo. Phần dưới ẨN (không xóa) để
+             mã cũ (onBulkPhotos, renderPhotoForm, phục hồi ảnh báo cáo cũ) không lỗi. -->
+        <div class="hint">Ảnh thi công nay nhập ở khu <b>HÌNH ẢNH THI CÔNG</b> trong báo cáo (cuối trang), không nhập ở đây nữa.</div>
+        <div style="display:none">
+        <div style="font-weight:700;color:var(--green-d);font-size:14px;margin-bottom:8px">🖼 Tải ảnh lên báo cáo</div><div class="bulk-upload-card" style="background: #f0fdf4; border: 1.5px dashed #bbf7d0; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
           <div style="font-weight:700; color: #15803d; font-size: 13px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
             <span>⚡ TẢI NHIỀU ẢNH (TỰ ĐỘNG XẾP LƯỚI 2 CỘT)</span>
           </div>
@@ -541,6 +549,7 @@
         </div>
         <label style="margin-top:8px">Ảnh thi công trong ngày (xếp 2 cột, nên để số chẵn)</label>
         <div id="photo-list"></div>
+        </div>
       </div></details>
 
       <details class="grp" id="grp-04"><summary>04 · Kế hoạch thi công ngày mai<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
@@ -750,7 +759,7 @@
 <script src="hpcons-logo.js?v=1"></script>
 <script src="js/baocao-nhieutrang.js?v=1.9"></script>
 <script src="js/baocao-a4.js?v=1.3"></script>
-<script src="js/render.js?v=7.0"></script>
+<script src="js/render.js?v=7.1"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT

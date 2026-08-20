@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b7.0';
+const APP_BUILD = 'b7.1';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -136,6 +136,29 @@ function khoA4() {
   } catch (e) { return true; }
 }
 window.khoA4 = khoA4;
+
+/* ===========================================================================
+   TIẾN ĐỘ TỔNG THỂ = TIẾN ĐỘ THEO THỜI GIAN KẾ HOẠCH   (Sếp chốt 20/08/2026)
+   -----------------------------------------------------------------------------
+   Bỏ hoàn toàn việc nhập tay %. Hệ thống tự tính:
+       (ngày báo cáo − ngày bắt đầu) / (ngày kết thúc − ngày bắt đầu) × 100
+   Quy tắc: trước ngày bắt đầu → 0%, sau ngày kết thúc → 100%, làm tròn.
+   Thiếu ngày bắt đầu hoặc kết thúc → HIỂN THỊ 0% (Sếp chốt).
+   Đây là tiến độ theo thời gian, KHÔNG phải % khối lượng thi công, và không lấy
+   dữ liệu nào khác ghi đè lên.
+   Hàm recalcOverallProgress() trong features.js đã có sẵn đúng công thức này;
+   ở đây chỉ bọc lại để mọi nơi hiển thị dùng chung một nguồn.
+   ========================================================================== */
+function tienDoThoiGian() {
+  try {
+    if (typeof recalcOverallProgress === 'function') {
+      var p = recalcOverallProgress();
+      if (p !== null && !isNaN(p)) return Math.max(0, Math.min(100, Math.round(p)));
+    }
+  } catch (e) {}
+  return 0;                       // thiếu ngày -> 0%
+}
+window.tienDoThoiGian = tienDoThoiGian;
 
 // Bảng tổng hợp nhà thầu cho BẢN XEM TRONG APP (ảnh xuất dựng riêng trong exportPNG169).
 function contractorTableHtml() {
@@ -335,7 +358,7 @@ window.addEventListener('resize', adjustReportScale);
 /* ---------- main render ---------- */
 function draw(){
   const dt=fmtDate(el('f_date').value);
-  const prog=el('f_prog').value||0;
+  const prog = tienDoThoiGian();   // tự tính theo thời gian, không nhập tay nữa
   const logoHtml=`<img src="${logoImg||window.HPCONS_REPORT_LOGO||''}" style="max-height:80px;cursor:pointer" onclick="el('f_logo').click()" title="Nhấn để đổi logo nhà thầu">`;
   const logoCdtHtml=logoImgCdt?`<img src="${logoImgCdt}" style="max-height:80px;cursor:pointer" onclick="el('f_logo_cdt').click()" title="Nhấn để đổi logo chủ đầu tư">`:'<div style="cursor:pointer;border:1.5px dashed #cbd5e1;border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94a3b8;min-width:140px;background:#f8fafc" onclick="el(\'f_logo_cdt\').click()" title="Nhấn để tải logo chủ đầu tư"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><div style="font-size:11px;font-weight:700">LOGO CHỦ ĐẦU TƯ</div><div style="font-size:10px;font-weight:400">(Nhấn để tải lên)</div></div>';
 
@@ -516,7 +539,7 @@ function draw(){
       <div class="line" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="let v=prompt('QUY MÔ / 规模:', el('f_scale').value); if(v!==null){el('f_scale').value=v;draw()}" title="Nhấn để sửa"><span class="ic">🏢</span><span class="k">QUY MÔ / 规模</span><span class="v">${el('f_scale').value}</span></div>
       <div class="line" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="let v=prompt('BẮT ĐẦU / 开工:', el('f_start').value); if(v!==null){el('f_start').value=v;recalcFromSched(true)}" title="Nhấn để sửa"><span class="ic">📅</span><span class="k">BẮT ĐẦU / 开工</span><span class="v">${el('f_start').value}</span></div>
       <div class="line" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="let v=prompt('HOÀN THÀNH (DK) / 完工:', el('f_end').value); if(v!==null){el('f_end').value=v;recalcFromSched(true)}" title="Nhấn để sửa"><span class="ic">🏁</span><span class="k">HOÀN THÀNH (DK) / 完工</span><span class="v">${el('f_end').value}</span></div>
-      <div class="prog" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'" onclick="let v=prompt('TIẾN ĐỘ TỔNG THỂ (%):', el('f_prog').value); if(v!==null){el('f_prog').value=v;draw()}" title="Nhấn để sửa % tiến độ"><span class="k" style="color:var(--navy);font-weight:700">TIẾN ĐỘ TỔNG THỂ / 总体进度</span>
+      <div class="prog" title="Tự động tính theo ngày bắt đầu và ngày kết thúc dự án — không sửa tay"><span class="k" style="color:var(--navy);font-weight:700">TIẾN ĐỘ TỔNG THỂ / 总体进度</span>
         <div class="pv">${prog}%</div><div class="bar"><i style="width:${prog}%"></i></div></div>
     </div>
   </div>
@@ -597,7 +620,17 @@ function draw(){
   <!-- Sếp chốt 20/08: HÌNH ẢNH THI CÔNG và BẢN VẼ bố trí SAU trang chữ ký -> đặt cuối cùng,
        sau khối ký tên. Nhập ảnh ngay tại chỗ, khỏi vào popup. -->
   <div class="sec-h" style="cursor:default">HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
-  <div class="pad"><div class="photos">${photoHtml}</div></div>
+  <div class="pad">
+    <!-- Sếp chốt 20/08: việc tải ảnh chuyển hẳn về đây (popup 03 đã tắt). Bấm từng ô để chọn
+         một ảnh, hoặc dùng nút dưới để chọn nhiều ảnh một lượt — vẫn dùng lại đúng cơ chế lọc
+         ảnh trùng, giữ bản nét nhất, lấy giờ chụp từ file đã có sẵn của app. -->
+    <div class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <input type="file" id="f_photos_bulk_bc" accept="image/*" multiple style="display:none" onchange="onBulkPhotos(this)">
+      <button class="addbtn" type="button" onclick="el('f_photos_bulk_bc').click()" style="background:var(--green);color:#fff;border:none;padding:6px 14px;font-weight:700">📤 Chọn nhiều ảnh từ máy</button>
+      <span class="hint" style="margin:0">Tự lọc ảnh trùng, giữ bản nét nhất, xếp lưới 2 cột. Ảnh nhiều sẽ tự sang trang sau.</span>
+    </div>
+    <div class="photos">${photoHtml}</div>
+  </div>
 
   <div class="sec-h" style="cursor:default">BẢN VẼ <span class="cn">/ 图纸</span></div>
   <div class="pad" style="border-bottom:1px solid var(--line)"><div class="draw">${drawHtml}</div></div>`;
@@ -690,7 +723,7 @@ async function exportPNG169() {
       return;
     }
     const dt = fmtDate(el('f_date').value);
-    const prog = el('f_prog').value || 0;
+    const prog = tienDoThoiGian();   // tự tính theo thời gian, không nhập tay nữa
     
     // Tải báo cáo tuần cho biểu đồ nhân lực
     let reports = [], curProject = null;
