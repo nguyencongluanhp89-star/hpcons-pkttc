@@ -687,3 +687,41 @@ body.dark-mode .photo-cap-textarea:focus {
   .a4-page .a4-tiep-head{padding:5px 14px !important;font-size:11.5px !important;cursor:default !important}
   .a4-page .a4-tiep-head::after{content:none !important}
   .a4-page .a4-tiep-nhan{font-weight:400;opacity:.9;margin-left:6px}
+
+  /* ===== THANG CỠ CHỮ RIÊNG CHO KHỔ A4 (Sếp yêu cầu 20/08) =====
+     Thang gốc ở :root đặt cho bản xem rộng 1000px. Tờ A4 chỉ 794px, vùng chữ 726px, nên phải
+     có thang riêng: các cấp TIÊU ĐỀ thu mạnh (chúng ăn chiều cao mà không mang số liệu), cấp
+     NỘI DUNG thu nhẹ để vẫn đọc được khi in và khi xem ảnh trên điện thoại.
+     Quy đổi 96dpi: 1pt ≈ 1.333px.
+       L1 tiêu đề báo cáo   16px  (12pt)
+       L1 phụ (tiếng Trung) 10px  (7.5pt)
+       L2 tiêu đề mục 01-07 12px  (9pt)   — in hoa đậm nên nhìn vẫn nổi
+       L2 phụ (tiếng Trung) 10px  (7.5pt)
+       L3 tiêu đề khối/thẻ  11.5px (8.6pt)
+       L4 nội dung chi tiết 11.5px (8.6pt) — một dòng ~95 ký tự, trong khoảng dễ đọc
+       L5 chú thích ảnh     10px  (7.5pt)
+       L5 phụ               9px
+       L6 nhãn nhỏ/giờ chụp 9px
+     Một dòng 726px ở cỡ 11.5px cho khoảng 95 ký tự — nằm trong ngưỡng dễ đọc (65–100). */
+  body.kho-a4 .a4-page, body.kho-a4 #report{
+    --fs-title: 16px;
+    --fs-title-cn: 10px;
+    --fs-section: 12px;
+    --fs-section-cn: 10px;
+    --fs-heading: 11.5px;
+    --fs-body: 11.5px;
+    --fs-caption: 10px;
+    --fs-caption-cn: 9px;
+    --fs-micro: 9px;
+  }
+  /* Thanh tiêu đề mục: thu chiều cao cho khớp cỡ chữ mới */
+  body.kho-a4 .sec-h{padding:6px 12px;letter-spacing:0.3px}
+  body.kho-a4 .sec-h .num{font-size:11px;padding:1px 6px}
+  /* Các cỡ px CỨNG trong bản xem (không dùng biến) — chỉnh riêng cho A4 */
+  body.kho-a4 .card2 div[style*="font-size:64px"]{font-size:38px !important;letter-spacing:-1px !important}
+  body.kho-a4 .card2 div[style*="height:70px"]{height:46px !important;margin-bottom:8px !important}
+  body.kho-a4 .worker-giant{font-size:38px}
+  body.kho-a4 .pad{padding:9px 11px}
+  body.kho-a4 .kv{padding:3px 0}
+  body.kho-a4 .sign-block{padding:8px 16px 10px}
+  body.kho-a4 .sign-block div[style*="font-size:13px"]{font-size:10.5px !important}
