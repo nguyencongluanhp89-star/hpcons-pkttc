@@ -664,6 +664,62 @@
     }, Promise.resolve()).then(function () { return ds; });
   }
 
+  /* ---------- XUẤT PDF (Sếp yêu cầu 20/08: cho chọn xuất ảnh hoặc PDF) ----------
+     Cách làm: dùng lại CHÍNH những tờ A4 vừa chụp, không dựng lại lần nữa — nên PDF giống y ảnh
+     và giống y bản Sếp đang xem. Mỗi tờ là một trang A4 đứng.
+     Vì sao đổi sang JPEG trước khi nhét vào PDF: ảnh chụp là PNG không nén mất mát, 6 trang có
+     ảnh công trường lên tới ~20MB — gửi Zalo rất nặng. JPEG chất lượng 0.9 cho chữ vẫn nét mà
+     file nhỏ đi nhiều lần. Tỉ lệ ảnh chụp (794x1123) đúng bằng tỉ lệ A4 nên đặt kín trang
+     210x297mm là không méo. */
+  function anhSangJPEG(dataURL, chatLuong) {
+    return new Promise(function (xong, loi) {
+      var im = new Image();
+      im.onload = function () {
+        try {
+          var cv = document.createElement('canvas');
+          cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+          var g = cv.getContext('2d');
+          g.fillStyle = '#ffffff';                    // JPEG không có nền trong suốt
+          g.fillRect(0, 0, cv.width, cv.height);
+          g.drawImage(im, 0, 0);
+          xong({ data: cv.toDataURL('image/jpeg', chatLuong || 0.9), w: cv.width, h: cv.height });
+        } catch (e) { loi(e); }
+      };
+      im.onerror = function () { loi(new Error('Không đọc được ảnh trang')); };
+      im.src = dataURL;
+    });
+  }
+
+  function taiPDF(anhs, tenGoc, nut) {
+    var JS = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (typeof JS !== 'function') {
+      alert('Chưa nạp được thư viện PDF (jsPDF). Sếp kiểm tra lại kết nối mạng rồi bấm lại, hoặc dùng "Tải ảnh".');
+      return Promise.resolve(false);
+    }
+    var chuCu = nut ? nut.textContent : '';
+    if (nut) { nut.disabled = true; nut.textContent = '⏳ Đang tạo PDF...'; }
+
+    var pdf = new JS({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+    return anhs.reduce(function (p, d, i) {
+      return p.then(function () {
+        if (nut) nut.textContent = '⏳ Đang tạo PDF ' + (i + 1) + '/' + anhs.length + '...';
+        return anhSangJPEG(d, 0.9).then(function (jp) {
+          if (i) pdf.addPage();
+          pdf.addImage(jp.data, 'JPEG', 0, 0, 210, 297);   // kín trang A4, đúng tỉ lệ
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      pdf.save(tenGoc + '.pdf');
+      if (nut) { nut.textContent = '✓ Đã tải PDF'; setTimeout(function () { nut.disabled = false; nut.textContent = chuCu; }, 2500); }
+      return true;
+    }).catch(function (e) {
+      if (nut) { nut.disabled = false; nut.textContent = chuCu; }
+      alert('Tạo PDF lỗi: ' + (e && e.message ? e.message : e)
+        + String.fromCharCode(10,10) + 'Sếp dùng "Tải ảnh" thay thế.');
+      return false;
+    });
+  }
+
   /* ---------- xem trước nhiều trang trong app ---------- */
 
   function xemTruocNhieuTrang(anhs, tenGoc) {
@@ -696,14 +752,17 @@
         '<div style="color:#fff; font-weight:700; font-size:15px; text-align:center; line-height:1.4">' +
           'Báo cáo ' + anhs.length + ' trang<br>' +
           '<span style="font-weight:400; font-size:13px; color:#cbd5e1">Điện thoại: bấm "Gửi cả ' + anhs.length + ' ảnh" rồi chọn Zalo.<br>' +
-          'Máy tính: Zalo PC không nhận chia sẻ trực tiếp — dùng "Tải tất cả" rồi kéo file vào Zalo, hoặc "Sao chép" từng trang rồi Ctrl+V.</span></div>' +
+          'Máy tính: Zalo PC không nhận chia sẻ trực tiếp — dùng "Tải ảnh" hoặc "Tải PDF" rồi kéo file vào Zalo, hoặc "Sao chép" từng trang rồi Ctrl+V.</span></div>' +
         anhHtml +
         '<div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:420px; position:sticky; bottom:0">' +
           '<button id="bcShareAll" style="min-height:54px; background:#096AA7; color:#fff; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(9,106,167,.45)">📤 Gửi cả ' + anhs.length + ' ảnh</button>' +
+          /* Sếp yêu cầu 20/08: cho CHỌN xuất ảnh hoặc PDF. Đặt hai nút cạnh nhau ngay đây để chỉ
+             phải chụp MỘT LẦN rồi muốn định dạng nào thì lấy định dạng đó, khỏi xuất lại. */
           '<div style="display:flex; gap:12px">' +
-            '<button id="bcDlAll" style="flex:1; min-height:48px; background:#334155; color:#fff; border:1px solid #64748b; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer">⬇ Tải tất cả</button>' +
-            '<button id="bcClose" style="flex:1; min-height:48px; background:#475569; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer">✕ Đóng</button>' +
+            '<button id="bcDlAll" style="flex:1; min-height:48px; background:#334155; color:#fff; border:1px solid #64748b; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer">⬇ Tải ảnh (' + anhs.length + ')</button>' +
+            '<button id="bcDlPdf" style="flex:1; min-height:48px; background:#334155; color:#fff; border:1px solid #64748b; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer">📄 Tải PDF</button>' +
           '</div>' +
+          '<button id="bcClose" style="min-height:44px; background:#475569; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer">✕ Đóng</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(ov);
@@ -750,6 +809,10 @@
       };
     });
 
+    document.getElementById('bcDlPdf').onclick = function () {
+      taiPDF(anhs, tenGoc, this);
+    };
+
     document.getElementById('bcDlAll').onclick = function () {
       anhs.forEach(function (d, i) {
         setTimeout(function () {
@@ -762,6 +825,7 @@
   }
 
   window.BCNhieuTrang = {
+    taiPDF: taiPDF,
     chupCacTrang: chupCacTrang,
     xemTruocNhieuTrang: xemTruocNhieuTrang,
     xepTrang: xepTrang,
