@@ -283,44 +283,72 @@
       if (than.children.length > 1) d += g * (than.children.length - 1);
       return d;
     }
+    /* Tờ đầu: chia chỗ theo TỈ LỆ Sếp chốt 20/08 — ô Nhân lực & Thời tiết 45%, biểu đồ 55%.
+       Bản trước chỉ "tăng chiều cao ô" nên nội dung trong ô (BCH, Nhà thầu, NẮNG) dồn lên trên
+       và cách đáy ô rất xa — đúng lỗi Sếp chỉ. Nay ngoài việc chia tỉ lệ còn cho nội dung trong
+       ô DÀN ĐỀU theo chiều dọc, và vẽ lại biểu đồ cho lấp đúng 55% được chia. */
     function lapDayToDau(t) {
       var than = t.than;
-      var du = than.clientHeight - tongCao(than) - AN_TOAN;
-      if (du < 20) return;
-      var luuCard = [], luuAnh = null;
+      var con = Array.prototype.slice.call(than.children);
+      if (con.length < 2) return;
 
-      // (1) hai ô Nhân lực / Thời tiết cao thêm. Tăng rồi ĐO LẠI, nếu quá thì hạ dần —
-      //     an toàn hơn kiểu tăng một lần rồi hoàn nguyên sạch khi tràn.
-      var cards = Array.prototype.slice.call(than.querySelectorAll('.card2'));
-      if (cards.length && du > 20) {
-        var caoC = Math.max.apply(null, cards.map(function (c) { return cao(c); }));
-        var them = Math.min(du, 220);
-        cards.forEach(function (c) {
-          luuCard.push([c, c.style.height, c.style.boxSizing]);
-          c.style.boxSizing = 'border-box';
-        });
-        for (var lan = 0; lan < 14 && them > 0; lan++) {
-          cards.forEach(function (c) { c.style.height = Math.round(caoC + them) + 'px'; });
-          if (than.scrollHeight - than.clientHeight <= 2) break;
-          them -= 20;
+      var g = parseFloat(window.getComputedStyle(than).rowGap || window.getComputedStyle(than).gap) || 0;
+      var hThan = than.clientHeight;
+
+      // Nhận diện: khối 02 là khối có thẻ .card2; khối biểu đồ là khối có [data-a4-bieudo]
+      var kh02 = null, khBD = null, khKhac = [];
+      con.forEach(function (k) {
+        if (k.querySelector('[data-a4-bieudo="1"]') || k.getAttribute('data-a4-bieudo') === '1') khBD = k;
+        else if (k.querySelector('.card2')) kh02 = k;
+        else khKhac.push(k);
+      });
+      if (!kh02 || !khBD) return;
+
+      // Chỗ còn lại sau các khối khác (khối 01) và các khoảng cách
+      var hKhac = 0;
+      khKhac.forEach(function (k) { hKhac += cao(k); });
+      var conLai = hThan - hKhac - g * (con.length - 1) - AN_TOAN;
+      if (conLai < 240) return;                         // quá ít chỗ thì để tự nhiên
+
+      var h02 = Math.round(conLai * 0.45);              // Nhân lực & Thời tiết 45%
+      var hBD = conLai - h02;                           // biểu đồ 55%
+
+      kh02.style.boxSizing = 'border-box';
+      kh02.style.height = h02 + 'px';
+      khBD.style.boxSizing = 'border-box';
+      khBD.style.height = hBD + 'px';
+
+      // Bên trong khối 02: hàng 2 ô và từng ô đều cao hết phần được chia, nội dung dàn đều
+      var hang = kh02.querySelector('.pad.two');
+      if (hang) { hang.style.flex = '1'; hang.style.minHeight = '0'; hang.style.alignItems = 'stretch'; }
+      Array.prototype.slice.call(kh02.querySelectorAll('.pad.two > div')).forEach(function (c) {
+        c.style.display = 'flex'; c.style.flexDirection = 'column'; c.style.minHeight = '0';
+      });
+      Array.prototype.slice.call(kh02.querySelectorAll('.card2')).forEach(function (c) {
+        c.style.flex = '1';
+        c.style.display = 'flex';
+        c.style.flexDirection = 'column';
+        c.style.justifyContent = 'space-between';       // hết cảnh nội dung dồn lên, cách đáy xa
+        c.style.minHeight = '0';
+      });
+
+      // Biểu đồ: vẽ lại cho lấp đúng phần 55%
+      var hop = khBD.querySelector('[data-a4-bieudo="1"]') || khBD;
+      var svgBox = hop.querySelector('.bieudo-tuan') || hop;
+      if (svgBox) { svgBox.style.display = 'flex'; svgBox.style.flexDirection = 'column'; svgBox.style.height = '100%'; }
+      var svg = hop.querySelector('svg');
+      if (svg && typeof window.veLaiBieuDoTuan === 'function') {
+        var oSvg = svg.parentNode;                      // .bieudo-tuan
+        if (oSvg) {
+          svg.style.flex = '1';
+          svg.style.minHeight = '0';
+          svg.style.height = '100%';
         }
-        if (them <= 0) cards.forEach(function (c) { c.style.height = ''; });
-        du = than.clientHeight - tongCao(than) - AN_TOAN;
       }
 
-      // (2) vẫn còn trống -> ảnh tổng quan khối 01 cao thêm (cover nên không méo)
-      var anh = than.querySelector('.ov-main');
-      if (anh && du > 20) {
-        var rA = anh.getBoundingClientRect();
-        luuAnh = [anh, anh.style.height, anh.style.aspectRatio];
-        anh.style.aspectRatio = 'auto';
-        anh.style.height = Math.round(rA.height + du) + 'px';
-      }
-
-      // chốt an toàn: tràn thì hoàn nguyên hết, thà còn trống chứ không cắt nội dung
+      // Chốt an toàn: tràn thì trả về tự nhiên, thà còn trống chứ không cắt nội dung
       if (than.scrollHeight - than.clientHeight > 2) {
-        luuCard.forEach(function (x) { x[0].style.height = x[1]; x[0].style.boxSizing = x[2]; });
-        if (luuAnh) { luuAnh[0].style.height = luuAnh[1]; luuAnh[0].style.aspectRatio = luuAnh[2]; }
+        kh02.style.height = ''; khBD.style.height = '';
       }
     }
 

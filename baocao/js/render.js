@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b7.8';
+const APP_BUILD = 'b7.9';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -214,10 +214,14 @@ function duLieuNhanLucTuan() {
   });
 }
 
-function bieuDoNhanLucTuanHtml() {
+function bieuDoNhanLucTuanHtml(hMongMuon) {
   const ds = duLieuNhanLucTuan();
   if (!ds.length) return '';
-  const W = 700, H = 265, L = 42, R = 26, T = 22, B = 38;   // cao hơn cho dễ đọc; lề phải rộng để nhãn cuối không bị cắt
+  // Chiều cao viewBox tính theo khung thật (nếu biết) -> biểu đồ lấp đúng phần được chia,
+  // không còn khoảng trắng do svg canh giữa. Bề rộng quy chiếu luôn là 700.
+  const W = 700;
+  const H = Math.max(200, Math.min(460, Math.round(hMongMuon || 265)));
+  const L = 42, R = 26, T = 22, B = 38;   // cao hơn cho dễ đọc; lề phải rộng để nhãn cuối không bị cắt
   const cw = W - L - R, ch = H - T - B;
   const cos = ds.map(d => d.val).filter(v => v !== null);
   const max = Math.max(10, ...cos);
@@ -259,6 +263,18 @@ function bieuDoNhanLucTuanHtml() {
   </div>`;
 }
 window.bieuDoNhanLucTuanHtml = bieuDoNhanLucTuanHtml;
+
+/* Vẽ lại biểu đồ tuần cho vừa ĐÚNG khung đã chia (Sếp chốt 20/08: biểu đồ 55%, ô nhân lực và
+   thời tiết 45%). Gọi sau khi bộ phân trang đã ấn định chiều cao, truyền theo tỉ lệ khung thật
+   nên biểu đồ lấp kín phần của nó. */
+function veLaiBieuDoTuan(hopEl) {
+  if (!hopEl) return;
+  const r = hopEl.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const hVB = Math.round(700 * (r.height / r.width));      // quy về bề rộng 700 của viewBox
+  hopEl.innerHTML = bieuDoNhanLucTuanHtml(hVB);
+}
+window.veLaiBieuDoTuan = veLaiBieuDoTuan;
 function fmtDate(v){
   if(!v)return{d:"",w:""};
   const dt=new Date(v+'T00:00:00');
@@ -628,7 +644,7 @@ function draw(){
           <div style="font-size:64px; font-weight:800; color:var(--green); letter-spacing:-2px; line-height:1">${el('f_total').value}</div>
         </div>
         <div class="kv"><span class="k"><span style="opacity:0.6;margin-right:6px">👷</span>BCH / 指挥部</span><span class="v">${String(el('f_bch').value).padStart(2,'0')}</span></div>
-        <div class="kv" style="border-bottom:0"><span class="k"><span style="opacity:0.6;margin-right:6px">👥</span>Tổ đội / Nhà thầu phụ / 班组·分包商</span><span class="v">${units.reduce((a,u)=>a+(parseInt(u.n)||0),0)}</span></div>
+        <div class="kv" style="border-bottom:0"><span class="k"><span style="opacity:0.6;margin-right:6px">👥</span>Nhà thầu / 分包商</span><span class="v">${units.reduce((a,u)=>a+(parseInt(u.n)||0),0)}</span></div>
       </div>
     </div>
     <div style="flex:1">

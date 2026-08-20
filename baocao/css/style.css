@@ -663,7 +663,7 @@ body.dark-mode .photo-cap-textarea:focus {
   body.kho-a4 .ov-imgs{flex:0 0 46%;min-width:0}
   body.kho-a4 .ov-info{flex:1;min-width:0}
   body.kho-a4 .ov-main{height:auto;aspect-ratio:4/3}
-  body.kho-a4 .ov-info .line{padding:3px 6px}
+  body.kho-a4 .ov-info .line{padding:6px 6px}   /* Sếp yêu cầu 20/08: giãn khoảng cách hàng thông tin khối 01 */
   body.kho-a4 .ov-info .k{font-size:10.5px}
   body.kho-a4 .ov-info .v{font-size:11px}
   body.kho-a4 .card2{padding:10px}
@@ -747,3 +747,9 @@ body.dark-mode .photo-cap-textarea:focus {
      cao hơn cho dễ đọc, và khối 02 giãn ra lấp trang. */
   body.kho-a4 .bieudo-tuan svg{max-height:none}
   body.kho-a4 [data-a4-khoi02]{display:flex;flex-direction:column}
+
+  /* Sếp chốt 20/08: khối 02 chia ô Nhân lực & Thời tiết 45% / biểu đồ 55%; nội dung trong ô
+     DÀN ĐỀU theo chiều dọc để không dồn lên trên rồi cách đáy ô quá xa. */
+  body.kho-a4 .card2{display:flex;flex-direction:column;justify-content:space-between}
+  body.kho-a4 .bieudo-tuan{display:flex;flex-direction:column;height:100%}
+  body.kho-a4 .bieudo-tuan svg{flex:1;min-height:0;height:100%}
