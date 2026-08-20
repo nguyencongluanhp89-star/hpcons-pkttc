@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b6.1';
+const APP_BUILD = 'b6.2';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -548,13 +548,6 @@ function draw(){
     <div style="font-weight:700;color:var(--navy);margin-bottom:8px">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>${workHtml}
   </div>
 
-  <!-- TRANG HÌNH ẢNH THI CÔNG — nhập ảnh ngay tại đây (Sếp chốt 20/08) -->
-  <div class="sec-h" style="cursor:default"><span class="num">📷</span> HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
-  <div class="pad"><div class="photos">${photoHtml}</div></div>
-
-  <!-- TRANG BẢN VẼ — nhập bản vẽ ngay tại đây -->
-  <div class="sec-h" style="cursor:default"><span class="num">📐</span> BẢN VẼ <span class="cn">/ 图纸</span></div>
-  <div class="pad"><div class="draw">${drawHtml}</div></div>
 
   <div class="sec-h" onclick="editBilingualField('f_plan', 'KẾ HOẠCH / 计划')" title="Nhấn để nhập thủ công và tự dịch"><span class="num">04</span> KẾ HOẠCH THI CÔNG NGÀY MAI <span class="cn">/ 明日施工计划</span></div>
   <div class="pad" style="cursor:pointer;transition:0.2s" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'" onclick="editBilingualField('f_plan', 'KẾ HOẠCH / 计划')" title="Nhấn để nhập thủ công và tự dịch">${planHtml}</div>
@@ -596,6 +589,15 @@ function draw(){
       <div style="font-weight:700; color:var(--navy); font-size:13px; margin-top:4px;">${esc(report.approved_by || commanderName)}</div>
     </div>
   </div>
+
+  <!-- Sếp chốt 20/08: HÌNH ẢNH THI CÔNG và BẢN VẼ bố trí SAU trang chữ ký -> đặt cuối cùng,
+       sau khối ký tên. Nhập ảnh ngay tại chỗ, khỏi vào popup. -->
+  <div class="sec-h" style="cursor:default"><span class="num">📷</span> HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
+  <div class="pad"><div class="photos">${photoHtml}</div></div>
+
+  <div class="sec-h" style="cursor:default"><span class="num">📐</span> BẢN VẼ <span class="cn">/ 图纸</span></div>
+  <div class="pad"><div class="draw">${drawHtml}</div></div>
+
   <div class="divider"></div>`;
 
   if (typeof window.autoGrowAllTextareas === 'function') {
