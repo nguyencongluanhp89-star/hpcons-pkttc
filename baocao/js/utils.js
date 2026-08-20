@@ -17,7 +17,12 @@ function addEquip(){equips.push({q:"01",t:"Thiết bị mới"});renderEquipForm
      Bỏ ở đây CHỈ bỏ khỏi báo cáo ngày, KHÔNG xóa khỏi danh mục dự án.
    · Danh sách dài thì thu gọn lại, bấm mới mở rộng, để popup không bị kéo quá dài trên điện thoại.
    · Tổng nhân lực do hệ thống cộng, không nhập tay.                                          */
-var _unitMoRong = false;
+/* Sếp báo 20/08: "đã bấm nhưng không thu các nhà thầu gọn lại". Gốc: "thu gọn" trước đây nghĩa là
+   bớt từ 6 dòng xuống còn 5 dòng — mà khung danh sách nay chỉ cao ~3 dòng và tự cuộn, nên bớt 1
+   dòng KHÔNG thấy khác gì, chỉ thấy nhãn nút đổi. Nay "thu gọn" = ẩn hẳn khung dòng, chỉ còn một
+   dòng tóm tắt (bao nhiêu đơn vị · bao nhiêu người); bấm lại thì mở ra khung cuộn đầy đủ.
+   Mặc định để MỞ vì khung đã có trần chiều cao, không còn chiếm chỗ như trước. */
+var _unitMoRong = true;
 function toggleUnitMoRong(){ _unitMoRong = !_unitMoRong; renderUnitForm(); }
 window.toggleUnitMoRong = toggleUnitMoRong;
 
@@ -28,7 +33,7 @@ function renderUnitForm(){
   const NGUONG_THU_GON = 5;                 // quá số này thì thu gọn cho gọn màn hình
   const nhieu = units.length > NGUONG_THU_GON;
   const hienHet = _unitMoRong || !nhieu;
-  const danhSach = hienHet ? units : units.slice(0, NGUONG_THU_GON);
+  const danhSach = hienHet ? units : [];    // thu gọn = ẩn hẳn khung dòng, không phải bớt vài dòng
   /* Sếp yêu cầu 20/08: nút cuộn (thu gọn / mở rộng) bố trí Ở TRÊN cho thuận tiện khai báo —
      trước đây nút nằm dưới cùng nên danh sách dài phải cuộn xuống hết mới bấm được. */
   let h = "";
@@ -42,7 +47,7 @@ function renderUnitForm(){
   /* Sếp chốt 20/08: các dòng nhà thầu nằm trong KHUNG CUỘN RIÊNG. Trước đây popup 02 cuộn toàn
      bộ, khai nhiều nhà thầu là ô "Tổng nhân lực" và nút "+ Thêm nhà thầu" bị đẩy xuống xa, phải
      cuộn lên xuống liên tục mới khai xong. Nay chỉ khung này cuộn, mọi thứ quanh nó đứng yên. */
-  h += '<div class="unit-rows">';
+  if (danhSach.length) h += '<div class="unit-rows">';
 
   danhSach.forEach((u, i) => {
     let opt = `<option value="">-- Chọn nhà thầu --</option>`;
@@ -74,7 +79,7 @@ function renderUnitForm(){
       </div></div>`;
   });
 
-  h += '</div>';
+  if (danhSach.length) h += '</div>';
 
   el2.innerHTML = h;
   if (typeof updateProgress === 'function') updateProgress();
