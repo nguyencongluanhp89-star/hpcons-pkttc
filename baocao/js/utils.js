@@ -10,34 +10,68 @@ function renderEquipForm(){
 }
 function addEquip(){equips.push({q:"01",t:"Thiết bị mới"});renderEquipForm();draw()}
 
-function renderUnitForm(){
-  let h="";
-  const listContractors = window.ALL_PROJECT_CONTRACTORS || [];
-  
-  units.forEach((u,i)=>{
-    let optionsHtml = `<option value="">-- Chọn đơn vị --</option>`;
-    listContractors.forEach(c => {
-      optionsHtml += `<option value="${c}" ${u.name === c ? 'selected' : ''}>${c}</option>`;
-    });
-    if (u.name && !listContractors.includes(u.name)) {
-      optionsHtml += `<option value="${u.name}" selected>${u.name}</option>`;
-    }
+/* Popup 02 — DANH SÁCH NHÀ THẦU THI CÔNG TRONG NGÀY   (Sếp chốt 20/08/2026)
+   · Danh sách lấy từ danh mục Nhà thầu của DỰ ÁN (ALL_PROJECT_CONTRACTORS) — không phải gõ lại
+     tên mỗi ngày, không tạo danh mục độc lập mới.
+   · Mỗi dòng: tên nhà thầu + số nhân lực trong ngày + nút bỏ khỏi báo cáo ngày.
+     Bỏ ở đây CHỈ bỏ khỏi báo cáo ngày, KHÔNG xóa khỏi danh mục dự án.
+   · Danh sách dài thì thu gọn lại, bấm mới mở rộng, để popup không bị kéo quá dài trên điện thoại.
+   · Tổng nhân lực do hệ thống cộng, không nhập tay.                                          */
+var _unitMoRong = false;
+function toggleUnitMoRong(){ _unitMoRong = !_unitMoRong; renderUnitForm(); }
+window.toggleUnitMoRong = toggleUnitMoRong;
 
-    h+=`<div class="item-card"><div class="row">
-    <div style="flex:2">
-      <label>Đơn vị / Tổ đội</label>
-      <select onchange="units[${i}].name=this.value; if (typeof draw === 'function') draw();" 
-        style="width:100%; height:40px; font-size:15px; border:1px solid #cbd5e1; border-radius:6px; background:#fff; padding:0 8px; box-sizing:border-box;">
-        ${optionsHtml}
-      </select>
-    </div>
-    <div style="flex:0 0 90px"><label>Số người</label><input type="number" value="${u.n}" oninput="units[${i}].n=parseInt(this.value)||0;recomputeTotal()" inputmode="numeric"></div>
-    </div>
-    <button class="delbtn" type="button" onclick="units.splice(${i},1);renderUnitForm();recomputeTotal()">Xóa</button></div>`
+function renderUnitForm(){
+  const el2 = el('unit-list');
+  if (!el2) return;
+  const listContractors = window.ALL_PROJECT_CONTRACTORS || [];
+  const NGUONG_THU_GON = 5;                 // quá số này thì thu gọn cho gọn màn hình
+  const nhieu = units.length > NGUONG_THU_GON;
+  const hienHet = _unitMoRong || !nhieu;
+  const danhSach = hienHet ? units : units.slice(0, NGUONG_THU_GON);
+  let h = "";
+
+  danhSach.forEach((u, i) => {
+    let opt = `<option value="">-- Chọn nhà thầu --</option>`;
+    listContractors.forEach(c => {
+      opt += `<option value="${c}" ${u.name === c ? 'selected' : ''}>${c}</option>`;
+    });
+    // Nhà thầu có trong báo cáo nhưng không còn trong danh mục dự án -> vẫn giữ để không mất dữ liệu
+    if (u.name && !listContractors.includes(u.name)) {
+      opt += `<option value="${u.name}" selected>${u.name} (ngoài danh mục)</option>`;
+    }
+    h += `<div class="item-card" style="padding:8px 10px">
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:2">
+          <label style="margin:0 0 3px">Nhà thầu</label>
+          <select onchange="units[${i}].name=this.value; if (typeof draw === 'function') draw();"
+            style="width:100%;height:38px;font-size:14px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;padding:0 8px;box-sizing:border-box">
+            ${opt}
+          </select>
+        </div>
+        <div style="flex:0 0 86px">
+          <label style="margin:0 0 3px">Nhân lực</label>
+          <input type="number" min="0" step="1" value="${u.n}" inputmode="numeric"
+            oninput="units[${i}].n=Math.max(0,parseInt(this.value)||0);recomputeTotal()">
+        </div>
+        <div style="flex:0 0 auto">
+          <button class="delbtn" type="button" title="Bỏ nhà thầu này khỏi báo cáo hôm nay (không xóa khỏi danh mục dự án)"
+            onclick="units.splice(${i},1);renderUnitForm();recomputeTotal()">Bỏ</button>
+        </div>
+      </div></div>`;
   });
-  el('unit-list').innerHTML=h;
+
+  if (nhieu) {
+    const tong = units.reduce((a, u) => a + (parseInt(u.n) || 0), 0);
+    h += `<button class="addbtn" type="button" onclick="toggleUnitMoRong()" style="width:100%;text-align:left">
+      ${hienHet ? '▲ Thu gọn danh sách' : `▼ Nhà thầu thi công hôm nay: ${units.length} đơn vị · ${tong} người`}
+    </button>`;
+  }
+
+  el2.innerHTML = h;
   if (typeof updateProgress === 'function') updateProgress();
 }
+
 function addUnit(){units.push({name:"",area:"",n:0});renderUnitForm();recomputeTotal();}
 
 /* ====================== GIỌNG NÓI + BÓC TÁCH (mục 02) ====================== */

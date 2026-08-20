@@ -482,21 +482,22 @@
       </div></details>
 
       <details class="grp" id="grp-02"><summary>02 · Nhân lực & Thời tiết<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
-        <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập bằng giọng nói (AI bóc tách)</div>
-        <button class="btn-voice" type="button" id="btnVoice" onclick="toggleVoice()">🎤 Nhập giọng nói</button>
-        <div class="hint">Đọc ví dụ: <i>"Ban chỉ huy 5 người, đội anh Tâm 5 người..."</i> App chỉ điền dữ liệu nghe được — <b>không tự bịa</b>.</div>
-        <div id="voiceStatus" class="hint" style="color:var(--navy2)"></div>
-        <label>Lời nói nhận được (kiểm tra lại)</label>
-        <textarea id="voiceTranscript" placeholder="Nội dung giọng nói sẽ hiện ở đây..."></textarea>
-        <button class="addbtn" type="button" onclick="applyVoice(el('voiceTranscript').value)" style="width:100%">↻ Phân tích lại từ nội dung trên</button>
-        <div id="voiceResult" class="hint"></div>
-        <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
-        <label>BCH (Ban chỉ huy)</label><input type="number" id="f_bch" value="5" inputmode="numeric">
-        <label style="margin-top:8px">Tổ đội / Nhà thầu phụ</label>
+        <!-- Sếp chốt 20/08: popup 02 BỎ hoàn toàn phần giọng nói, chỉ phục vụ khai báo nhân lực
+             hằng ngày. Các phần tử giữ lại nhưng ẨN (không xóa) để mã cũ toggleVoice/applyVoice
+             không lỗi vì thiếu phần tử; cả cụm trong một div nên không để khoảng trắng thừa. -->
+        <div style="display:none">
+          <button class="btn-voice" type="button" id="btnVoice" onclick="toggleVoice()">🎤 Nhập giọng nói</button>
+          <div id="voiceStatus" class="hint"></div>
+          <textarea id="voiceTranscript"></textarea>
+          <div id="voiceResult" class="hint"></div>
+        </div>
+        <label>BCH (Ban chỉ huy)</label><input type="number" id="f_bch" value="5" min="0" step="1" inputmode="numeric">
+        <label style="margin-top:10px">Nhà thầu thi công hôm nay</label>
+        <div class="hint" style="margin-bottom:6px">Danh sách lấy từ danh mục Nhà thầu của dự án — chỉ cần sửa số lượng. Xóa ở đây chỉ bỏ khỏi báo cáo ngày, không xóa khỏi danh mục dự án.</div>
         <div id="unit-list"></div>
-        <button class="addbtn" type="button" onclick="addUnit()">+ Thêm tổ đội / nhà thầu phụ</button>
-        <label style="margin-top:8px">Tổng số nhân sự (tự cộng)</label><input type="number" id="f_total" value="0" readonly style="background:#eef4ff;font-weight:700" inputmode="numeric">
-        <div class="hint">= BCH + tất cả tổ đội / nhà thầu phụ (tự động).</div>
+        <button class="addbtn" type="button" onclick="addUnit()">+ Thêm nhà thầu</button>
+        <label style="margin-top:10px">Tổng nhân lực (hệ thống tự cộng)</label><input type="number" id="f_total" value="0" readonly style="background:#eef4ff;font-weight:700;cursor:not-allowed" inputmode="numeric">
+        <div class="hint">= BCH + tổng nhân lực tất cả nhà thầu trong ngày. Không nhập tay.</div>
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
         <div style="font-weight:700;color:var(--navy);font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
           <span>THỜI TIẾT HÔM NAY</span>
@@ -512,19 +513,22 @@
         <textarea id="f_weather_note" placeholder="Dữ liệu sẽ được tự động điền khi lấy thời tiết từ vệ tinh..." disabled style="background:#f1f5f9;cursor:not-allowed"></textarea>
       </div></details>
 
-      <details class="grp" id="grp-03"><summary>03 · Hạng mục thi công & Ảnh<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
-        <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập hạng mục bằng giọng nói</div>
-        <button class="btn-voice" type="button" id="btnVoiceWorks" onclick="toggleVoiceWorks()">🎤 Nhập giọng nói</button>
-        <div class="hint">Đọc tự nhiên: <i>"Nhà xưởng 1: đổ bê tông... Nhà văn phòng: ép cọc..."</i> App tự động nhận diện Hạng mục và Chi tiết.</div>
-        <div id="worksVoiceStatus" class="hint" style="color:var(--navy2)"></div>
-        <textarea id="worksTranscript" placeholder="Nội dung giọng nói về hạng mục..."></textarea>
-        <button class="addbtn" type="button" onclick="applyWorksVoice(el('worksTranscript').value)" style="width:100%">↻ Phân tích lại</button>
-        <div id="worksVoiceResult" class="hint"></div>
-        <label style="margin-top:8px">Các hạng mục thi công</label>
+      <details class="grp" id="grp-03"><summary>03 · HẠNG MỤC THI CÔNG<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
+        <!-- Sếp chốt 20/08: popup 03 BỎ phần giọng nói. Các phần tử vẫn giữ nhưng ẨN (không xóa)
+             để mã cũ toggleVoiceWorks / applyWorksVoice không lỗi vì thiếu phần tử. Không để
+             khoảng trắng thừa: cả cụm nằm trong một div display:none. -->
+        <div style="display:none">
+          <button class="btn-voice" type="button" id="btnVoiceWorks" onclick="toggleVoiceWorks()">🎤 Nhập giọng nói</button>
+          <div id="worksVoiceStatus" class="hint"></div>
+          <textarea id="worksTranscript"></textarea>
+          <div id="worksVoiceResult" class="hint"></div>
+        </div>
+        <label>Các hạng mục thi công</label>
         <div id="work-list"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="addbtn" type="button" onclick="addWork()">+ Thêm hạng mục</button>
-          <button class="addbtn" type="button" onclick="openKBLibrary()" style="background:var(--navy2);color:#fff">📚 Chọn từ Thư viện</button>
+          <!-- Sếp chốt 20/08: bỏ "Chọn từ Thư viện" khỏi popup 03. Hàm openKBLibrary() và toàn bộ
+               dữ liệu Thư viện GIỮ NGUYÊN, chỉ không còn nút gọi ở đây. -->
         </div>
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
         <!-- Sếp chốt 20/08: mục khai báo hình ở khối 03 BỎ, chuyển sang trang Hình ảnh thi công.
@@ -754,12 +758,12 @@
 
 <script src="app-core.js?v=11"></script>
 <script src="js/data.js?v=2"></script>
-<script src="js/utils.js?v=2"></script>
-<script src="js/features.js?v=2.7"></script>
+<script src="js/utils.js?v=3"></script>
+<script src="js/features.js?v=2.8"></script>
 <script src="hpcons-logo.js?v=1"></script>
 <script src="js/baocao-nhieutrang.js?v=1.9"></script>
 <script src="js/baocao-a4.js?v=1.3"></script>
-<script src="js/render.js?v=7.1"></script>
+<script src="js/render.js?v=7.2"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT

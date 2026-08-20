@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b7.1';
+const APP_BUILD = 'b7.2';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -2241,6 +2241,35 @@ async function loadReportForDate(date) {
         window._reportStatus = 'draft';
         if (typeof updateStatusBadge === 'function') updateStatusBadge();
         units = []; works = []; photos = []; draws = [];
+
+        /* KẾ THỪA TỰ ĐỘNG TỪ NGÀY GẦN NHẤT   (Sếp chốt 20/08/2026)
+           Nhà thầu và hạng mục là dữ liệu có TÍNH LIÊN TỤC — bắt kỹ sư nhập lại từng ngày là
+           thao tác thừa. Nguyên tắc: "hôm nay kế thừa hôm qua rồi sửa".
+             · Lấy danh sách nhà thầu + hạng mục của báo cáo GẦN NHẤT TRƯỚC ĐÓ làm dữ liệu gợi ý.
+             · Người dùng giữ nguyên, sửa số lượng / nội dung, xóa, hoặc thêm mới.
+             · KHÔNG lấy ảnh, KHÔNG lấy thời tiết (hai thứ này riêng của từng ngày).
+             · Dùng bản SAO SÂU nên sửa hôm nay KHÔNG đụng tới báo cáo ngày cũ; mỗi ngày vẫn
+               lưu dữ liệu riêng của mình khi bấm lưu. */
+        try {
+          if (typeof findPrevReport === 'function') {
+            const _pid = (typeof curProject !== 'undefined' && curProject) ? (curProject.id || curProject) : '';
+            const _rs = (typeof reports !== 'undefined' && Array.isArray(reports)) ? reports : [];
+            const _prev = findPrevReport(_rs, date, _pid, { contentOnly: true });
+            if (_prev) {
+              if (Array.isArray(_prev.units) && _prev.units.length) {
+                units = _prev.units.map(u => ({ name: (u && u.name) || '', area: (u && u.area) || '', n: parseInt(u && u.n) || 0 }));
+              }
+              const _w = Array.isArray(_prev.works_full) ? _prev.works_full : (Array.isArray(_prev.works) ? _prev.works : []);
+              if (_w.length) {
+                works = _w.map(w => ({ c: (w && w.c) || 'var(--green)', t: (w && w.t) || '', d: (w && w.d) || '' }));
+              }
+              if (units.length || works.length) {
+                console.log('[kế thừa] lấy từ báo cáo ' + _prev.date + ': ' + units.length + ' nhà thầu, ' + works.length + ' hạng mục');
+                window._keThuaTuNgay = _prev.date;
+              }
+            }
+          }
+        } catch (e) { console.warn('Kế thừa từ ngày gần nhất lỗi (bỏ qua):', e && e.message); }
 
         // Nạp các giá trị mặc định của dự án
         await applyProjectDefaults();

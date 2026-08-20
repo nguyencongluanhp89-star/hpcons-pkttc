@@ -140,16 +140,9 @@ function renderWorkForm(){
       oninput="works[${i}].t=this.value;drawDebounced()"
       placeholder="Nhập hoặc chọn hạng mục...">
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-      <label style="margin: 0;">Chi tiết (mỗi dòng 1 ý)</label>
-      <div style="display: flex; align-items: center; gap: 4px;">
-        <span style="font-size: 11px; color: var(--text-muted)">Gợi ý chèn:</span>
-        <select style="font-size: 11px; padding: 2px 4px; border: 1px solid var(--border); border-radius: 4px; max-width: 200px;" onchange="if(this.value){ insertTaskToWorks(this, ${i}); }">
-          <option value="">-- Chọn công tác --</option>
-          ${kbTasks.map(t => `<option value="${t}">${t}</option>`).join('')}
-        </select>
-      </div>
-    </div>
+    <!-- Sếp chốt 20/08: bỏ ô "Chọn công tác". Hàm insertTaskToWorks và dữ liệu kbTasks giữ
+         nguyên (báo cáo lịch sử vẫn dùng), chỉ không còn ô chọn trong giao diện nhập. -->
+    <label style="margin-top: 8px;">Chi tiết thi công (mỗi dòng 1 ý)</label>
     <textarea id="works-desc-${i}" oninput="works[${i}].d=this.value;drawDebounced()">${w.d}</textarea>
     <button class="delbtn" type="button" onclick="works.splice(${i},1);renderWorkForm();draw()">Xóa</button></div>`});
 
@@ -1000,32 +993,56 @@ window.translateWorkDescDirect = async (i, val) => {
 };
 
 // Dịch TẤT CẢ hạng mục 1 lần (gọi khi ĐÓNG popup 03) — tránh dịch/nhảy form khi đang gõ.
+/* DỊCH HẠNG MỤC — chỉ chạy KHI ĐÓNG POPUP 03, chỉ dịch phần MỚI hoặc ĐÃ THAY ĐỔI
+   (Sếp chốt 20/08/2026)
+   Luồng: nhập tiếng Việt -> sửa xong -> đóng popup -> hệ thống dịch -> lưu dữ liệu.
+   Vì sao phải nhớ bản đã dịch: nội dung lưu dạng "tiếng Việt | tiếng Trung" nên nếu chỉ kiểm
+   "có dấu |" thì khi kỹ sư SỬA phần tiếng Việt (ví dụ M1–M5 thành M6–M10), chuỗi vẫn còn dấu |
+   -> bị coi là đã dịch -> bản dịch cũ SAI mà không ai biết. Nay lưu kèm _tvi/_dvi là phần tiếng
+   Việt tại lần dịch gần nhất; khác đi thì dịch lại, giống thì bỏ qua để đỡ tốn API.
+   Lỗi API: giữ nguyên tiếng Việt, không làm mất nội dung vừa nhập.                            */
 window.translateAllWorks = async () => {
   if (typeof works === 'undefined' || !works || !works.length) return;
   let changed = false;
+  const viCua = (chuoi) => String(chuoi || '').split('|')[0].trim();
   try {
     for (let i = 0; i < works.length; i++) {
-      // Tên hạng mục (bỏ qua nếu trống hoặc đã có bản dịch "|")
-      const t = (works[i].t || '').trim();
-      if (t && !t.includes('|')) {
-        const tr = await window.translateViToCn(t);
-        if (tr) { works[i].t = `${t} | ${tr}`; changed = true; }
+      const w = works[i];
+
+      // --- Tên hạng mục ---
+      const tRaw = (w.t || '').trim();
+      const tVi = viCua(tRaw);
+      const tDaDich = tRaw.includes('|');
+      const tDoi = tDaDich && w._tvi !== undefined && w._tvi !== tVi;   // đã dịch nhưng nay sửa
+      if (tVi && (!tDaDich || tDoi)) {
+        const tr = await window.translateViToCn(tVi);
+        if (tr) { w.t = tVi + ' | ' + tr; w._tvi = tVi; changed = true; }
+        else { w.t = tVi; }                       // dịch lỗi -> giữ tiếng Việt, không mất chữ
+      } else if (tVi && tDaDich && w._tvi === undefined) {
+        w._tvi = tVi;                             // báo cáo cũ: ghi nhận mốc để lần sau so được
       }
-      // Chi tiết (mỗi dòng)
-      const d = works[i].d || '';
+
+      // --- Chi tiết thi công (mỗi dòng một ý) ---
+      const d = w.d || '';
       if (d.trim()) {
+        const dViHienTai = d.split('\n').map(viCua).join('\n');
+        const dDoi = w._dvi !== undefined && w._dvi !== dViHienTai;
         const lines = d.split('\n');
-        const newLines = await Promise.all(lines.map(async line => {
-          if (!line.trim() || line.includes('|')) return line;
-          const o = biLineSplit(line);
+        const newLines = [];
+        for (const line of lines) {
+          if (!line.trim()) { newLines.push(line); continue; }
+          const daDich = line.includes('|');
+          if (daDich && !dDoi) { newLines.push(line); continue; }   // chưa đổi -> khỏi dịch lại
+          const o = biLineSplit(daDich ? viCua(line) : line);
           const tn = await window.translateViToCn(o.n);
-          return tn ? `${o.n} | ${tn}${o.q ? `: ${o.q}` : ''}` : line;
-        }));
+          newLines.push(tn ? (o.n + ' | ' + tn + (o.q ? ': ' + o.q : '')) : line);
+        }
         const nd = newLines.join('\n');
-        if (nd !== d) { works[i].d = nd; changed = true; }
+        if (nd !== d) { w.d = nd; changed = true; }
+        w._dvi = nd.split('\n').map(viCua).join('\n');
       }
     }
-  } catch (e) { console.error("Lỗi dịch toàn bộ hạng mục:", e); }
+  } catch (e) { console.error('Lỗi dịch hạng mục (giữ nguyên tiếng Việt):', e); }
   if (changed && typeof renderWorkForm === 'function') renderWorkForm();
   if (typeof draw === 'function') draw();
 };
