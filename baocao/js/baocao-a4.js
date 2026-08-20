@@ -276,6 +276,11 @@
     function tongCao(than) {
       var d = 0;
       Array.prototype.forEach.call(than.children, function (x) { d += cao(x); });
+      // PHẢI cộng cả khoảng cách giữa các khối. Bản b7.7 bỏ sót nên chỗ dư tính THỪA
+      // (n-1)×gap -> tăng quá tay -> tràn -> chốt an toàn hoàn nguyên hết -> Sếp thấy như
+      // "chưa thực hiện gì". Đây là lý do trang 1 vẫn hở.
+      var g = parseFloat(window.getComputedStyle(than).rowGap || window.getComputedStyle(than).gap) || 0;
+      if (than.children.length > 1) d += g * (than.children.length - 1);
       return d;
     }
     function lapDayToDau(t) {
@@ -284,16 +289,22 @@
       if (du < 20) return;
       var luuCard = [], luuAnh = null;
 
-      // (1) hai ô Nhân lực / Thời tiết cao thêm
+      // (1) hai ô Nhân lực / Thời tiết cao thêm. Tăng rồi ĐO LẠI, nếu quá thì hạ dần —
+      //     an toàn hơn kiểu tăng một lần rồi hoàn nguyên sạch khi tràn.
       var cards = Array.prototype.slice.call(than.querySelectorAll('.card2'));
-      if (cards.length) {
+      if (cards.length && du > 20) {
         var caoC = Math.max.apply(null, cards.map(function (c) { return cao(c); }));
-        var them = Math.min(du, 200);                 // vừa phải, không kéo ô số thành quá cao
+        var them = Math.min(du, 220);
         cards.forEach(function (c) {
           luuCard.push([c, c.style.height, c.style.boxSizing]);
           c.style.boxSizing = 'border-box';
-          c.style.height = Math.round(caoC + them) + 'px';
         });
+        for (var lan = 0; lan < 14 && them > 0; lan++) {
+          cards.forEach(function (c) { c.style.height = Math.round(caoC + them) + 'px'; });
+          if (than.scrollHeight - than.clientHeight <= 2) break;
+          them -= 20;
+        }
+        if (them <= 0) cards.forEach(function (c) { c.style.height = ''; });
         du = than.clientHeight - tongCao(than) - AN_TOAN;
       }
 
@@ -313,27 +324,11 @@
       }
     }
 
-    tos.forEach(function (t, iT) {
-      if (iT === 0) { lapDayToDau(t); return; }     // tờ đầu xử lý riêng như trên
-      var n = t.than.children.length;
-      if (!n) return;
-      var dung = 0;
-      Array.prototype.forEach.call(t.than.children, function (x) { dung += cao(x); });
-      var hThan = t.than.clientHeight;
-      var du = hThan - dung;
-      if (du < 40 || du > hThan * 0.55) return;
-      var ds = Array.prototype.slice.call(t.than.children);
-      var caoTruoc = ds.map(function (x) { return cao(x); });
-      var them = Math.floor((du - AN_TOAN) / n);
-      if (them <= 0) return;
-      ds.forEach(function (x, k) {
-        x.style.boxSizing = 'border-box';
-        x.style.height = Math.round(caoTruoc[k] + them) + 'px';
-      });
-      if (t.than.scrollHeight - t.than.clientHeight > 2) {
-        ds.forEach(function (x) { x.style.height = 'auto'; });   // tràn -> hoàn nguyên cả tờ
-      }
-    });
+    /* Sếp nhắc 20/08: khối 03 và 04 KHÔNG được tự ý điều chỉnh. Bản b7.6 giãn đều mọi tờ nên
+       hai khối đó bị kéo cao ra, sinh khoảng trắng ngay bên trong thẻ — Sếp không yêu cầu việc
+       này. Nay CHỈ xử lý tờ đầu (khối 01 + 02 theo yêu cầu của Sếp); các tờ sau để chiều cao
+       tự nhiên, khối nào cao bao nhiêu thì đúng bấy nhiêu. */
+    if (tos.length) lapDayToDau(tos[0]);
 
     // Chân trang: số trang
     tos.forEach(function (t, i) {
