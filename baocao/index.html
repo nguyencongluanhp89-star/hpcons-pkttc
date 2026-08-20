@@ -560,9 +560,14 @@
       </div></details>
 
       <details class="grp" id="grp-04"><summary>04 · Kế hoạch thi công ngày mai<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
-        <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập kế hoạch bằng giọng nói</div>
-        <button class="btn-voice" type="button" id="btnVoicePlan" onclick="toggleVoicePlan()">🎤 Nhập giọng nói</button>
-        <div id="planVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+        <!-- Sếp chốt 20/08: popup 04 BỎ phần giọng nói, giống popup 02, 03 và 06. Các phần tử vẫn
+             giữ nhưng ẨN (không xóa) để mã cũ toggleVoicePlan / applyPlanVoice không lỗi vì
+             thiếu phần tử. -->
+        <div style="display:none">
+          <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập kế hoạch bằng giọng nói</div>
+          <button class="btn-voice" type="button" id="btnVoicePlan" onclick="toggleVoicePlan()">🎤 Nhập giọng nói</button>
+          <div id="planVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+        </div>
         <label>Mỗi dòng = 1 đầu việc</label>
         <textarea id="f_plan" style="min-height:120px"></textarea>
       </div></details>
@@ -770,7 +775,7 @@
 <script src="hpcons-logo.js?v=1"></script>
 <script src="js/baocao-nhieutrang.js?v=2.1"></script>
 <script src="js/baocao-a4.js?v=2.3"></script>
-<script src="js/render.js?v=9.4"></script>
+<script src="js/render.js?v=9.5"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT
