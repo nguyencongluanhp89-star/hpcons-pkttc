@@ -313,11 +313,16 @@
 .panel input[type=text], .panel input[type=number], .panel input[type=date],
 .panel textarea, .panel select { 
   font-size:15px; padding:12px 14px; border-radius:12px; 
-  border:1px solid #d0d7e0; background:#f9fbfe; transition:all 0.2s;
-  color:#1c2733; font-weight:500;
+  /* Sếp duyệt 20/08: ô nhập trong cột nhập liệu còn màu sáng cố định (#d0d7e0, #f9fbfe,
+     #1c2733, #fff) — trước đây được luật dark-mode !important che nên không lộ, nhưng vẫn là
+     hex ngoài bảng màu. Nay dùng token nên tự đúng cả sáng lẫn tối, không cần luật che nữa.
+     Viền khi đang nhập lấy MÀU CHÍNH; vầng sáng quanh ô pha từ chính màu đó, không tự chế rgba. */
+  border:1px solid var(--hp-border); background:var(--hp-surface); transition:all 0.2s;
+  color:var(--hp-text-primary); font-weight:500;
 }
 .panel input:focus, .panel textarea:focus, .panel select:focus {
-  background:#fff; border-color:var(--navy); outline:none; box-shadow:0 0 0 3px rgba(9,106,167,.1);
+  background:var(--hp-card); border-color:var(--hp-brand-primary); outline:none;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--hp-primary) 14%, transparent);
 }
 .panel textarea { min-height:70px; }
 
