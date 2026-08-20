@@ -655,3 +655,7 @@ body.dark-mode .photo-cap-textarea:focus {
   body.kho-a4 .draw-card .im-wrap{height:auto;aspect-ratio:3/2}
   /* Bỏ ô trắng dư: khối ký tên nối liền mục ảnh, không còn dải trắng chen giữa */
   body.kho-a4 .sign-block{margin-top:0}
+
+  /* Khi đang chụp tờ A4 thì ẩn mọi thành phần chỉ dùng để nhập liệu, để chúng không lên ảnh */
+  body.dang-chup-a4 .no-print{display:none !important}
+  body.dang-chup-a4 .a4-page{box-shadow:none}

@@ -155,8 +155,45 @@
     return tos;
   }
 
+  /* ---------- XUẤT ẢNH: chụp CHÍNH các tờ A4 đang hiển thị ----------
+     Đây là điểm khác căn bản so với trước: app không dựng lại một bản khổ ngang nữa, mà chụp
+     đúng những tờ người dùng vừa nhìn thấy. Nhờ vậy "nhập xong thấy đúng cái sẽ xuất ra".
+     Trước khi chụp thì ẩn các thành phần chỉ dùng để nhập liệu (nút xóa, ô nhập chú thích) —
+     chúng mang class .no-print sẵn có của app.                                              */
+  function xuatAnh(opts) {
+    opts = opts || {};
+    var dich = document.getElementById(opts.dich || 'report-a4');
+    if (!dich) return Promise.reject(new Error('Chưa có vùng chứa tờ A4'));
+    var tos = Array.prototype.slice.call(dich.querySelectorAll('.a4-page'));
+    if (!tos.length) return Promise.reject(new Error('Chưa có tờ A4 nào để chụp'));
+    if (typeof html2canvas !== 'function') return Promise.reject(new Error('Thiếu html2canvas'));
+
+    document.body.classList.add('dang-chup-a4');     // ẩn phần nhập liệu, không lên ảnh
+    var anhs = [];
+    return tos.reduce(function (p, to) {
+      return p.then(function () {
+        return html2canvas(to, {
+          scale: opts.scale || 2.5,                  // 794 x 2.5 ≈ 1985px, in/zoom vẫn nét
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width: to.offsetWidth,
+          height: to.offsetHeight,
+          windowWidth: to.offsetWidth,
+          scrollX: 0, scrollY: 0
+        }).then(function (cv) { anhs.push(cv.toDataURL('image/png')); });
+      });
+    }, Promise.resolve()).then(function () {
+      document.body.classList.remove('dang-chup-a4');
+      return anhs;
+    }).catch(function (e) {
+      document.body.classList.remove('dang-chup-a4');
+      throw e;
+    });
+  }
+
   window.BCA4 = {
     phanTrang: phanTrang,
+    xuatAnh: xuatAnh,
     KHO: { W: W, H: H, PAD: PAD }
   };
 })();

@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b6.3';
+const APP_BUILD = 'b6.4';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -127,9 +127,13 @@ window.tongHopNhaThauTuan = tongHopNhaThauTuan;
 // Công tắc khổ A4: ?kho=a4 trên đường dẫn, hoặc đặt window.BC_KHO = 'a4'
 function khoA4() {
   try {
-    if (window.BC_KHO === 'a4') return true;
-    return new URLSearchParams(location.search).get('kho') === 'a4';
-  } catch (e) { return false; }
+    // Sếp yêu cầu 20/08: đổi CẢ trang nhập và ảnh xuất sang khổ A4 đứng -> A4 là MẶC ĐỊNH.
+    // Đường lùi khi cần: mở app kèm ?kho=cu để về bản dải dọc + ảnh xuất khổ ngang cũ.
+    if (window.BC_KHO === 'cu') return false;
+    var q = new URLSearchParams(location.search).get('kho');
+    if (q === 'cu') return false;
+    return true;
+  } catch (e) { return true; }
 }
 window.khoA4 = khoA4;
 
@@ -653,6 +657,30 @@ function exportPNG(){
 const PHOTO_AREA_PCT = 64;   // % chiều cao khối 03 dành cho khu ảnh
 
 async function exportPNG169() {
+  /* KHỔ A4 (Sếp chốt 20/08): không dựng lại bản khổ ngang nữa — chụp CHÍNH các tờ A4 người
+     dùng đang xem. Đây là điều làm nên "nhập xong thấy đúng cái sẽ xuất ra". */
+  if (khoA4() && window.BCA4 && document.querySelector('#report-a4 .a4-page')) {
+    try {
+      const anhs = await window.BCA4.xuatAnh({ dich: 'report-a4' });
+      window.LAST_EXPORTED_PNG = anhs[0];
+      window.LAST_EXPORTED_PAGES = anhs;
+      if (window.AppCore) {
+        window.AppCore.LAST_EXPORTED_PNG = anhs[0];
+        window.AppCore.LAST_EXPORTED_PAGES = anhs;
+      }
+      const ten = 'BaoCaoA4_' + el('f_proj').value + '_' + (el('f_date').value || 'bao-cao');
+      if (window.BCNhieuTrang && typeof window.BCNhieuTrang.xemTruocNhieuTrang === 'function') {
+        window.BCNhieuTrang.xemTruocNhieuTrang(anhs, ten);
+      } else if (typeof showExportPreview === 'function') {
+        showExportPreview(anhs[0], ten + '.png');
+      }
+      return;
+    } catch (e) {
+      console.warn('Xuất ảnh A4 lỗi, quay về bản khổ ngang:', e && e.message);
+      alert('Xuất ảnh A4 lỗi: ' + (e && e.message) + '\nTạm dùng bản khổ ngang.');
+    }
+  }
+
   try {
     // RÀNG BUỘC (Sếp 23/07): PHẢI bấm "Nộp duyệt" TRƯỚC khi Xuất ảnh — đảm bảo dữ liệu đã đẩy lên hệ
     // thống. Chưa nộp (draft/rejected) -> KHÓA, không xuất ảnh, báo cho người dùng.
