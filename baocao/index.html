@@ -523,6 +523,8 @@
           <button class="addbtn" type="button" onclick="openKBLibrary()" style="background:var(--navy2);color:#fff">📚 Chọn từ Thư viện</button>
         </div>
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+        <!-- Sếp chốt 20/08: mục khai báo hình ở khối 03 BỎ, chuyển sang trang Hình ảnh thi công.
+             Phần tải ảnh dưới đây dời sang nhóm riêng grp-anh (xem bên dưới). -->
         <div style="font-weight:700;color:var(--green-d);font-size:14px;margin-bottom:8px">🖼 Tải ảnh lên báo cáo</div>
         <div class="bulk-upload-card" style="background: #f0fdf4; border: 1.5px dashed #bbf7d0; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
           <div style="font-weight:700; color: #15803d; font-size: 13px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
@@ -566,12 +568,13 @@
       </div></details>
 
       <details class="grp" id="grp-07"><summary>07 · An toàn · Chất lượng · Tiến độ<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
-        <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập An toàn, Chất lượng, Tiến độ cùng lúc</div>
-        <button class="btn-voice" type="button" id="btnVoiceAQT" onclick="toggleVoiceAQT()">🎤 Nhập giọng nói</button>
-        <div id="aqtVoiceStatus" class="hint" style="color:var(--navy2)"></div>
-        <label>An toàn (mô tả)</label><textarea id="f_safe"></textarea>
-        <label>Chất lượng (mô tả)</label><textarea id="f_qual"></textarea>
-        <label>Tiến độ (mô tả)</label><textarea id="f_sched"></textarea>
+        <!-- Sếp chốt 20/08: thẻ 07 CHỈ IN TIÊU ĐỀ An toàn / Chất lượng / Tiến độ, không có câu
+             mô tả -> bỏ hẳn phần khai báo. 3 textarea giữ lại nhưng ẨN, để mã cũ (lưu, phục hồi
+             báo cáo cũ, mẫu gần nhất) không lỗi vì thiếu phần tử. -->
+        <div class="hint">Thẻ 07 nay chỉ in tiêu đề An toàn / Chất lượng / Tiến độ — không cần khai báo nữa.</div>
+        <textarea id="f_safe" style="display:none"></textarea>
+        <textarea id="f_qual" style="display:none"></textarea>
+        <textarea id="f_sched" style="display:none"></textarea>
       </div></details>
 
       <div class="btnbar">
@@ -745,7 +748,7 @@
 <script src="js/features.js?v=2.7"></script>
 <script src="hpcons-logo.js?v=1"></script>
 <script src="js/baocao-nhieutrang.js?v=1.9"></script>
-<script src="js/render.js?v=5.9"></script>
+<script src="js/render.js?v=6.0"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT

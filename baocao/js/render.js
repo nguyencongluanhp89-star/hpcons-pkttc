@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.9';
+const APP_BUILD = 'b6.0';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -533,10 +533,19 @@ function draw(){
   </div>
 
   <div class="sec-h" onclick="openModal('grp-03')"><span class="num">03</span> TIẾN ĐỘ THI CÔNG CHI TIẾT <span class="cn">/ 详细施工进度</span></div>
-  <div class="pad two">
-    <div style="flex:0 0 38%"><div style="font-weight:700;color:var(--navy);margin-bottom:8px">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>${workHtml}</div>
-    <div style="flex:1"><div style="font-weight:700;color:var(--navy);margin-bottom:8px">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div><div class="photos">${photoHtml}</div></div>
+  <!-- Sếp chốt 20/08: mục hình ảnh ở khối 03 BỎ — ảnh thi công có TRANG RIÊNG ở cuối báo cáo.
+       Khối 03 chỉ còn phần tổng hợp hạng mục. -->
+  <div class="pad">
+    <div style="font-weight:700;color:var(--navy);margin-bottom:8px">TỔNG HỢP CÁC HẠNG MỤC / 各项目汇总</div>${workHtml}
   </div>
+
+  <!-- TRANG HÌNH ẢNH THI CÔNG — nhập ảnh ngay tại đây (Sếp chốt 20/08) -->
+  <div class="sec-h" style="cursor:default"><span class="num">📷</span> HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
+  <div class="pad"><div class="photos">${photoHtml}</div></div>
+
+  <!-- TRANG BẢN VẼ — nhập bản vẽ ngay tại đây -->
+  <div class="sec-h" style="cursor:default"><span class="num">📐</span> BẢN VẼ <span class="cn">/ 图纸</span></div>
+  <div class="pad"><div class="draw">${drawHtml}</div></div>
 
   <div class="sec-h" onclick="editBilingualField('f_plan', 'KẾ HOẠCH / 计划')" title="Nhấn để nhập thủ công và tự dịch"><span class="num">04</span> KẾ HOẠCH THI CÔNG NGÀY MAI <span class="cn">/ 明日施工计划</span></div>
   <div class="pad" style="cursor:pointer;transition:0.2s" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'" onclick="editBilingualField('f_plan', 'KẾ HOẠCH / 计划')" title="Nhấn để nhập thủ công và tự dịch">${planHtml}</div>
@@ -554,9 +563,10 @@ function draw(){
 
   <div class="sec-h" onclick="openModal('grp-07')"><span class="num">07</span> AN TOÀN - CHẤT LƯỢNG - TIẾN ĐỘ <span class="cn">/ 安全·质量·进度</span></div>
   <div class="pad sq">
-    <div class="s1" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)'" onmouseout="this.style.background='#fff';this.style.borderColor='var(--line)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)'" onclick="editBilingualField('f_safe', 'AN TOÀN / 安全')" title="Nhấn để nhập thủ công và tự dịch"><div class="scenter">${svgSafe}</div><div class="h" style="text-align:center">AN TOÀN <span class="cn">/ 安全</span></div><div class="desc">${transLines('f_safe')}</div></div>
-    <div class="s2" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)'" onmouseout="this.style.background='#fff';this.style.borderColor='var(--line)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)'" onclick="editBilingualField('f_qual', 'CHẤT LƯỢNG / 质量')" title="Nhấn để nhập thủ công và tự dịch"><div class="scenter">${svgQual}</div><div class="h" style="text-align:center">CHẤT LƯỢNG <span class="cn">/ 质量</span></div><div class="desc">${transLines('f_qual')}</div></div>
-    <div class="s3" style="cursor:pointer;transition:0.2s" onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1';this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05)'" onmouseout="this.style.background='#fff';this.style.borderColor='var(--line)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)'" onclick="editBilingualField('f_sched', 'TIẾN ĐỘ / 进度')" title="Nhấn để nhập thủ công và tự dịch"><div class="scenter">${svgTime}</div><div class="h" style="text-align:center">TIẾN ĐỘ <span class="cn">/ 进度</span></div><div class="desc">${transLines('f_sched')}</div></div>
+    <!-- Sếp chốt 20/08: thẻ 07 CHỈ in tiêu đề, bỏ câu mô tả (đã bỏ luôn phần khai báo). -->
+    <div class="s1"><div class="scenter">${svgSafe}</div><div class="h" style="text-align:center">AN TOÀN <span class="cn">/ 安全</span></div></div>
+    <div class="s2"><div class="scenter">${svgQual}</div><div class="h" style="text-align:center">CHẤT LƯỢNG <span class="cn">/ 质量</span></div></div>
+    <div class="s3"><div class="scenter">${svgTime}</div><div class="h" style="text-align:center">TIẾN ĐỘ <span class="cn">/ 进度</span></div></div>
   </div>
 
   <div class="sign-block" style="display:flex;justify-content:space-around;padding:10px 20px 12px;text-align:center;page-break-inside:avoid;margin-top:8px;background:#fff">
@@ -1208,51 +1218,22 @@ async function exportPNG169() {
     const safeVal = el('f_safe').value.trim();
     const qualVal = el('f_qual').value.trim();
     const schedVal = el('f_sched').value.trim();
-    let safeQualCardHtml = '';
-    if (safeVal || qualVal || schedVal) {
-      let content = '';
-      if (safeVal) {
-        content += `
-          <div style="border: 1px solid #dcfce7; background: #f0fdf4; padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: ${FS.pageSub}px;">🛡️</span>
-            <div style="font-size: ${FS.body}px; color: #166534; line-height: 1.4; font-weight: 400;">
-              <strong style="text-transform: uppercase; color: #14532d; font-weight: 400;">An toàn / 安全:</strong> ${safeVal}
-            </div>
-          </div>
-        `;
-      }
-      if (qualVal) {
-        content += `
-          <div style="border: 1px solid #dcfce7; background: #f0fdf4; padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: ${FS.pageSub}px;">⭐</span>
-            <div style="font-size: ${FS.body}px; color: #2E6B22; line-height: 1.4; font-weight: 400;">
-              <strong style="text-transform: uppercase; color: #2E6B22; font-weight: 400;">Chất lượng / 质量:</strong> ${qualVal}
-            </div>
-          </div>
-        `;
-      }
-      if (schedVal) {
-        content += `
-          <div style="border: 1px solid #ffedd5; background: #fff7ed; padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: ${FS.pageSub}px;">⏱️</span>
-            <div style="font-size: ${FS.body}px; color: #c2410c; line-height: 1.4; font-weight: 400;">
-              <strong style="text-transform: uppercase; color: #7c2d12; font-weight: 400;">Tiến độ / 进度:</strong> ${schedVal}
-            </div>
-          </div>
-        `;
-      }
-      
-      safeQualCardHtml = `
-        <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
-          ${secHeaderStatic('07', 'AN TOÀN - CHẤT LƯỢNG - TIẾN ĐỘ', '安全·质量·进度')}
-          ${content}
+    /* --- Khối 07: An toàn - Chất lượng - Tiến độ ------------------------------------
+       Sếp chốt 20/08: CHỈ in tiêu đề, không có câu mô tả (phần khai báo đã bỏ). Vì vậy khối
+       này LUÔN hiện (không còn phụ thuộc người dùng có nhập gì hay không).                */
+    let safeQualCardHtml = `
+      <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); display: flex; flex-direction: column; box-sizing: border-box; flex-shrink: 0;">
+        ${secHeaderStatic('07', 'AN TOÀN - CHẤT LƯỢNG - TIẾN ĐỘ', '安全·质量·进度')}
+        <div style="display: flex; gap: 12px;">
+          ${[['AN TOÀN', '安全', '#f0fdf4', '#bbf7d0'], ['CHẤT LƯỢNG', '质量', '#eff6ff', '#bfdbfe'], ['TIẾN ĐỘ', '进度', '#fff7ed', '#fed7aa']].map(x => `
+            <div style="flex:1; background:${x[2]}; border:1px solid ${x[3]}; border-radius:10px; padding:14px 10px; text-align:center;">
+              <div style="font-weight:${FW.body}; color:#0f172a; font-size:${FS.body}px; text-transform:uppercase; letter-spacing:0.3px;">${x[0]}</div>
+              <div style="color:#64748b; font-size:${FS.tiny}px; margin-top:3px;">${x[1]}</div>
+            </div>`).join('')}
         </div>
-      `;
-    }
+      </div>
+    `;
 
-    // --- Ảnh thi công trong ngày (inline - nằm trong phần 03, không tách thành card riêng) ---
-    const activePhotos = (typeof photos !== 'undefined' && Array.isArray(photos)) ? photos : [];
-    const validPhotos = activePhotos.filter(p => p && p.img);
     let photosInlineHtml = '';
     if (validPhotos.length > 0) {
       const photoGridCols = `repeat(2, 1fr)`;
