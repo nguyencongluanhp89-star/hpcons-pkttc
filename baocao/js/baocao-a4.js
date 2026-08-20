@@ -318,6 +318,19 @@
       khBD.style.boxSizing = 'border-box';
       khBD.style.height = hBD + 'px';
 
+      /* Sếp báo 20/08 (lần 2): "biểu đồ giữ nguyên 55%, giãn chiều cao ô nhân lực & thời tiết
+         để giảm khoảng trống với biểu đồ". Gốc của khoảng trống: .a4-khoi là khối BLOCK nên khi
+         em đặt chiều cao cho nó thì phần thân (.pad.two) vẫn chỉ cao bằng nội dung — chỗ chia
+         thêm rơi xuống thành mảng trắng ở ĐÁY khối 02, ngay trên biểu đồ. Nay cho chính
+         .a4-khoi thành cột linh động: tiêu đề giữ nguyên, phần thân giãn hết chỗ được chia.
+         Tỉ lệ 45/55 không đổi — chỉ là ô nhân lực & thời tiết nay dùng hết 45% của mình. */
+      [kh02, khBD].forEach(function (k) {
+        k.style.display = 'flex';
+        k.style.flexDirection = 'column';
+        var h = k.querySelector('.sec-h');
+        if (h) h.style.flexShrink = '0';
+      });
+
       // Bên trong khối 02: hàng 2 ô và từng ô đều cao hết phần được chia, nội dung dàn đều
       var hang = kh02.querySelector('.pad.two');
       if (hang) { hang.style.flex = '1'; hang.style.minHeight = '0'; hang.style.alignItems = 'stretch'; }
@@ -334,6 +347,7 @@
 
       // Biểu đồ: vẽ lại cho lấp đúng phần 55%
       var hop = khBD.querySelector('[data-a4-bieudo="1"]') || khBD;
+      if (hop !== khBD) { hop.style.flex = '1'; hop.style.minHeight = '0'; hop.style.display = 'flex'; hop.style.flexDirection = 'column'; }
       var svgBox = hop.querySelector('.bieudo-tuan') || hop;
       if (svgBox) { svgBox.style.display = 'flex'; svgBox.style.flexDirection = 'column'; svgBox.style.height = '100%'; }
       var svg = hop.querySelector('svg');
@@ -349,6 +363,8 @@
       // Chốt an toàn: tràn thì trả về tự nhiên, thà còn trống chứ không cắt nội dung
       if (than.scrollHeight - than.clientHeight > 2) {
         kh02.style.height = ''; khBD.style.height = '';
+        kh02.style.display = ''; kh02.style.flexDirection = '';
+        khBD.style.display = ''; khBD.style.flexDirection = '';
       }
     }
 
