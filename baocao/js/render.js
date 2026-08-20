@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b8.5';
+const APP_BUILD = 'b8.6';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -169,7 +169,7 @@ function contractorTableHtml() {
   /* Sếp yêu cầu 20/08: bảng phải có CỘT TỔNG (mỗi nhà thầu cả tuần) và HÀNG TỔNG (mỗi ngày cộng
      hết nhà thầu). Hàng tổng còn để đối chiếu với khối 02: số ở cột ngày báo cáo phải trùng đúng
      dòng "Nhà thầu / 分包商" của khối 02. Vì vậy hàng tổng ghi rõ là TỔNG NHÀ THẦU — không gồm
-     BCH; số 36 ở khối 02 là 05 BCH + 31 nhà thầu, không phải cùng một đại lượng với bảng này. */
+     BCH — Sếp chốt 20/08: nhãn để gọn là "TỔNG", không cần dịch. */
   const tongNgay = [0, 0, 0, 0, 0, 0, 0];
   th.nhaThau.forEach(function (nt) {
     th.ngay.forEach(function (n, i) { if (nt.coMat[i]) tongNgay[i] += (nt.so[i] || 0); });
@@ -205,7 +205,7 @@ function contractorTableHtml() {
 
   const hangTong = th.nhaThau.length
     ? '<tr style="background:#e8f0f8;">'
-      + '<td style="padding:6px 10px; font-size:var(--fs-body); font-weight:800; color:var(--navy); border-top:2px solid #cbd5e1;">TỔNG NHÀ THẦU <span style="font-weight:400; color:var(--grey)">/ 分包商合计</span></td>'
+      + '<td style="padding:6px 10px; font-size:var(--fs-body); font-weight:800; color:var(--navy); border-top:2px solid #cbd5e1;">TỔNG</td>'
       + th.ngay.map(function (n, i) {
           return '<td style="text-align:center; padding:6px 4px; font-weight:800; color:var(--navy); border-top:2px solid #cbd5e1;">'
             + (tongNgay[i] > 0 ? tongNgay[i] : '–') + '</td>';
