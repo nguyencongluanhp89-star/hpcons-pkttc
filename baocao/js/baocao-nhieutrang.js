@@ -675,9 +675,19 @@
     ov.id = 'exportPreviewOverlay';
 
     var ten = anhs.map(function (_, i) { return tenGoc + '_trang' + (i + 1) + '.png'; });
+    /* Sếp báo 20/08: "bấm gửi ảnh không chuyển qua Zalo; copy ảnh rồi sang Zalo dán không được".
+       Bảng chia sẻ mà Windows mở ra chỉ liệt kê những app ĐĂNG KÝ làm đích chia sẻ của Windows —
+       trong hình Sếp gửi có WhatsApp, Telegram, Outlook, Paint... nhưng KHÔNG có Zalo, nên đường
+       "Gửi" không thể tới Zalo trên máy tính. Việc đó nằm ngoài app, em không sửa được.
+       Cái em làm được: mỗi trang một nút SAO CHÉP ghi đúng ẢNH PNG vào clipboard hệ thống (không
+       phải chép đường dẫn), để Ctrl+V trong Zalo có ảnh thật mà dán. Clipboard chỉ giữ được MỘT
+       ảnh nên phải theo từng trang — giới hạn của clipboard, không phải em chọn bừa. */
     var anhHtml = anhs.map(function (d, i) {
       return '<div style="width:100%; display:flex; flex-direction:column; gap:6px; align-items:center;">' +
+             '<div style="display:flex; align-items:center; gap:10px">' +
              '<div style="color:#93c5fd; font-size:13px; font-weight:700;">TRANG ' + (i + 1) + '/' + anhs.length + '</div>' +
+             '<button data-bc-copy="' + i + '" style="background:#1e3a5f; color:#dbeafe; border:1px solid #3b6ea5; border-radius:8px; padding:4px 12px; font-size:12px; font-weight:700; cursor:pointer">📋 Sao chép</button>' +
+             '</div>' +
              '<img src="' + d + '" style="max-width:100%; height:auto; border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.5);"></div>';
     }).join('');
 
@@ -685,8 +695,8 @@
       '<div style="width:100%; max-width:900px; display:flex; flex-direction:column; gap:14px; align-items:center; padding-bottom:24px">' +
         '<div style="color:#fff; font-weight:700; font-size:15px; text-align:center; line-height:1.4">' +
           'Báo cáo ' + anhs.length + ' trang<br>' +
-          '<span style="font-weight:400; font-size:13px; color:#cbd5e1">Gửi cả ' + anhs.length +
-          ' ảnh qua Zalo/Telegram, hoặc tải về từng ảnh</span></div>' +
+          '<span style="font-weight:400; font-size:13px; color:#cbd5e1">Điện thoại: bấm "Gửi cả ' + anhs.length + ' ảnh" rồi chọn Zalo.<br>' +
+          'Máy tính: Zalo PC không nhận chia sẻ trực tiếp — dùng "Tải tất cả" rồi kéo file vào Zalo, hoặc "Sao chép" từng trang rồi Ctrl+V.</span></div>' +
         anhHtml +
         '<div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:420px; position:sticky; bottom:0">' +
           '<button id="bcShareAll" style="min-height:54px; background:#096AA7; color:#fff; border:none; border-radius:14px; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(9,106,167,.45)">📤 Gửi cả ' + anhs.length + ' ảnh</button>' +
@@ -709,10 +719,36 @@
           navigator.share({ files: files, title: 'Báo cáo thi công ngày', text: 'Báo cáo thi công ngày' })
             .catch(function () {});
         } else {
-          alert('Thiết bị chưa hỗ trợ gửi nhiều ảnh một lượt.\nHãy bấm "Tải tất cả" rồi gửi, hoặc mở app bằng Chrome/Safari.');
+          alert('Máy này không gửi được nhiều ảnh một lượt.\n\n· Máy tính: bấm "Tải tất cả" rồi kéo các file vào cửa sổ Zalo, hoặc bấm "Sao chép" ở từng trang rồi Ctrl+V trong Zalo.\n· Điện thoại: mở app bằng Chrome/Safari rồi bấm lại nút này, Zalo sẽ hiện trong bảng chia sẻ.');
         }
       } catch (e) {}
     };
+
+    /* Sao chép ẢNH THẬT vào clipboard hệ thống. Chỉ chạy được trên trang https (app đang https)
+       và phải do người dùng bấm — nên đặt ngay trong onclick. Trình duyệt nào chưa hỗ trợ thì báo
+       rõ để Sếp đi đường "Tải tất cả", không để Sếp bấm mà không biết vì sao không dán được. */
+    Array.prototype.slice.call(ov.querySelectorAll('[data-bc-copy]')).forEach(function (btn) {
+      btn.onclick = function () {
+        var i = parseInt(btn.getAttribute('data-bc-copy'), 10);
+        var chuCu = btn.textContent;
+        if (!navigator.clipboard || typeof window.ClipboardItem !== 'function') {
+          alert('Trình duyệt này chưa cho sao chép ảnh vào clipboard.\nSếp dùng "Tải tất cả" rồi kéo file vào Zalo.');
+          return;
+        }
+        btn.textContent = '⏳ Đang chép...';
+        fetch(anhs[i]).then(function (r) { return r.blob(); }).then(function (blob) {
+          var goi = {}; goi[blob.type || 'image/png'] = blob;
+          return navigator.clipboard.write([new window.ClipboardItem(goi)]);
+        }).then(function () {
+          btn.textContent = '✓ Đã chép — Ctrl+V';
+          setTimeout(function () { btn.textContent = chuCu; }, 2500);
+        }).catch(function (e) {
+          btn.textContent = chuCu;
+          alert('Không chép được ảnh vào clipboard: ' + (e && e.message ? e.message : e)
+            + '\n\nSếp dùng "Tải tất cả" rồi kéo file vào Zalo.');
+        });
+      };
+    });
 
     document.getElementById('bcDlAll').onclick = function () {
       anhs.forEach(function (d, i) {
