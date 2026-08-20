@@ -256,6 +256,39 @@
       hKhaDung = to.than.clientHeight;
     }
 
+    /* ===== GIÃN CÁC KHỐI LẤP HẾT TỜ (Sếp duyệt 20/08) =====
+       Trang 1 nay chỉ có khối 01 + 02 nên còn chỗ trống ở đáy; các tờ khác cũng có thể dôi ra.
+       Cho mỗi khối trên tờ nhận thêm một phần chỗ dư (chia đều) để các khối liền mạch từ trên
+       xuống, thay vì dồn thành một mảng trắng cuối tờ.
+       Ba điều đã học được từ lần làm ở bộ khổ ngang, áp dụng luôn ở đây:
+         · ĐO TRƯỚC toàn bộ rồi mới gán — gán xen kẽ với đo thì mỗi lần gán layout đổi, các khối
+           sau đo ra số khác nên cộng dồn quá tay và làm TRÀN.
+         · Ép box-sizing:border-box — không ép thì chiều cao cộng thêm phần đệm rồi cũng tràn.
+         · Chốt an toàn: nếu vẫn tràn thì hoàn nguyên cả tờ — thà còn khoảng trống chứ không
+           được cắt mất nội dung.
+       Không giãn khi tờ còn quá rỗng (dư hơn 55% thân tờ), vì kéo một thẻ nhỏ cao gấp mấy lần
+       nhìn còn xấu hơn để trống. */
+    tos.forEach(function (t) {
+      var n = t.than.children.length;
+      if (!n) return;
+      var dung = 0;
+      Array.prototype.forEach.call(t.than.children, function (x) { dung += cao(x); });
+      var hThan = t.than.clientHeight;
+      var du = hThan - dung;
+      if (du < 40 || du > hThan * 0.55) return;
+      var ds = Array.prototype.slice.call(t.than.children);
+      var caoTruoc = ds.map(function (x) { return cao(x); });
+      var them = Math.floor((du - AN_TOAN) / n);
+      if (them <= 0) return;
+      ds.forEach(function (x, k) {
+        x.style.boxSizing = 'border-box';
+        x.style.height = Math.round(caoTruoc[k] + them) + 'px';
+      });
+      if (t.than.scrollHeight - t.than.clientHeight > 2) {
+        ds.forEach(function (x) { x.style.height = 'auto'; });   // tràn -> hoàn nguyên cả tờ
+      }
+    });
+
     // Chân trang: số trang
     tos.forEach(function (t, i) {
       t.foot.innerHTML = '<span>HỆ THỐNG QUẢN LÝ THI CÔNG HP CONS © 2026</span>'
