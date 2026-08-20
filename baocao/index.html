@@ -25,7 +25,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
 
-<link rel="stylesheet" href="css/style.css?v=3.1">
+<link rel="stylesheet" href="css/style.css?v=3.2">
 
 <style>
   /* === Thiết kế Mobile-First và Giao diện Login/Chọn dự án === */
@@ -573,9 +573,13 @@
       </div></details>
 
       <details class="grp" id="grp-06"><summary>06 · Ghi chú & Kiến nghị<button type="button" class="close-modal" onclick="closeModal()">✕</button></summary><div class="body">
-        <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập Ghi chú & Kiến nghị cùng lúc</div>
-        <button class="btn-voice" type="button" id="btnVoiceNoteRec" onclick="toggleVoiceNoteRec()">🎤 Nhập giọng nói</button>
-        <div id="noteRecVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+        <!-- Sếp chốt 20/08: popup 06 BỎ phần giọng nói, giống popup 02 và 03. Các phần tử vẫn
+             giữ nhưng ẨN (không xóa) để mã cũ toggleVoiceNoteRec không lỗi vì thiếu phần tử. -->
+        <div style="display:none">
+          <div style="font-weight:700;color:var(--green-d);font-size:12px">🎤 Nhập Ghi chú & Kiến nghị cùng lúc</div>
+          <button class="btn-voice" type="button" id="btnVoiceNoteRec" onclick="toggleVoiceNoteRec()">🎤 Nhập giọng nói</button>
+          <div id="noteRecVoiceStatus" class="hint" style="color:var(--navy2)"></div>
+        </div>
         <label>Ghi chú</label><textarea id="f_note"></textarea>
         <label>Kiến nghị</label><textarea id="f_rec"></textarea>
       </div></details>
@@ -763,7 +767,7 @@
 <script src="hpcons-logo.js?v=1"></script>
 <script src="js/baocao-nhieutrang.js?v=2.0"></script>
 <script src="js/baocao-a4.js?v=2.3"></script>
-<script src="js/render.js?v=8.6"></script>
+<script src="js/render.js?v=8.7"></script>
 
 <script>
   // 1. EMBED MODE DETECTION & MANAGEMENT

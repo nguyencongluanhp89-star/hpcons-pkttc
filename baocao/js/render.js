@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b8.6';
+const APP_BUILD = 'b8.7';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -187,7 +187,6 @@ function contractorTableHtml() {
   ).join('');
   const dauTong = '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap; vertical-align:bottom; background:#eef4fa; border-left:2px solid #cbd5e1; width:11%;">'
     + '<div style="font-weight:800; line-height:1.25;">TỔNG</div>'
-    + '<div style="color:var(--grey); font-weight:400; font-size:var(--fs-caption-cn); line-height:1.25; margin-top:2px;">合计</div>'
     + '</th>';
 
   const dong = th.nhaThau.length

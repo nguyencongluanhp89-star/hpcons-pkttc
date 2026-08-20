@@ -108,8 +108,12 @@
   button.act:hover{background:var(--hp-primary-dark)}
   button.sec{background:#fff;color:var(--hp-primary);border:1px solid var(--hp-primary);border-radius:6px;padding:8px 12px;font-size:13px;cursor:pointer;width:100%;margin-top:8px}
   .addbtn{background:#eef4ff;color:var(--hp-primary);border:1px dashed var(--hp-primary);border-radius:5px;padding:4px 8px;font-size:12px;cursor:pointer;margin-top:6px}
-  .delbtn{background:#fdeaea;color:var(--red);border:1px solid #f1b6b6;border-radius:4px;font-size:11px;cursor:pointer;padding:2px 6px}
-  .item-card{border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:8px;background:#fafbfc}
+  /* Sếp yêu cầu 20/08: popup phải theo đúng bảng màu quy định -> mọi mã hex tự chế ở đây đổi
+     sang token --hp-* (luật cứng của Design System: không hex mới, thiếu token thì hỏi). */
+  .delbtn{background:var(--hp-danger-bg);color:var(--hp-danger);
+    border:1px solid color-mix(in srgb, var(--hp-danger) 35%, transparent);
+    border-radius:var(--hp-radius-sm);font-size:11px;cursor:pointer;padding:2px 6px}
+  .item-card{border:1px solid var(--hp-border);border-radius:var(--hp-radius-sm);padding:8px;margin-top:8px;background:var(--hp-surface)}
   /* ---------- PREVIEW PANEL ---------- */
   .preview-wrap{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start}
   /* ===== REPORT ===== */
@@ -274,16 +278,16 @@
 
   /* ===== MODAL SYSTEM (Interactive Report) ===== */
   .grp { display: none; } /* Mặc định ẩn tất cả grp, ngoại trừ grp-00 và grp-01 sẽ mở bên trái */
-  #grp-00, #grp-01 { display: block; border:none; margin:0 0 16px; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); padding: 12px; }
+  #grp-00, #grp-01 { display: block; border:none; margin:0 0 16px; background:var(--hp-card); border-radius:var(--hp-radius-lg); box-shadow:0 2px 8px rgba(0,0,0,0.05); padding: 12px; }
   #grp-00 > summary, #grp-01 > summary { pointer-events: none; } /* Không cho đóng mở grp-00, grp-01 */
   
   .grp.is-modal {
     display: block; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
     width: 90%; max-width: 480px; max-height: 85vh; overflow-y: auto;
-    background: #fff; z-index: 2000; border-radius: 16px; border: none;
+    background: var(--hp-card); z-index: 2000; border-radius: var(--hp-radius-xl); border: none;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2); opacity: 0; animation: modalIn 0.2s forwards;
   }
-  .grp.is-modal > summary { background: var(--navy); border-radius: 16px 16px 0 0; position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; pointer-events: none; padding: 12px 16px; }
+  .grp.is-modal > summary { background: var(--hp-brand-primary); color:#fff; border-radius: var(--hp-radius-xl) var(--hp-radius-xl) 0 0; position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; pointer-events: none; padding: 12px 16px; }
   .grp.is-modal > summary::before { display: none; }
   .grp.is-modal .body { padding: 16px; }
   
@@ -318,44 +322,44 @@
 button.act { min-height:54px; font-size:16px; border-radius:14px; font-weight:700; transition:all 0.2s; box-shadow:0 4px 14px rgba(9,106,167,.25); border:none; }
 button.act:active { transform:scale(0.98); }
 
-button.sec { min-height:50px; border-radius:12px; font-weight:600; background:#f4f7fa; color:var(--navy); border:none; transition:all 0.2s; }
-button.sec:active { background:#e2e8f0; }
+button.sec { min-height:50px; border-radius:var(--hp-radius-lg); font-weight:600; background:var(--hp-muted-bg); color:var(--hp-text-primary); border:none; transition:all 0.2s; }
+button.sec:active { background:color-mix(in srgb, var(--hp-neutral) 28%, transparent); }
 
 /* Nút AI Voice (Micro) - Nổi bật, thu hút */
 .btn-voice {
-  background: linear-gradient(135deg, #6b3fa0, #8e44ad);
+  background: linear-gradient(135deg, var(--hp-primary), var(--hp-primary-dark));
   color: #fff; border: none; border-radius: 999px; /* Pill shape */
   padding: 12px 20px; font-size: 15px; font-weight: 700;
   cursor: pointer; width: 100%; min-height: 52px;
-  box-shadow: 0 6px 20px rgba(107, 63, 160, 0.35);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--hp-primary) 35%, transparent);
   display: flex; align-items: center; justify-content: center; gap: 8px;
   transition: all 0.2s ease; margin-top: 8px;
 }
-.btn-voice:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(107, 63, 160, 0.3); }
+.btn-voice:active { transform: scale(0.97); box-shadow: 0 2px 10px color-mix(in srgb, var(--hp-primary) 30%, transparent); }
 
 /* Nút Thêm mới (+) - Thân thiện, dễ bấm */
 .addbtn { 
   min-height:48px; font-size:14px; font-weight:700; border-radius:12px; 
-  background:#eef4ff; color:#1f4e79; border:none; 
+  background:var(--hp-info-bg); color:var(--hp-primary-dark); border:none; 
   display:flex; justify-content:center; align-items:center; gap:6px;
   transition:background 0.2s; width:100%;
 }
-.addbtn:hover { background:#dce8fc; }
-.addbtn:active { background:#cbdcf8; transform:scale(0.98); }
+.addbtn:hover { background:color-mix(in srgb, var(--hp-primary) 18%, transparent); }
+.addbtn:active { background:color-mix(in srgb, var(--hp-primary) 26%, transparent); transform:scale(0.98); }
 
 /* Nút Xoá (Thùng rác) */
 .delbtn { 
-  min-height:44px; min-width:44px; border-radius:10px;
-  background:#ffebee; color:var(--hp-danger); border:none; 
+  min-height:44px; min-width:44px; border-radius:var(--hp-radius-md);
+  background:var(--hp-danger-bg); color:var(--hp-danger); border:none; 
   font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center;
   transition:background 0.2s; padding:0 12px;
 }
-.delbtn:active { background:#ffcdd2; }
+.delbtn:active { background:color-mix(in srgb, var(--hp-danger) 26%, transparent); }
 
 /* Item Card (tổ đội, thiết bị...) */
 .item-card { 
-  padding:14px; border-radius:14px; background:#fff; 
-  border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,.03); margin-top:10px;
+  padding:14px; border-radius:var(--hp-radius-lg); background:var(--hp-elevated); 
+  border:1px solid var(--hp-border); box-shadow:0 2px 8px rgba(0,0,0,.03); margin-top:10px;
 }
 
 /* Tab cuộn ngang - Bo tròn hơn */
@@ -438,7 +442,9 @@ body.dark-mode .grp.is-modal {
   box-shadow: var(--shadow-lg) !important;
 }
 body.dark-mode .grp.is-modal > summary {
-  background: var(--hp-nav-base) !important;
+  /* Trước đây dùng --hp-nav-base (#4B4F55) — đó là token của THANH ĐIỀU HƯỚNG, nên tiêu đề
+     popup ra màu xám không thuộc nhận diện. Nay dùng MÀU CHÍNH như mọi thanh tiêu đề khác. */
+  background: var(--hp-brand-primary) !important;
   color: #fff !important;
 }
 body.dark-mode input, body.dark-mode textarea, body.dark-mode select {
