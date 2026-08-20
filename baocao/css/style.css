@@ -646,5 +646,12 @@ body.dark-mode .photo-cap-textarea:focus {
     justify-content:space-between;font-size:9.5px;color:#94a3b8}
   /* Trong khổ A4 các mục xếp DỌC nối tiếp nhau, không chia 2 cột như bản xem cũ */
   body.kho-a4 .pad.two{flex-direction:column}
-  body.kho-a4 .photos{grid-template-columns:1fr 1fr 1fr}
-  body.kho-a4 .draw{grid-template-columns:1fr 1fr}
+  /* Sếp chốt 20/08: trong khổ A4 chia 2 CỘT cho cả ảnh thi công và bản vẽ để hình TO RÕ hơn.
+     A4 rộng 794 - lề 68 - viền = ~712px -> mỗi ô ~350px, cao 3:2 là ~233px; thân tờ ~940px
+     nên vừa 3 hàng ảnh (6 ảnh/tờ) hoặc 2 hàng bản vẽ có mô tả (4 bản vẽ/tờ). */
+  body.kho-a4 .photos{grid-template-columns:1fr 1fr;gap:10px}
+  body.kho-a4 .draw{grid-template-columns:1fr 1fr;gap:10px}
+  body.kho-a4 .photo .im-wrap{height:auto;aspect-ratio:3/2}
+  body.kho-a4 .draw-card .im-wrap{height:auto;aspect-ratio:3/2}
+  /* Bỏ ô trắng dư: khối ký tên nối liền mục ảnh, không còn dải trắng chen giữa */
+  body.kho-a4 .sign-block{margin-top:0}

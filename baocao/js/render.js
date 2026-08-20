@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b6.2';
+const APP_BUILD = 'b6.3';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -571,7 +571,7 @@ function draw(){
     <div class="s3"><div class="scenter">${svgTime}</div><div class="h" style="text-align:center">TIẾN ĐỘ <span class="cn">/ 进度</span></div></div>
   </div>
 
-  <div class="sign-block" style="display:flex;justify-content:space-around;padding:10px 20px 12px;text-align:center;page-break-inside:avoid;margin-top:8px;background:#fff">
+  <div class="sign-block" style="display:flex;justify-content:space-around;padding:10px 20px 12px;text-align:center;page-break-inside:avoid;margin-top:0;background:#fff;border:1px solid var(--line);border-top:none">
     <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
       <div style="font-weight:700;color:var(--navy);font-size:var(--fs-body);margin-bottom:2px">NGƯỜI LẬP BÁO CÁO</div>
       <div style="font-size:var(--fs-caption-cn);color:#64748b;margin-bottom:8px">报告人</div>
@@ -596,9 +596,7 @@ function draw(){
   <div class="pad"><div class="photos">${photoHtml}</div></div>
 
   <div class="sec-h" style="cursor:default"><span class="num">📐</span> BẢN VẼ <span class="cn">/ 图纸</span></div>
-  <div class="pad"><div class="draw">${drawHtml}</div></div>
-
-  <div class="divider"></div>`;
+  <div class="pad" style="border-bottom:1px solid var(--line)"><div class="draw">${drawHtml}</div></div>`;
 
   if (typeof window.autoGrowAllTextareas === 'function') {
     window.autoGrowAllTextareas();
