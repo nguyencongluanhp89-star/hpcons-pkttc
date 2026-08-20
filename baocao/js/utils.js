@@ -39,6 +39,11 @@ function renderUnitForm(){
     </button>`;
   }
 
+  /* Sếp chốt 20/08: các dòng nhà thầu nằm trong KHUNG CUỘN RIÊNG. Trước đây popup 02 cuộn toàn
+     bộ, khai nhiều nhà thầu là ô "Tổng nhân lực" và nút "+ Thêm nhà thầu" bị đẩy xuống xa, phải
+     cuộn lên xuống liên tục mới khai xong. Nay chỉ khung này cuộn, mọi thứ quanh nó đứng yên. */
+  h += '<div class="unit-rows">';
+
   danhSach.forEach((u, i) => {
     let opt = `<option value="">-- Chọn nhà thầu --</option>`;
     listContractors.forEach(c => {
@@ -69,11 +74,24 @@ function renderUnitForm(){
       </div></div>`;
   });
 
+  h += '</div>';
+
   el2.innerHTML = h;
   if (typeof updateProgress === 'function') updateProgress();
 }
 
-function addUnit(){units.push({name:"",area:"",n:0});renderUnitForm();recomputeTotal();}
+function addUnit(){
+  units.push({name:"",area:"",n:0});
+  /* Danh sách đang thu gọn (chỉ hiện 5 dòng đầu) thì dòng vừa thêm KHÔNG được dựng ra -> bấm
+     "+ Thêm nhà thầu" mà không thấy gì. Nay tự mở rộng và cuộn khung xuống cuối cho thấy ngay
+     dòng mới. */
+  _unitMoRong = true;
+  renderUnitForm();
+  recomputeTotal();
+  var khung = document.querySelector('#unit-list .unit-rows');
+  // đợi trình duyệt dựng xong các ô chọn rồi mới cuộn, không thì cuộn thiếu vài chục pixel
+  if (khung) setTimeout(function () { khung.scrollTop = khung.scrollHeight; }, 0);
+}
 
 /* ====================== GIỌNG NÓI + BÓC TÁCH (mục 02) ====================== */
 const UNIT={'không':0,'một':1,'mốt':1,'hai':2,'ba':3,'bốn':4,'tư':4,'năm':5,'lăm':5,'nhăm':5,'sáu':6,'bảy':7,'bẩy':7,'tám':8,'chín':9};

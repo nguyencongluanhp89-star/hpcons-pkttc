@@ -356,6 +356,20 @@ button.sec:active { background:color-mix(in srgb, var(--hp-neutral) 28%, transpa
 }
 .delbtn:active { background:color-mix(in srgb, var(--hp-danger) 26%, transparent); }
 
+/* Khung cuộn danh sách nhà thầu trong popup 02 (Sếp chốt 20/08: chỉ danh sách cuộn, phần còn
+   lại của popup đứng yên để khai báo cho nhanh). Thanh cuộn làm rộng cho dễ kéo trên điện thoại. */
+#unit-list .unit-rows{
+  max-height:min(38vh, 300px); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  border:1px solid var(--hp-border); border-radius:var(--hp-radius-md);
+  padding:6px; background:var(--hp-surface); scrollbar-gutter:stable;
+}
+#unit-list .unit-rows .item-card:first-child{ margin-top:0 }
+#unit-list .unit-rows::-webkit-scrollbar{ width:10px }
+#unit-list .unit-rows::-webkit-scrollbar-track{ background:transparent }
+#unit-list .unit-rows::-webkit-scrollbar-thumb{
+  background:color-mix(in srgb, var(--hp-primary) 45%, transparent); border-radius:999px;
+}
+
 /* Item Card (tổ đội, thiết bị...) */
 .item-card { 
   padding:14px; border-radius:var(--hp-radius-lg); background:var(--hp-elevated); 
