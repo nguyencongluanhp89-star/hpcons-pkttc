@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b7.4';
+const APP_BUILD = 'b7.5';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -217,7 +217,7 @@ function duLieuNhanLucTuan() {
 function bieuDoNhanLucTuanHtml() {
   const ds = duLieuNhanLucTuan();
   if (!ds.length) return '';
-  const W = 700, H = 210, L = 42, R = 12, T = 20, B = 34;
+  const W = 700, H = 265, L = 42, R = 26, T = 22, B = 38;   // cao hơn cho dễ đọc; lề phải rộng để nhãn cuối không bị cắt
   const cw = W - L - R, ch = H - T - B;
   const cos = ds.map(d => d.val).filter(v => v !== null);
   const max = Math.max(10, ...cos);
@@ -240,8 +240,10 @@ function bieuDoNhanLucTuanHtml() {
     `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.homNay ? 5 : 3.5}" fill="${p.homNay ? '#2E6B22' : '#096AA7'}"/>`
     + `<text x="${p.x.toFixed(1)}" y="${(p.y - 9).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="${p.homNay ? '#2E6B22' : '#075687'}">${p.v}</text>`
   ).join('');
+  // Sếp báo 20/08: nhãn "Chủ Nhật" bị cắt mất chữ ở mép phải -> viết tắt "CN" cho gọn
+  const nhanGon = t => (String(t).indexOf('Chủ') === 0 ? 'CN' : t);
   const nhanX = ds.map((d, i) =>
-    `<text x="${x(i).toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="12.5" font-weight="${d.homNay ? 700 : 400}" fill="${d.homNay ? '#2E6B22' : '#64748b'}">${d.nhan}</text>`
+    `<text x="${x(i).toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="12.5" font-weight="${d.homNay ? 700 : 400}" fill="${d.homNay ? '#2E6B22' : '#64748b'}">${nhanGon(d.nhan)}</text>`
     + `<text x="${x(i).toFixed(1)}" y="${H - 2}" text-anchor="middle" font-size="10.5" fill="#94a3b8">${d.ngayThang}</text>`
   ).join('');
 
@@ -645,7 +647,7 @@ function draw(){
        tồn tại trong bộ dựng ảnh khổ ngang cũ (không gọi được từ bản xem), nên khi chuyển sang
        A4 thì mất. Nay dựng thẳng trong bản xem -> A4 và ảnh xuất đều có. Đặt dưới hai ô
        nhân lực | thời tiết, chiếm hết bề rộng. -->
-  <div class="pad" style="border-top:none;padding-top:4px">${bieuDoNhanLucTuanHtml()}</div>
+  <div class="pad" data-a4-bieudo="1" style="border-top:none;padding-top:4px">${bieuDoNhanLucTuanHtml()}</div>
 
   <div class="sec-h" onclick="openModal('grp-03')"><span class="num">03</span> TIẾN ĐỘ THI CÔNG CHI TIẾT <span class="cn">/ 详细施工进度</span></div>
   <!-- Sếp chốt 20/08: mục hình ảnh ở khối 03 BỎ — ảnh thi công có TRANG RIÊNG ở cuối báo cáo.

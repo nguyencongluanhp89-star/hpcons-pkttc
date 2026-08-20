@@ -211,8 +211,30 @@
     var hKhaDung = to.than.clientHeight;
     var hang = khoi.slice(), canh = 0;
 
+    /* Sếp chốt 20/08: "Trang 1 LUÔN LUÔN thể hiện thông tin khối 1 và khối 2 — trang 2 trở đi
+       bắt đầu là khối 3...". Nên tờ đầu chỉ nhận khối 01 + 02 (và biểu đồ nhân lực tuần đi kèm
+       khối 02), sau đó NGẮT TRANG bắt buộc rồi mới xếp tiếp từ khối 03.
+       Nhận diện khối 01/02 qua số mục in trên thanh tiêu đề, không dựa vào thứ tự để khỏi sai
+       khi có khối bị ẩn. */
+    function laKhoiTrang1(k) {
+      if (k.querySelector('[data-a4-bieudo="1"]')) return true;      // biểu đồ thuộc khối 02
+      var num = k.querySelector('.sec-h .num');
+      var t = num ? String(num.textContent || '').trim() : '';
+      return t === '01' || t === '02';
+    }
+    var daNgatTrang1 = false;
+
     while (hang.length && canh++ < 800) {
       var k = hang.shift();
+
+      // Hết phần của trang 1 -> mở tờ mới, khối 03 bắt đầu ở trang 2
+      if (!daNgatTrang1 && !laKhoiTrang1(k) && to.than.children.length) {
+        daNgatTrang1 = true;
+        to = dungTo(header, tos.length + 1);
+        dich.appendChild(to.el);
+        tos.push(to);
+        hKhaDung = to.than.clientHeight;
+      }
       var daDung = 0;
       Array.prototype.forEach.call(to.than.children, function (x) { daDung += cao(x); });
       var conLai = hKhaDung - daDung - AN_TOAN;
