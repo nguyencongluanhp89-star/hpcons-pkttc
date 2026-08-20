@@ -268,7 +268,53 @@
            được cắt mất nội dung.
        Không giãn khi tờ còn quá rỗng (dư hơn 55% thân tờ), vì kéo một thẻ nhỏ cao gấp mấy lần
        nhìn còn xấu hơn để trống. */
-    tos.forEach(function (t) {
+    /* Tờ ĐẦU (khối 01 + 02): lấp đầy bằng cách cho CHÍNH NỘI DUNG giãn, không phải kéo cao cái
+       thẻ. Bản b7.6 chỉ set chiều cao cho thẻ nên thẻ cao hơn mà ruột vẫn co ở trên -> khoảng
+       trắng chuyển vào bên trong khối, đúng chỗ Sếp thấy dưới biểu đồ tuần.
+       Thứ tự Sếp chốt: (1) tăng chiều cao hai ô Nhân lực / Thời tiết -> biểu đồ tự dịch xuống;
+       (2) còn trống thì cho ảnh khối 01 cao thêm. */
+    function tongCao(than) {
+      var d = 0;
+      Array.prototype.forEach.call(than.children, function (x) { d += cao(x); });
+      return d;
+    }
+    function lapDayToDau(t) {
+      var than = t.than;
+      var du = than.clientHeight - tongCao(than) - AN_TOAN;
+      if (du < 20) return;
+      var luuCard = [], luuAnh = null;
+
+      // (1) hai ô Nhân lực / Thời tiết cao thêm
+      var cards = Array.prototype.slice.call(than.querySelectorAll('.card2'));
+      if (cards.length) {
+        var caoC = Math.max.apply(null, cards.map(function (c) { return cao(c); }));
+        var them = Math.min(du, 200);                 // vừa phải, không kéo ô số thành quá cao
+        cards.forEach(function (c) {
+          luuCard.push([c, c.style.height, c.style.boxSizing]);
+          c.style.boxSizing = 'border-box';
+          c.style.height = Math.round(caoC + them) + 'px';
+        });
+        du = than.clientHeight - tongCao(than) - AN_TOAN;
+      }
+
+      // (2) vẫn còn trống -> ảnh tổng quan khối 01 cao thêm (cover nên không méo)
+      var anh = than.querySelector('.ov-main');
+      if (anh && du > 20) {
+        var rA = anh.getBoundingClientRect();
+        luuAnh = [anh, anh.style.height, anh.style.aspectRatio];
+        anh.style.aspectRatio = 'auto';
+        anh.style.height = Math.round(rA.height + du) + 'px';
+      }
+
+      // chốt an toàn: tràn thì hoàn nguyên hết, thà còn trống chứ không cắt nội dung
+      if (than.scrollHeight - than.clientHeight > 2) {
+        luuCard.forEach(function (x) { x[0].style.height = x[1]; x[0].style.boxSizing = x[2]; });
+        if (luuAnh) { luuAnh[0].style.height = luuAnh[1]; luuAnh[0].style.aspectRatio = luuAnh[2]; }
+      }
+    }
+
+    tos.forEach(function (t, iT) {
+      if (iT === 0) { lapDayToDau(t); return; }     // tờ đầu xử lý riêng như trên
       var n = t.than.children.length;
       if (!n) return;
       var dung = 0;
