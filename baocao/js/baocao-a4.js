@@ -139,6 +139,12 @@
         Array.prototype.slice.call(nhanA.querySelectorAll('button, input')).forEach(function (x) {
           if (x.parentNode) x.parentNode.removeChild(x);
         });
+        // Sếp báo 20/08: nhãn "(TIẾP) (TIẾP) (TIẾP)" nhân lên từng trang. Nguyên do: khối tiếp
+        // bị tách lần nữa thì em nhân bản CHÍNH tiêu đề của nó (đã có sẵn "(TIẾP)") rồi cộng
+        // thêm một lần nữa. Nay xóa mọi nhãn cũ trong bản nhân bản trước khi gắn một nhãn.
+        Array.prototype.slice.call(nhanA.querySelectorAll('.a4-tiep-nhan')).forEach(function (x) {
+          if (x.parentNode) x.parentNode.removeChild(x);
+        });
         var spA = document.createElement('span');
         spA.className = 'a4-tiep-nhan';
         spA.textContent = ' (TIẾP)';
@@ -176,6 +182,9 @@
       nhan.classList.add('a4-tiep-head');
       nhan.removeAttribute('onclick');
       nhan.style.cursor = 'default';
+      Array.prototype.slice.call(nhan.querySelectorAll('.a4-tiep-nhan')).forEach(function (x) {
+        if (x.parentNode) x.parentNode.removeChild(x);   // không cộng dồn "(TIẾP) (TIẾP)"
+      });
       var sp = document.createElement('span');
       sp.className = 'a4-tiep-nhan';
       sp.textContent = ' (TIẾP)';
@@ -414,6 +423,28 @@
     /* Ô ảnh / bản vẽ CHƯA có hình chỉ là chỗ để bấm nhập, không được lên ảnh xuất. Lưới ảnh
        xếp 2 cột nên khi số ảnh lẻ sẽ dư một ô trống; ô đó phải biến mất lúc chụp. Ẩn tạm ở đây
        rồi hoàn nguyên ngay sau khi chụp — bản xem vẫn còn ô để Sếp bấm tải thêm ảnh. */
+    /* html2canvas 1.4.1 KHÔNG hiểu object-fit — trên màn hình ảnh cover đúng, nhưng vào ảnh
+       xuất thì bị kéo giãn cho vừa ô. Nên trước khi chụp phải quy đổi sang PIXEL: giữ đúng tỉ lệ
+       gốc, phủ kín ô, cắt đối xứng quanh tâm (dùng chung hàm oCoverTam của app). Ô giữ nguyên
+       đúng kích thước đang có nên việc phân trang không bị xê dịch. Chụp xong hoàn nguyên. */
+    var luuAnh = [];
+    Array.prototype.slice.call(dich.querySelectorAll('.photo .im-wrap, .draw-card .im-wrap'))
+      .forEach(function (o) {
+        var im = o.querySelector('img');
+        if (!im || !im.naturalWidth) return;
+        var r = o.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        luuAnh.push({ o: o, css: o.getAttribute('style'), im: im, imCss: im.getAttribute('style') });
+        im.style.position = 'static';            // để ô căn tâm được bằng flex
+        if (typeof window.oCoverTam === 'function') window.oCoverTam(o, r.width, r.height);
+      });
+    function traLaiAnh() {
+      luuAnh.forEach(function (x) {
+        if (x.css === null) x.o.removeAttribute('style'); else x.o.setAttribute('style', x.css);
+        if (x.imCss === null) x.im.removeAttribute('style'); else x.im.setAttribute('style', x.imCss);
+      });
+    }
+
     var oRong = Array.prototype.slice.call(dich.querySelectorAll('.photo, .draw-card'))
       .filter(function (o) { return !o.querySelector('img'); });
     oRong.forEach(function (o) { o.setAttribute('data-a4-an-tam', o.style.display || ''); o.style.display = 'none'; });
@@ -436,11 +467,11 @@
       });
     }, Promise.resolve()).then(function () {
       document.body.classList.remove('dang-chup-a4');
-      hienLaiORong();
+      hienLaiORong(); traLaiAnh();
       return anhs;
     }).catch(function (e) {
       document.body.classList.remove('dang-chup-a4');
-      hienLaiORong();
+      hienLaiORong(); traLaiAnh();
       throw e;
     });
   }

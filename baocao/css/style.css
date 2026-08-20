@@ -680,9 +680,23 @@ body.dark-mode .photo-cap-textarea:focus {
   body.kho-a4 .photos{grid-template-columns:1fr 1fr;gap:10px;align-items:start}
   body.kho-a4 .draw{grid-template-columns:1fr 1fr;gap:10px;align-items:start}
   body.kho-a4 .photo, body.kho-a4 .draw-card{align-self:start;height:auto}
-  body.kho-a4 .photo .im-wrap{height:auto;aspect-ratio:3/2;width:100%}
-  body.kho-a4 .draw-card .im-wrap{height:auto;aspect-ratio:3/2;width:100%}
-  body.kho-a4 .photo .im, body.kho-a4 .draw-card .im{width:100%;height:100%;object-fit:cover;object-position:center center}
+  /* Sếp báo 20/08: "hình ảnh không hiển thị đều ở các ô, hình bị kéo dài vượt phạm vi ô".
+     Em đã dựng trang đo thử và tìm ra: khai aspect-ratio:3/2 cho ô là KHÔNG ĐỦ. aspect-ratio chỉ
+     là kích thước MONG MUỐN; ảnh bên trong khai height:100% vẫn tính vào chiều cao nội dung của
+     ô, mà chiều cao tối thiểu của ô lại theo nội dung — nên ô bị NỘI DUNG ĐẨY CAO ra đúng tỉ lệ
+     ảnh gốc. Số đo thật của trang thử: ảnh 1200x900 -> ô 344x263 (tỉ lệ 1.31), ảnh 900x1200 -> ô
+     344x463 (tỉ lệ 0.74) — không ô nào ra 1.5 như khai.
+     Cách chữa: cho ảnh THOÁT KHỎI dòng chảy (position:absolute) thì ảnh không còn tính vào chiều
+     cao nội dung, lúc đó aspect-ratio mới cầm trịch. Ô cắt phần dư (overflow:hidden). */
+  body.kho-a4 .photo .im-wrap,
+  body.kho-a4 .draw-card .im-wrap{position:relative;height:auto;aspect-ratio:3/2;width:100%;overflow:hidden}
+  body.kho-a4 .photo .im-wrap > img.im,
+  body.kho-a4 .draw-card .im-wrap > img.im{position:absolute;top:0;left:0;
+    width:100%;height:100%;object-fit:cover;object-position:center center}
+  /* Ô chưa có ảnh (chỗ để bấm tải lên) cũng đúng khuôn 3:2 cho hàng lối đều nhau */
+  body.kho-a4 .photo .im-wrap > .im.ph,
+  body.kho-a4 .draw-card .im-wrap > .im.ph{position:absolute;top:0;left:0;right:0;bottom:0;
+    width:auto;height:auto !important}
   body.kho-a4 .photo:last-child:nth-child(odd){grid-column:auto}
   /* Bỏ ô trắng dư: khối ký tên nối liền mục ảnh, không còn dải trắng chen giữa */
   body.kho-a4 .sign-block{margin-top:0}

@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b8.2';
+const APP_BUILD = 'b8.3';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -761,6 +761,9 @@ function draw(){
 // muốn xem trọn bản vẽ thì bấm vào ảnh để mở lớn. Kẹp 56–110px để thẻ 05 luôn ở khoảng 120–150px.
 function fitDrawCardsPreview() {
   try {
+    // Khổ A4: ô bản vẽ đã cố định 3:2 bằng CSS. Hàm này (dành cho bản xem cũ) đặt chiều cao
+    // px vào .im-wrap nên sẽ PHÁ tỉ lệ đó -> trong khổ A4 thì bỏ qua.
+    if (document.body.classList.contains('kho-a4')) return;
     const cards = Array.from(document.querySelectorAll('#report .draw .draw-card'));
     if (!cards.length) return;
     const w = cards[0].getBoundingClientRect().width;
