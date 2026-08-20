@@ -43,6 +43,11 @@
   // khung trắng. Cũng khớp yêu cầu: trường nào không có thông tin thì tự ẩn.
   function coNoiDung(el) {
     if (!el) return false;
+    // Khối ẢNH THI CÔNG / BẢN VẼ: chỉ tính là có nội dung khi CÓ ẢNH THẬT. Các ô "Chọn ảnh N"
+    // chỉ là chỗ để bấm nhập nên không được coi là nội dung — Sếp chốt 20/08: bản vẽ không khai
+    // báo hình nào thì khi XUẤT phải ẩn cả khối.
+    var luoi = el.querySelector('.photos, .draw');
+    if (luoi) return !!luoi.querySelector('img');
     if (String(el.textContent || '').trim() !== '') return true;
     return !!el.querySelector('img, input, textarea, select, button, canvas, svg, table');
   }
@@ -104,7 +109,53 @@
      tạo thành khối "(tiếp)" — tiêu đề mục KHÔNG lặp lại, chỉ ghi một nhãn nhỏ. */
   function tach(khoi, conLai) {
     var than = khoi.querySelector('.pad') || khoi.lastElementChild;
-    if (!than || than.children.length < 2) return null;
+    if (!than) return null;
+
+    /* Sếp báo 20/08: "phần ảnh cuối bị cắt ở cuối trang". Nguyên do: lưới ảnh là MỘT node duy
+       nhất nên vòng tách không bốc được gì bên trong, khối cứ thế tràn qua đáy tờ rồi bị cắt.
+       Nay nếu phần thân là LƯỚI ẢNH thì bốc theo TỪNG CẶP 2 ô (đúng 2 cột) — hàng cuối không bao
+       giờ bị cắt và ảnh luôn đủ cặp như Sếp yêu cầu. Ảnh dư tự sang tờ sau đến khi hết. */
+    var luoi = than.querySelector('.photos, .draw');
+    if (luoi && luoi.children.length > 2) {
+      var duA = [], canhA = 0;
+      while (cao(khoi) > conLai && luoi.children.length > 2 && canhA++ < 600) {
+        for (var b = 0; b < 2 && luoi.children.length > 2; b++) {
+          duA.unshift(luoi.removeChild(luoi.children[luoi.children.length - 1]));
+        }
+      }
+      if (!duA.length) return null;
+      if (cao(khoi) > conLai) {                 // bốc hết vẫn không vừa -> hoàn nguyên
+        duA.forEach(function (n) { luoi.appendChild(n); });
+        return null;
+      }
+      var moiA = tao('div', 'a4-khoi');
+      var tieuA = khoi.querySelector('.sec-h');
+      if (tieuA) {
+        var nhanA = tieuA.cloneNode(true);
+        nhanA.classList.add('a4-tiep-head');
+        nhanA.removeAttribute('onclick');
+        nhanA.style.cursor = 'default';
+        // bỏ nút bấm trong tiêu đề (nút chọn nhiều ảnh) ở phần tiếp
+        Array.prototype.slice.call(nhanA.querySelectorAll('button, input')).forEach(function (x) {
+          if (x.parentNode) x.parentNode.removeChild(x);
+        });
+        var spA = document.createElement('span');
+        spA.className = 'a4-tiep-nhan';
+        spA.textContent = ' (TIẾP)';
+        nhanA.appendChild(spA);
+        moiA.appendChild(nhanA);
+      }
+      var thanA = tao('div', than.className || 'pad');
+      thanA.setAttribute('style', than.getAttribute('style') || '');
+      var luoiA = tao('div', luoi.className);
+      luoiA.setAttribute('style', luoi.getAttribute('style') || '');
+      duA.forEach(function (n) { luoiA.appendChild(n); });
+      thanA.appendChild(luoiA);
+      moiA.appendChild(thanA);
+      return moiA;
+    }
+
+    if (than.children.length < 2) return null;
     var du = [], canh = 0;
     while (cao(khoi) > conLai && than.children.length > 1 && canh++ < 600) {
       du.unshift(than.removeChild(than.children[than.children.length - 1]));

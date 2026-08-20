@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b7.2';
+const APP_BUILD = 'b7.3';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -109,8 +109,10 @@ function tongHopNhaThauTuan(ngayBaoCao) {
       const so = parseInt(u && u.n, 10) || 0;
       if (so <= 0) return;                  // Sếp chốt: phải có người mới tính là có thi công
       const khoa = ten.toLowerCase();
-      if (!bang.has(khoa)) bang.set(khoa, { ten: ten, coMat: [false, false, false, false, false, false, false] });
-      bang.get(khoa).coMat[i] = true;
+      if (!bang.has(khoa)) bang.set(khoa, { ten: ten, coMat: [false, false, false, false, false, false, false], so: [0, 0, 0, 0, 0, 0, 0] });
+      var rec = bang.get(khoa);
+      rec.coMat[i] = true;
+      rec.so[i] = (rec.so[i] || 0) + so;   // Sếp chốt 20/08: ô hiển thị SỐ NHÂN LỰC, không phải dấu chấm
     });
   });
 
@@ -172,7 +174,7 @@ function contractorTableHtml() {
   const dong = th.nhaThau.length
     ? th.nhaThau.map((nt, idx) => {
         const o = th.ngay.map((n, i) => nt.coMat[i]
-          ? '<td style="text-align:center; padding:6px 4px; color:var(--green-d); font-weight:800;">●</td>'
+          ? '<td style="text-align:center; padding:6px 4px; color:var(--green-d); font-weight:800;">' + (nt.so[i] || 0) + '</td>'
           : '<td style="text-align:center; padding:6px 4px; color:#cbd5e1;">–</td>').join('');
         return '<tr style="' + (idx % 2 ? 'background:#fafbfc;' : '') + '">'
           + '<td style="padding:6px 10px; font-size:var(--fs-body); font-weight:700; color:var(--navy); border-bottom:1px solid #f1f5f9;">'
@@ -619,18 +621,15 @@ function draw(){
 
   <!-- Sếp chốt 20/08: HÌNH ẢNH THI CÔNG và BẢN VẼ bố trí SAU trang chữ ký -> đặt cuối cùng,
        sau khối ký tên. Nhập ảnh ngay tại chỗ, khỏi vào popup. -->
-  <div class="sec-h" style="cursor:default">HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></div>
-  <div class="pad">
-    <!-- Sếp chốt 20/08: việc tải ảnh chuyển hẳn về đây (popup 03 đã tắt). Bấm từng ô để chọn
-         một ảnh, hoặc dùng nút dưới để chọn nhiều ảnh một lượt — vẫn dùng lại đúng cơ chế lọc
-         ảnh trùng, giữ bản nét nhất, lấy giờ chụp từ file đã có sẵn của app. -->
-    <div class="no-print" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-      <input type="file" id="f_photos_bulk_bc" accept="image/*" multiple style="display:none" onchange="onBulkPhotos(this)">
-      <button class="addbtn" type="button" onclick="el('f_photos_bulk_bc').click()" style="background:var(--green);color:#fff;border:none;padding:6px 14px;font-weight:700">📤 Chọn nhiều ảnh từ máy</button>
-      <span class="hint" style="margin:0">Tự lọc ảnh trùng, giữ bản nét nhất, xếp lưới 2 cột. Ảnh nhiều sẽ tự sang trang sau.</span>
-    </div>
-    <div class="photos">${photoHtml}</div>
+  <!-- Sếp chốt 20/08: nút chọn nhiều ảnh TÍCH HỢP ngay trong dòng tiêu đề, khỏi chiếm một khối
+       riêng. Bấm từng ô vẫn chọn được một ảnh như cũ. -->
+  <div class="sec-h" style="cursor:default;display:flex;align-items:center;gap:10px">
+    <span style="flex:1">HÌNH ẢNH THI CÔNG TRONG NGÀY <span class="cn">/ 当日施工照片</span></span>
+    <input type="file" id="f_photos_bulk_bc" accept="image/*" multiple style="display:none" onchange="onBulkPhotos(this)">
+    <button class="no-print" type="button" onclick="el('f_photos_bulk_bc').click()" title="Tự lọc ảnh trùng, giữ bản nét nhất"
+      style="background:rgba(255,255,255,.92);color:var(--navy);border:none;border-radius:5px;padding:3px 10px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Chọn nhiều ảnh</button>
   </div>
+  <div class="pad"><div class="photos">${photoHtml}</div></div>
 
   <div class="sec-h" style="cursor:default">BẢN VẼ <span class="cn">/ 图纸</span></div>
   <div class="pad" style="border-bottom:1px solid var(--line)"><div class="draw">${drawHtml}</div></div>`;
@@ -1234,8 +1233,9 @@ async function exportPNG169() {
 
       const dongHtml = nhaThau.length
         ? nhaThau.map((nt, idx) => {
+            // Sếp chốt 20/08: ô thể hiện SỐ LƯỢNG nhân lực của nhà thầu trong ngày, không phải dấu chấm
             const o = ngay.map((n, i) => nt.coMat[i]
-              ? '<td style="' + oNgay + ' color:#2E6B22; font-weight:' + FW.title + ';">●</td>'
+              ? '<td style="' + oNgay + ' color:#2E6B22; font-weight:' + FW.title + ';">' + (nt.so[i] || 0) + '</td>'
               : '<td style="' + oNgay + ' color:#cbd5e1;">–</td>'
             ).join('');
             const nen = idx % 2 ? 'background:#fafbfc;' : '';
