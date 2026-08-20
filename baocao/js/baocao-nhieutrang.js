@@ -249,6 +249,106 @@
     return moi;
   }
 
+  /* ---------- TRANG PHỤ LỤC: HÌNH ẢNH THI CÔNG / BẢN VẼ ----------
+     Sếp chốt 18/08: sau khi thể hiện xong các thẻ 01 -> ký tên thì mới tới trang riêng cho
+     Hình ảnh thi công, rồi trang riêng cho Bản vẽ.
+       · Ô ảnh TỈ LỆ 3:2 — trung hòa giữa 4:3 và 16:9 nên cả hai loại chỉ bị cắt ~11%,
+         không ảnh nào méo (dùng chung quy tắc CENTER -> SCALE UNIFORM -> COVER -> CROP).
+       · Mọi ô trên trang CÙNG MỘT KÍCH THƯỚC.
+       · Trang ảnh thi công: 3 cột × 2 hàng = 6 ô, không chú thích.
+       · Trang bản vẽ: 2 cột × 2 hàng = 4 ô, dưới mỗi ô có mô tả.
+     Ô của hai loại trang được giữ cùng cỡ (~1000×667) nên toàn báo cáo thống nhất; trang bản
+     vẽ vì thế canh giữa và chừa lề hai bên thay vì kéo ô rộng ra thành tỉ lệ khác.          */
+  var TI_LE_O_PHULUC = 3 / 2;
+
+  function dungCacTrangPhuLuc(pl, bg, headerGoc, footerGoc, caoTrang, trangs) {
+    if (!pl) return;
+    var oGoc = Array.prototype.slice.call(pl.querySelectorAll('.pl-o-169'));
+    if (!oGoc.length) return;
+
+    var soCot = parseInt(pl.getAttribute('data-bc-cot'), 10) || 3;
+    var soHang = parseInt(pl.getAttribute('data-bc-hang'), 10) || 2;
+    var moiTrang = soCot * soHang;
+    var tieuVi = pl.getAttribute('data-bc-tieu-vi') || '';
+    var tieuCn = pl.getAttribute('data-bc-tieu-cn') || '';
+    var GAP_O = 16;
+
+    // Bề rộng ô CHUẨN tính theo trang ảnh 3 cột -> mọi trang phụ lục dùng đúng cỡ ô này
+    var rongTrang = Math.round(caoTrang * TI_LE_TRANG);
+    var rongND = rongTrang - PAD_NGANG * 2 - 44;            // trừ padding trang + padding thẻ
+    var wO = Math.floor((rongND - 2 * GAP_O) / 3);
+    var hO = Math.round(wO / TI_LE_O_PHULUC);
+
+    for (var b = 0; b < oGoc.length; b += moiTrang) {
+      var nhom = oGoc.slice(b, b + moiTrang);
+      var tr = dungTrangPhuLucRong(bg, headerGoc, footerGoc, caoTrang);
+      var the = tao('div',
+        'background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:14px 22px 18px;' +
+        'box-shadow:0 4px 20px rgba(0,0,0,0.02); display:flex; flex-direction:column;' +
+        'box-sizing:border-box; flex:1; min-height:0;');
+
+      var tieu = tao('div',
+        'background:linear-gradient(90deg,#075687 0%,#096AA7 100%); color:#fff; padding:17px 26px;' +
+        'font-size:34px; font-weight:800; display:flex; align-items:center; letter-spacing:0.3px;' +
+        'border-left:8px solid #096AA7; border-radius:8px; margin-bottom:18px; line-height:1.2; flex-shrink:0;');
+      tieu.innerHTML = tieuVi
+        + (tieuCn ? ' <span style="font-weight:400; font-size:24px; opacity:.85; font-family:Arial; margin-left:9px;">/ ' + tieuCn + '</span>' : '')
+        + (oGoc.length > moiTrang
+            ? ' <span style="font-weight:400; font-size:22px; opacity:.85; margin-left:auto;">'
+              + (Math.floor(b / moiTrang) + 1) + '/' + Math.ceil(oGoc.length / moiTrang) + '</span>'
+            : '');
+      the.appendChild(tieu);
+
+      var luoi = tao('div',
+        'display:grid; grid-template-columns:repeat(' + soCot + ', ' + wO + 'px);' +
+        'gap:' + GAP_O + 'px; justify-content:center; align-content:start;');
+      nhom.forEach(function (o) { luoi.appendChild(o); });
+      the.appendChild(luoi);
+      tr.than.appendChild(the);
+      trangs.push(tr);
+
+      // Chuẩn hoá ô: cùng một kích thước, ảnh cover theo tâm nên không méo
+      nhom.forEach(function (o) {
+        o.style.cssText = 'display:flex; flex-direction:column; border:1px solid #e2e8f0;' +
+          'border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.04);';
+        var hop = o.querySelector('.pl-im-169');
+        if (hop) {
+          hop.style.cssText = 'width:' + wO + 'px; height:' + hO + 'px; overflow:hidden;' +
+            'display:flex; align-items:center; justify-content:center; background:#fff;';
+          coverThuCong(hop.querySelector('img'), wO, hO);
+        }
+        var cap = o.querySelector('.pl-cap-169');
+        if (cap) {
+          cap.style.cssText = 'padding:10px 12px; text-align:center; font-size:24px; font-weight:700;' +
+            'color:#0f172a; text-transform:uppercase; background:#f8fafc; border-top:1px solid #f1f5f9;' +
+            'line-height:1.3; flex-shrink:0;';
+          var cn = cap.querySelector('.pl-cap-cn-169');
+          if (cn) cn.style.cssText = 'display:block; font-weight:400; text-transform:none; color:#64748b; font-size:20px; margin-top:3px;';
+        }
+      });
+    }
+  }
+
+  // Trang phụ lục dùng TOÀN BỘ bề rộng (không chia 3 cột như trang chính)
+  function dungTrangPhuLucRong(bg, headerGoc, footerGoc, caoTrang) {
+    var CT = caoTrang || CAO_TRANG;
+    var t = tao('div',
+      'position:fixed; left:-9999px; top:-9999px;' +
+      'width:' + Math.round(CT * TI_LE_TRANG) + 'px; height:' + CT + 'px;' +
+      'background-color:' + bg.base + '; background-image:' + bg.image + '; background-size:' + bg.size + ';' +
+      'box-sizing:border-box; padding:' + PAD_TREN + 'px ' + PAD_NGANG + 'px ' + PAD_DUOI + 'px ' + PAD_NGANG + 'px;' +
+      'display:flex; flex-direction:column; gap:' + GAP + 'px;' +
+      "font-family:'Inter', system-ui, -apple-system, sans-serif; color:#0f172a; z-index:-9999;");
+    t.className = 'bc-trang-169';
+    t.appendChild(headerGoc.cloneNode(true));
+    var than = tao('div', 'flex:1; display:flex; width:100%; box-sizing:border-box; min-height:0;');
+    t.appendChild(than);
+    var ft = footerGoc.cloneNode(true);
+    t.appendChild(ft);
+    document.body.appendChild(t);
+    return { el: t, cot: [than, than, than], than: than, footer: ft, laPhuLuc: true };
+  }
+
   /* ---------- xếp trang ---------- */
 
   function xepTrang(opts) {
@@ -266,6 +366,16 @@
       .concat(Array.prototype.slice.call(c2.children))
       .concat(Array.prototype.slice.call(c3.children))
       .filter(function (n) { return n.textContent.trim() !== '' || n.querySelector('img'); }); // bỏ spacer rỗng
+
+    // Sếp chốt 18/08: ảnh thi công có TRANG RIÊNG nên gỡ cụm ảnh ra khỏi thẻ 03; thẻ 03 chỉ
+    // còn phần tiến độ hạng mục. Chỉ gỡ khi thật sự có ảnh để dựng trang riêng.
+    var plAnh = goc.querySelector('[data-bc-phuluc="anh"]');
+    var plVe  = goc.querySelector('[data-bc-phuluc="ve"]');
+    var coAnhPL = plAnh && plAnh.querySelectorAll('.pl-o-169').length > 0;
+    if (coAnhPL) {
+      var cumAnh = goc.querySelector('[data-bc-goneuphuluc="1"]');
+      if (cumAnh && cumAnh.parentNode) cumAnh.parentNode.removeChild(cumAnh);
+    }
 
     var trangs = [];
     var caoTrang = CAO_TRANG;          // có thể nới lên nếu cột trái cần thêm chỗ cho khối 02
@@ -370,6 +480,7 @@
     // Hai khối liền nhau thì gộp làm một: dồn nội dung thùng của khối sau vào khối trước rồi
     // bỏ khối sau. Gộp chỉ làm THẤP đi (bớt một vỏ thẻ + một nhãn) nên không thể gây tràn.
     trangs.forEach(function (t) {
+      if (t.laPhuLuc) return;
       t.cot.forEach(function (c) {
         var i = 0;
         while (i < c.children.length - 1) {
@@ -413,6 +524,7 @@
     for (var vong = 0; vong < 12; vong++) {
       var conTran = false;
       for (var it = 0; it < trangs.length; it++) {
+        if (trangs[it].laPhuLuc) continue;   // trang phụ lục có ô chốt sẵn, không tách/bốc gì
         for (var ic = 0; ic < 3; ic++) {
           var cotK = trangs[it].cot[ic];
           if (!cotK.children.length) continue;
@@ -456,6 +568,12 @@
       if (!conTran) break;
     }
 
+    // ===== HAI TRANG PHỤ LỤC (sau khi đã hết dòng chảy chính, tức sau vùng ký tên) =====
+    // Sếp chốt 18/08: "sau khi thể hiện các trường thông tin từ thẻ 1 đến ký tên thì đến mục
+    // hình ảnh thi công ở trang mới", rồi tới trang Bản vẽ.
+    try { dungCacTrangPhuLuc(plAnh, bg, header, footer, caoTrang, trangs); } catch (e) { console.warn('trang ảnh lỗi:', e && e.message); }
+    try { dungCacTrangPhuLuc(plVe,  bg, header, footer, caoTrang, trangs); } catch (e) { console.warn('trang bản vẽ lỗi:', e && e.message); }
+
     // Chân trang: ghi "Trang i/n"
     trangs.forEach(function (t, i) {
       var o = t.footer.querySelector('span:last-child') || t.footer.lastElementChild;
@@ -467,7 +585,7 @@
     });
 
     // Ảnh đơn lẻ (khối 01) khử méo sau khi đã vào trang thật
-    trangs.forEach(function (t) { chuanHoaAnhDon(t.el); });
+    trangs.forEach(function (t) { if (!t.laPhuLuc) chuanHoaAnhDon(t.el); });
 
     // Khối 02 (số nhân lực + biểu đồ tuần) phải vẽ lại theo kích thước THẬT của trang mới.
     // Không làm bước này thì SVG biểu đồ giữ khổ cũ -> bị cắt, và số nhân lực tràn khỏi ô.

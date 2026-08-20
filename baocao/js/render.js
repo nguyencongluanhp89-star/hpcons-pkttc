@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b5.7';
+const APP_BUILD = 'b5.8';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -1446,7 +1446,7 @@ async function exportPNG169() {
                 ${worksHtml}
               </div>
               <!-- Dưới: Khu ảnh GIỮ CHỖ CỐ ĐỊNH đủ 8 hình (2×4) — không co theo chữ, không phình khi ít ảnh -->
-              <div id="photos-sec-169" style="flex: 0 0 ${PHOTO_AREA_PCT}%; min-height: 0; display: flex; flex-direction: column; border-top: 1.5px solid #e8edf5; padding-top: 14px; margin-top: 14px;">
+              <div id="photos-sec-169" data-bc-goneuphuluc="1" style="flex: 0 0 ${PHOTO_AREA_PCT}%; min-height: 0; display: flex; flex-direction: column; border-top: 1.5px solid #e8edf5; padding-top: 14px; margin-top: 14px;">
                 <div data-bc-tieudephu="1" style="font-size: ${FS.body}px; font-weight: 700; color: #2E6B22; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 11px; flex-shrink: 0;">HÌNH ẢNH THI CÔNG TRONG NGÀY / 当日施工照片</div>
                 ${photosInlineHtml}
               </div>
@@ -1490,6 +1490,30 @@ async function exportPNG169() {
           <span style="width: 9px; height: 9px; background: var(--navy2); border-radius: 50%;"></span>
           ẢNH XUẤT KHỔ NGANG • CHUẨN TRÌNH CHIẾU BÁO CÁO CAO CẤP • ${APP_BUILD}
         </span>
+      </div>
+
+      <!-- ===== DỮ LIỆU 2 TRANG PHỤ LỤC (Sếp chốt 18/08) =====================================
+           Sếp yêu cầu: sau khi thể hiện xong các thẻ 01 -> ký tên thì mới tới TRANG RIÊNG cho
+           Hình ảnh thi công, rồi TRANG RIÊNG cho Bản vẽ. Hai vùng dưới đây chỉ CHỨA DỮ LIỆU
+           (luôn ẩn); bộ phân trang đọc chúng để dựng trang riêng. Ở bản 1 trang chúng vẫn ẩn
+           nên không ảnh hưởng gì.
+           Ô ảnh tỉ lệ 3:2 (Sếp chốt) — trung hòa giữa 4:3 và 16:9 nên cả hai loại ảnh chỉ bị
+           cắt tối đa ~11%, không ảnh nào bị méo.                                              -->
+      <div id="phuluc-anh-169" data-bc-phuluc="anh" data-bc-tieu-vi="HÌNH ẢNH THI CÔNG TRONG NGÀY" data-bc-tieu-cn="当日施工照片" data-bc-cot="3" data-bc-hang="2" style="display:none;">
+        ${((typeof photos !== 'undefined' && Array.isArray(photos)) ? photos : []).filter(p => p && p.img).map(p => `
+          <div class="pl-o-169"><div class="pl-im-169"><img src="${p.img}"></div></div>
+        `).join('')}
+      </div>
+      <div id="phuluc-ve-169" data-bc-phuluc="ve" data-bc-tieu-vi="BẢN VẼ" data-bc-tieu-cn="图纸" data-bc-cot="2" data-bc-hang="2" style="display:none;">
+        ${((typeof draws !== 'undefined' && Array.isArray(draws)) ? draws : []).filter(d => d && d.img).map(d => {
+          let tv = String(d.t || '').split('|')[0].trim();
+          const tc = String(d.t || '').includes('|') ? String(d.t).split('|')[1].trim() : '';
+          return `
+          <div class="pl-o-169">
+            <div class="pl-im-169"><img src="${d.img}"></div>
+            <div class="pl-cap-169">${esc(tv)}${tc ? `<span class="pl-cap-cn-169">${esc(tc)}</span>` : ''}</div>
+          </div>`;
+        }).join('')}
       </div>
     `;
 
