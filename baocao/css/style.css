@@ -708,7 +708,12 @@ body.dark-mode .photo-cap-textarea:focus {
      344x463 (tỉ lệ 0.74) — không ô nào ra 1.5 như khai.
      Cách chữa: cho ảnh THOÁT KHỎI dòng chảy (position:absolute) thì ảnh không còn tính vào chiều
      cao nội dung, lúc đó aspect-ratio mới cầm trịch. Ô cắt phần dư (overflow:hidden). */
-  body.kho-a4 .photo .im-wrap,
+  /* Sếp chốt 20/08 (PA B): trang ảnh 3 hàng để dư 182px cuối trang, trông không thẩm mỹ. Nay ô
+     ảnh hơi thấp lại (5/3 = 1.667 thay vì 3/2 = 1.5) để vừa ĐÚNG 4 HÀNG = 8 ảnh mỗi trang, lấp
+     kín trang. Ô 344x206 so với 344x229 trước đây. Chừa lại ~30px dự phòng: đầu trang mỗi dự án có thể cao thấp khác nhau, khít quá thì hàng thứ 4 rơi sang trang sau, trang lại hở to hơn cũ. Ảnh KHÔNG méo: vẫn phóng
+     đều rồi cắt đối xứng quanh tâm; tỉ lệ 1.625 nằm giữa hai khuôn ảnh điện thoại phổ biến
+     (4:3 = 1.33 và 16:9 = 1.78). Bản vẽ GIỮ 3:2, không đổi. */
+  body.kho-a4 .photo .im-wrap{position:relative;height:auto;aspect-ratio:5/3;width:100%;overflow:hidden}
   body.kho-a4 .draw-card .im-wrap{position:relative;height:auto;aspect-ratio:3/2;width:100%;overflow:hidden}
   body.kho-a4 .photo .im-wrap > img.im,
   body.kho-a4 .draw-card .im-wrap > img.im{position:absolute;top:0;left:0;
