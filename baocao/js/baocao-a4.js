@@ -37,6 +37,16 @@
   /* ---------- gom bản xem thành danh sách KHỐI ----------
      Bản xem là chuỗi phẳng: r-head, rồi (sec-h, pad) xen kẽ, sign-block, divider.
      Mỗi tiêu đề mục phải đi liền phần thân của nó, không được rơi cuối trang một mình. */
+  // Khối có nội dung thật hay không: có chữ, có ảnh, hoặc có ô nhập (nút chọn ảnh, textarea).
+  // Sếp báo 20/08: "ô trắng trước khối HÌNH ẢNH THI CÔNG, KHỐI BẢN VẼ vẫn chưa xóa" — đó chính
+  // là phần thân RỖNG của khối phía trên (ví dụ khối 04 khi chưa nhập kế hoạch) vẫn dựng ra một
+  // khung trắng. Cũng khớp yêu cầu: trường nào không có thông tin thì tự ẩn.
+  function coNoiDung(el) {
+    if (!el) return false;
+    if (String(el.textContent || '').trim() !== '') return true;
+    return !!el.querySelector('img, input, textarea, select, button, canvas, svg, table');
+  }
+
   function gomKhoi(nguon) {
     var con = Array.prototype.slice.call(nguon.children);
     var khoi = [], i = 0;
@@ -45,10 +55,12 @@
       if (n.classList.contains('r-head')) { i++; continue; }        // đầu trang dựng riêng
       if (n.classList.contains('divider')) { i++; continue; }        // đường kẻ trang trí
       if (n.classList.contains('sec-h')) {
+        var than = (con[i + 1] && !con[i + 1].classList.contains('sec-h')) ? con[i + 1] : null;
+        i += than ? 2 : 1;
+        if (!than || !coNoiDung(than)) continue;      // phần thân rỗng -> BỎ cả khối, hết ô trắng
         var g = tao('div', 'a4-khoi');
         g.appendChild(n);
-        if (con[i + 1] && !con[i + 1].classList.contains('sec-h')) { g.appendChild(con[i + 1]); i += 2; }
-        else i += 1;
+        g.appendChild(than);
         khoi.push(g);
         continue;
       }
@@ -92,9 +104,24 @@
       return null;
     }
     var moi = tao('div', 'a4-khoi');
-    var nhan = tao('div', 'a4-tiep');
+    // Sếp báo 20/08: khối 03 sang trang "bị mất định dạng". Trước đây nhãn tiếp là một dải xám
+    // nhạt nên trông khác hẳn thanh tiêu đề mục. Nay nhãn tiếp DÙNG ĐÚNG KIỂU thanh tiêu đề
+    // (nền xanh, chữ trắng), chỉ thấp hơn một chút và có thêm chữ "(TIẾP)" để biết là phần nối.
     var tieu = khoi.querySelector('.sec-h');
-    nhan.textContent = (tieu ? tieu.textContent.trim().replace(/\s+/g, ' ') : '') + '  (tiếp)';
+    var nhan;
+    if (tieu) {
+      nhan = tieu.cloneNode(true);
+      nhan.classList.add('a4-tiep-head');
+      nhan.removeAttribute('onclick');
+      nhan.style.cursor = 'default';
+      var sp = document.createElement('span');
+      sp.className = 'a4-tiep-nhan';
+      sp.textContent = ' (TIẾP)';
+      nhan.appendChild(sp);
+    } else {
+      nhan = tao('div', 'a4-tiep');
+      nhan.textContent = '(tiếp)';
+    }
     moi.appendChild(nhan);
     var thanMoi = tao('div', than.className || 'pad');
     thanMoi.setAttribute('style', than.getAttribute('style') || '');

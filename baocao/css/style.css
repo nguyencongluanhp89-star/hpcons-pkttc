@@ -681,3 +681,9 @@ body.dark-mode .photo-cap-textarea:focus {
   /* Khi đang chụp tờ A4 thì ẩn mọi thành phần chỉ dùng để nhập liệu, để chúng không lên ảnh */
   body.dang-chup-a4 .no-print{display:none !important}
   body.dang-chup-a4 .a4-page{box-shadow:none}
+
+  /* Nhãn "(TIẾP)" của khối bị tách sang trang: dùng đúng kiểu thanh tiêu đề mục (nền xanh,
+     chữ trắng) nên không còn cảm giác mất định dạng; chỉ thấp hơn và không bấm được. */
+  .a4-page .a4-tiep-head{padding:5px 14px !important;font-size:11.5px !important;cursor:default !important}
+  .a4-page .a4-tiep-head::after{content:none !important}
+  .a4-page .a4-tiep-nhan{font-weight:400;opacity:.9;margin-left:6px}
