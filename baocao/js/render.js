@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b8.1';
+const APP_BUILD = 'b8.2';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -472,7 +472,14 @@ function draw(){
     <div><div class="wt">${wt}</div>${w.d?`<div class="wd">${biDetail(w.d)}</div>`:''}</div></div>`;
   }).join('');
   
-  let numPhotos = (photos.length > 6) ? 9 : 6;
+  /* Sếp báo 20/08: "chọn nhiều hình nhưng app chỉ hiển thị 7 hình, các hình còn lại không thể
+     hiện". Gốc: bản xem chặn cứng số ô ảnh — photos.length > 6 thì dựng 9 ô, không thì 6 ô. Dù
+     chọn 20 ảnh cũng chỉ dựng tối đa 9 ô nên ảnh từ thứ 10 trở đi bị cắt khỏi bản xem (và khỏi
+     ảnh xuất, vì ảnh xuất chụp chính bản xem). Trần này có từ thời báo cáo phải gói trong MỘT
+     trang; nay khổ A4 tự thêm trang khi hết chỗ nên không cần chặn nữa.
+     Nay: dựng ĐỦ mọi ảnh đã chọn, làm chẵn cho khớp lưới 2 cột, và giữ tối thiểu 6 ô như cũ để
+     khi chưa có ảnh vẫn có chỗ bấm tải lên. Dữ liệu photos không bị cắt bỏ gì. */
+  let numPhotos = Math.max(6, photos.length + (photos.length % 2));
   let displayPhotos = photos.slice(0, numPhotos);
   while(displayPhotos.length < numPhotos) displayPhotos.push({tm:'',vi:'',cn:'',img:null});
 

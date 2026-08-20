@@ -756,6 +756,19 @@ function onBulkPhotos(input){
     }
     
     el('bulkStatus').innerHTML = statusText;
+
+    /* Nút "Chọn nhiều ảnh" nay nằm ở mục HÌNH ẢNH THI CÔNG trên báo cáo, còn dòng trạng thái
+       này lại ở trong popup 03 (đang ẩn) — nên khi app loại ảnh trùng hoặc bỏ ảnh vượt trần thì
+       Sếp không hề được báo, chỉ thấy "chọn nhiều mà hiện có mấy hình". Khi ô trạng thái không
+       hiển thị thì báo bằng toast, để không ảnh nào âm thầm biến mất. */
+    var oTT = el('bulkStatus');
+    if (!oTT || !oTT.offsetParent) {
+      var tomTat = 'Đã đưa vào ' + filledCount + ' ảnh'
+        + (dupCount > 0 ? ' — loại ' + dupCount + ' ảnh trùng nội dung' : '')
+        + (soVuot > 0 ? ' — bỏ ' + soVuot + ' ảnh vượt trần ' + TRAN_ANH : '') + '.';
+      if (typeof showToast === 'function') showToast(tomTat);
+    }
+
     renderPhotoForm();
     draw();
 

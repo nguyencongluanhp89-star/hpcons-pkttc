@@ -410,6 +410,17 @@
     if (typeof html2canvas !== 'function') return Promise.reject(new Error('Thiếu html2canvas'));
 
     document.body.classList.add('dang-chup-a4');     // ẩn phần nhập liệu, không lên ảnh
+
+    /* Ô ảnh / bản vẽ CHƯA có hình chỉ là chỗ để bấm nhập, không được lên ảnh xuất. Lưới ảnh
+       xếp 2 cột nên khi số ảnh lẻ sẽ dư một ô trống; ô đó phải biến mất lúc chụp. Ẩn tạm ở đây
+       rồi hoàn nguyên ngay sau khi chụp — bản xem vẫn còn ô để Sếp bấm tải thêm ảnh. */
+    var oRong = Array.prototype.slice.call(dich.querySelectorAll('.photo, .draw-card'))
+      .filter(function (o) { return !o.querySelector('img'); });
+    oRong.forEach(function (o) { o.setAttribute('data-a4-an-tam', o.style.display || ''); o.style.display = 'none'; });
+    function hienLaiORong() {
+      oRong.forEach(function (o) { o.style.display = o.getAttribute('data-a4-an-tam') || ''; o.removeAttribute('data-a4-an-tam'); });
+    }
+
     var anhs = [];
     return tos.reduce(function (p, to) {
       return p.then(function () {
@@ -425,9 +436,11 @@
       });
     }, Promise.resolve()).then(function () {
       document.body.classList.remove('dang-chup-a4');
+      hienLaiORong();
       return anhs;
     }).catch(function (e) {
       document.body.classList.remove('dang-chup-a4');
+      hienLaiORong();
       throw e;
     });
   }
