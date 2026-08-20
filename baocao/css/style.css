@@ -622,3 +622,29 @@ body.dark-mode .photo-cap-textarea:focus {
 }
 
 
+
+  /* ===== KHỔ A4 ĐỨNG (Sếp duyệt 20/08) — bản xem chính là bản xuất =====
+     A4 ở 96dpi: 210x297mm = 794x1123px, đúng tỉ lệ 1:1.4142. Mỗi tờ là một .a4-page
+     rời, có đầu trang lặp lại và chân trang ghi số trang; nội dung nhiều thì bộ phân
+     trang (js/baocao-a4.js) tự mở thêm tờ. */
+  #report-a4{display:none}
+  body.kho-a4 #report{display:none !important}
+  body.kho-a4 #report-a4{display:flex;flex-direction:column;gap:26px;align-items:center}
+  .a4-page{width:794px;height:1123px;background:#fff;box-sizing:border-box;
+    padding:34px;display:flex;flex-direction:column;gap:12px;
+    box-shadow:0 6px 24px rgba(0,0,0,.18);position:relative;overflow:hidden;
+    font-size:12.5px;color:#1c2733}
+  .a4-page .a4-head{flex-shrink:0;border-bottom:3px solid var(--navy2);margin-bottom:4px}
+  .a4-page .a4-head .r-logo{width:120px;padding:8px}
+  .a4-page .a4-head img{max-height:52px}
+  .a4-than{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .a4-khoi{flex-shrink:0}
+  .a4-tiep{font-weight:700;color:var(--navy);font-size:11.5px;padding:6px 10px;
+    background:#f1f5f9;border-left:4px solid var(--navy2);border-radius:4px;margin-bottom:6px;
+    text-transform:uppercase}
+  .a4-foot{flex-shrink:0;border-top:2px solid var(--navy);padding-top:7px;display:flex;
+    justify-content:space-between;font-size:9.5px;color:#94a3b8}
+  /* Trong khổ A4 các mục xếp DỌC nối tiếp nhau, không chia 2 cột như bản xem cũ */
+  body.kho-a4 .pad.two{flex-direction:column}
+  body.kho-a4 .photos{grid-template-columns:1fr 1fr 1fr}
+  body.kho-a4 .draw{grid-template-columns:1fr 1fr}

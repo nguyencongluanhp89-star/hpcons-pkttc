@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b6.0';
+const APP_BUILD = 'b6.1';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -123,6 +123,15 @@ function tongHopNhaThauTuan(ngayBaoCao) {
   return { ngay: ngay, nhaThau: nhaThau };
 }
 window.tongHopNhaThauTuan = tongHopNhaThauTuan;
+
+// Công tắc khổ A4: ?kho=a4 trên đường dẫn, hoặc đặt window.BC_KHO = 'a4'
+function khoA4() {
+  try {
+    if (window.BC_KHO === 'a4') return true;
+    return new URLSearchParams(location.search).get('kho') === 'a4';
+  } catch (e) { return false; }
+}
+window.khoA4 = khoA4;
 
 // Bảng tổng hợp nhà thầu cho BẢN XEM TRONG APP (ảnh xuất dựng riêng trong exportPNG169).
 function contractorTableHtml() {
@@ -591,6 +600,17 @@ function draw(){
 
   if (typeof window.autoGrowAllTextareas === 'function') {
     window.autoGrowAllTextareas();
+  }
+
+  /* KHỔ A4 ĐỨNG (Sếp duyệt 20/08) — bật bằng ?kho=a4 hoặc window.BC_KHO='a4'.
+     Sau khi bản xem đã dựng xong, cắt nó thành từng tờ A4 rời và hiện các tờ đó thay cho
+     dải dọc cũ. Đây là bước 1: bản xem đã là đúng cái sẽ xuất ra. Bản cũ vẫn là mặc định
+     nên anh em đang báo cáo không bị ảnh hưởng. */
+  if (khoA4() && window.BCA4) {
+    document.body.classList.add('kho-a4');
+    try { window.BCA4.phanTrang({ nguon: 'report', dich: 'report-a4' }); }
+    catch (e) { console.warn('Phân trang A4 lỗi, quay về bản xem cũ:', e && e.message);
+                document.body.classList.remove('kho-a4'); }
   }
   fitDrawCardsPreview();
   adjustReportScale();
