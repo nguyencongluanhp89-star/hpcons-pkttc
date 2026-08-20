@@ -29,7 +29,15 @@ function renderUnitForm(){
   const nhieu = units.length > NGUONG_THU_GON;
   const hienHet = _unitMoRong || !nhieu;
   const danhSach = hienHet ? units : units.slice(0, NGUONG_THU_GON);
+  /* Sếp yêu cầu 20/08: nút cuộn (thu gọn / mở rộng) bố trí Ở TRÊN cho thuận tiện khai báo —
+     trước đây nút nằm dưới cùng nên danh sách dài phải cuộn xuống hết mới bấm được. */
   let h = "";
+  if (nhieu) {
+    const tongTruoc = units.reduce((a, u) => a + (parseInt(u.n) || 0), 0);
+    h += `<button class="addbtn" type="button" onclick="toggleUnitMoRong()" style="width:100%;text-align:left;margin-bottom:6px">
+      ${hienHet ? '▲ Thu gọn danh sách' : `▼ Nhà thầu thi công hôm nay: ${units.length} đơn vị · ${tongTruoc} người`}
+    </button>`;
+  }
 
   danhSach.forEach((u, i) => {
     let opt = `<option value="">-- Chọn nhà thầu --</option>`;
@@ -60,13 +68,6 @@ function renderUnitForm(){
         </div>
       </div></div>`;
   });
-
-  if (nhieu) {
-    const tong = units.reduce((a, u) => a + (parseInt(u.n) || 0), 0);
-    h += `<button class="addbtn" type="button" onclick="toggleUnitMoRong()" style="width:100%;text-align:left">
-      ${hienHet ? '▲ Thu gọn danh sách' : `▼ Nhà thầu thi công hôm nay: ${units.length} đơn vị · ${tong} người`}
-    </button>`;
-  }
 
   el2.innerHTML = h;
   if (typeof updateProgress === 'function') updateProgress();

@@ -150,26 +150,27 @@
         const projectId = AppCore.currentProject ? AppCore.currentProject.id : "";
         if (!projectId) return;
         
+        /* Sếp báo 20/08: "danh sách nhà thầu không đúng với danh sách khai trong dự án — có
+           những nhà thầu không khai vẫn hiển thị". Gốc: trước đây danh sách chọn được GỘP hai
+           nguồn — nhà thầu đã khai cho DỰ ÁN (config/contractors, lọc theo project_id) CỘNG
+           thêm một danh mục dùng chung mọi dự án (config/kb_contractors). Chính danh mục chung
+           đó đẩy vào các tên chưa từng khai cho dự án này.
+           Nay CHỈ lấy nhà thầu đã khai cho dự án hiện tại và chưa bị Ẩn. Dữ liệu
+           config/kb_contractors trên Firebase KHÔNG bị xóa, chỉ thôi dùng để đổ vào ô chọn.
+           Nhà thầu đã nằm trong báo cáo cũ mà không còn trong danh mục vẫn được giữ (ô chọn
+           tự thêm mục "(ngoài danh mục)") nên không mất dữ liệu báo cáo nào. */
         Promise.all([
-          db.collection("config").doc("contractors").get(),
-          db.collection("config").doc("kb_contractors").get()
-        ]).then(([doc1, doc2]) => {
+          db.collection("config").doc("contractors").get()
+        ]).then(([doc1]) => {
           const contractors = doc1.exists ? (doc1.data().value || []) : [];
-          const kbContractors = doc2.exists ? (doc2.data().value || []) : [];
-          
-          // Lọc contractors của dự án hiện tại và đang active
+
+          // Chỉ nhà thầu của DỰ ÁN HIỆN TẠI và đang hiện (không bị Ẩn)
           const projContractors = contractors
             .filter(c => c.project_id === projectId && c.status !== 'inactive')
             .map(c => c.name);
-            
-          // Lọc kb contractors chung
-          const generalKb = kbContractors
-            .filter(c => c.status !== 'inactive')
-            .map(c => c.name || c); // Đề phòng cấu hình dạng mảng string hoặc object
-            
-          // Gộp danh sách
-          window.ALL_PROJECT_CONTRACTORS = Array.from(new Set([...projContractors, ...generalKb]));
-          console.log("Đã gộp nhà thầu cho dự án:", window.ALL_PROJECT_CONTRACTORS.length);
+
+          window.ALL_PROJECT_CONTRACTORS = Array.from(new Set(projContractors));
+          console.log("Nhà thầu đã khai của dự án:", window.ALL_PROJECT_CONTRACTORS.length);
           
           // Cập nhật lại form tổ đội
           if (typeof renderUnitForm === 'function') {

@@ -3,7 +3,7 @@
 // MÃ BẢN — in nhỏ ở chân ảnh xuất. Mục đích: nhìn ảnh là biết máy đó đang chạy bản nào, khỏi phải
 // đoán mò khi Sếp báo "sửa rồi mà chưa thấy đổi" (16/08: ảnh cho thấy máy còn kẹt bản cũ).
 // ĐỔI SỐ NÀY mỗi lần sửa render.js, cho khớp ?v= trong index.html.
-const APP_BUILD = 'b8.7';
+const APP_BUILD = 'b8.8';
 window.APP_BUILD = APP_BUILD;
 
 /* =============================================================================
@@ -186,7 +186,12 @@ function contractorTableHtml() {
     + '</th>'
   ).join('');
   const dauTong = '<th style="text-align:center; padding:6px 4px; font-size:var(--fs-caption); color:var(--navy); border-bottom:2px solid #cbd5e1; white-space:nowrap; vertical-align:bottom; background:#eef4fa; border-left:2px solid #cbd5e1; width:11%;">'
+    /* Sếp báo 20/08: "chữ TỔNG ở cột không thẳng hàng với các thứ". Gốc: ô ngày có HAI dòng
+       (tên thứ + ngày tháng) và canh theo ĐÁY ô, nên tên thứ nằm ở dòng trên; ô TỔNG chỉ một
+       dòng nên bị tụt xuống ngang hàng dòng ngày tháng. Nay thêm một dòng ẩn cùng cỡ chữ, cùng
+       khoảng cách với dòng ngày tháng -> chữ TỔNG rơi đúng hàng với tên thứ. */
     + '<div style="font-weight:800; line-height:1.25;">TỔNG</div>'
+    + '<div style="visibility:hidden; font-weight:400; font-size:var(--fs-caption-cn); line-height:1.25; margin-top:2px;">00/00</div>'
     + '</th>';
 
   const dong = th.nhaThau.length
